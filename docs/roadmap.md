@@ -12,6 +12,16 @@ Compared with `docs/spec-input.md` section 9: the Reviewer joins in the first li
 4. **Replay source.** Replay plays the most recent recording for the selected dataset, falling back to that dataset's golden log. There is no run browser.
 5. **Python.** 3.13, the interpreter installed on the reference machine. `CLAUDE.md` and spec open item 11 updated.
 
+## Decisions taken before S2 (owner approvals under constitution XIX, 2026-09-14)
+
+1. **Rating disagreements are a concern, not a blocker.** `config/electrical-rfp/estimating-conventions.md` changed. Planted inconsistency shows the Review fail and rework.
+2. **A missing panel schedule is a concern at Intake.** `config/electrical-rfp/readiness-checklist.md` changed. Missing sheet shows the Estimator's blocker, Answer, and Escalate.
+3. **Orchestrator model scope.** The Orchestrator's model proposes the plan, reasons, question wording, routing within the Reviewer's recommendations, and the termination headline. The hand-written run engine keeps every rule and validates every proposal.
+4. **Provenance tag syntax** is `{{value|src:<source_id>}}`, parsed by the S4 compile step.
+5. **Long-lead threshold** is 28 days.
+6. **The price lookup tool returns extended costs and totals**, so Pricing on the local model copies numbers rather than computing them.
+7. **S2 starts before its owner inputs exist.** Specify, plan, and tasks run now, and everything that needs no credentials or curated dataset is built. Live runs wait for the Clean run dataset, Bedrock and Gemini credentials, and Ollama.
+
 ## Adjustments after constitution 1.1.0
 
 - **S1 gains the quality gates.** Test runner, type checker, linter, and the em-dash lint over the repository and generated output are set up in S1 and gate every later slice (XVI). S1 also adds a schema-level test that no event payload or prompt bundle contains a value from `.env` (XVII).

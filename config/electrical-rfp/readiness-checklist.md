@@ -16,7 +16,7 @@ Read by the Intake Analyst. Grade every item as present, present with concerns, 
 ## Drawing set
 - Electrical legend and abbreviations sheet, typically E0 series (default: use standard IEEE/CSA symbols, flag)
 - Single-line diagram (blocking)
-- Panel schedules for every panel shown on the single-line (blocking if any panel on the single-line has no schedule)
+- Panel schedules for every panel shown on the single-line (a panel with no schedule is a concern for the Estimator, who raises the blocker in Work; not a blocker at Intake)
 - Electrical floor plans, power and lighting, for every level (blocking if any level referenced in scope has no plan)
 - Specifications or a specification section list for Division 26 (blocking if absent and scope references specifications)
 - Drawing index matching the sheets provided (default: infer index from sheet titles, flag)

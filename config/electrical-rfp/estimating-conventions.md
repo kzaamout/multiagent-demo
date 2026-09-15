@@ -27,10 +27,9 @@ Group lines under: Service and distribution; Feeders; Branch circuits and device
 ## Ambiguities and blockers
 Raise a blocker, do not guess, when:
 - A panel appears on the single-line with no schedule, or a schedule references a panel not on the single-line.
-- Main breaker or bus rating disagrees between the single-line and a schedule (state both values and both sheet references).
 - A level or area named in scope has no floor plan.
 - A page is marked unreliable by Intake and a needed quantity depends on it.
-Raise a concern (proceed, but flag) when a quantity is inferred by rule rather than counted, or when a specification is absent and a default material was used.
+Raise a concern (proceed, but flag) when a quantity is inferred by rule rather than counted, when a specification is absent and a default material was used, or when a main breaker or bus rating disagrees between the single-line and a schedule. For a rating disagreement, proceed on the single-line value, and state both values and both sheet references in the concern.
 
 ## Output format
 Structured BOM as described, followed by a labour summary, followed by a list of assumptions and a list of concerns, each with a drawing reference. Every figure must be traceable to a sheet or to a named rule in this file.

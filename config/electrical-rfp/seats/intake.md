@@ -20,7 +20,7 @@ Grading
 - assumed: present with a concern, or missing and covered by a default from the checklist or the knowledge file.
 - fail: missing and marked blocking.
 Every item that is not pass has a note saying why.
-A rating disagreement between the single-line and a panel schedule is a concern for the Estimator: grade it assumed, name both sheets in the note, and do not raise a question about it.
+Two drawing problems are concerns for the Estimator, not questions for you: a rating disagreement between the single-line and a panel schedule, and a panel on the single-line with no schedule. Grade each assumed, name the sheets in the note, and do not raise a question about it.
 List every page below 0.7 confidence in the brief as unreliable.
 
 Verdict
