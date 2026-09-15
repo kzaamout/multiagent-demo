@@ -111,3 +111,53 @@ def test_pricing_needs_cost_summary_totals() -> None:
 def test_writer_needs_markdown() -> None:
     with pytest.raises(ReplyError):
         parse_reply("writer", json.dumps({"markdown": ""}))
+
+
+def test_nested_reply_object_is_accepted() -> None:
+    from app.live.replies import PlanProposal, parse_as
+
+    text = json.dumps(
+        {"plan": {"subtasks": [{"task_id": "t1"}], "reason": "Pricing needs the takeoff."}, "headline": None}
+    )
+    assert parse_as(PlanProposal, text).reason == "Pricing needs the takeoff."
+    with pytest.raises(ReplyError):
+        parse_as(PlanProposal, json.dumps({"plan": {"steps": []}}))
+
+
+def _intake(checklist: list[dict[str, str]], clarifications: list[dict[str, Any]]) -> str:
+    verdict = "ready_with_assumptions" if any(c["status"] == "assumed" for c in checklist) else "ready"
+    return json.dumps(
+        {
+            "brief": {},
+            "readiness": {"verdict": verdict, "checklist": checklist},
+            "clarifications": clarifications,
+        }
+    )
+
+
+def test_intake_must_grade_every_item_and_ask_about_every_gap() -> None:
+    from app.config import ROOT
+    from app.live.replies import checklist_item_count
+
+    expected = checklist_item_count(ROOT / "config" / "electrical-rfp" / "readiness-checklist.md")
+    assert expected == 20
+    passes = [{"item": f"Item {i}", "status": "pass", "note": ""} for i in range(expected - 2)]
+    bonding = {
+        "item": "Bonding or insurance requirements stated",
+        "status": "assumed",
+        "note": "bid security open",
+    }
+    rating = {"item": "Main breaker and bus ratings agree", "status": "assumed", "note": "E-001 vs E-002"}
+    question = {
+        "question_id": "q_bid_security",
+        "question": "Is bid security required?",
+        "why_it_matters": "It changes the tender forms and cost.",
+        "proposed_default": "No bid security required",
+        "blocking": True,
+    }
+    with pytest.raises(ReplyError, match="grades 9 items"):
+        parse_reply("intake", _intake(passes[:8] + [bonding], [question]), expected_items=expected)
+    with pytest.raises(ReplyError, match="Bonding or insurance"):
+        parse_reply("intake", _intake([*passes, bonding, rating], []), expected_items=expected)
+    reply = parse_reply("intake", _intake([*passes, bonding, rating], [question]), expected_items=expected)
+    assert isinstance(reply, IntakeReply), "a rating disagreement is the Estimator's concern, not a question"

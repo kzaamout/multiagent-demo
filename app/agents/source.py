@@ -24,9 +24,10 @@ class AgentFailure(Exception):
     """An agent could not produce a usable reply. The reason is one sentence fit for the
     termination card and never contains provider error text."""
 
-    def __init__(self, reason: str) -> None:
+    def __init__(self, reason: str, *, invalid_reply: bool = False) -> None:
         super().__init__(reason)
         self.reason = reason
+        self.invalid_reply = invalid_reply
 
 
 @dataclass(frozen=True)

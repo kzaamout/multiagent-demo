@@ -207,3 +207,17 @@ def test_scripted_model_is_test_only() -> None:
         encoding="utf-8"
     )
     assert ScriptedModel.__module__.startswith("tests.")
+
+
+async def test_unreadable_plan_twice_falls_back_to_standard_plan(tmp_path: Path) -> None:
+    turns = h.full_turns()
+    turns["orchestrator"] = [
+        [{"text": "I will plan the work."}],
+        [{"text": "Still no JSON."}],
+        h.headline_turn(),
+    ]
+    orchestrator = h.build(tmp_path, turns, "10000000-0000-4000-8000-000000000010")
+    await drive(orchestrator, SCRIPT)
+    plan = of_type(orchestrator.events, "plan.created")[0]
+    assert "could not be read" in (plan.reason or "")
+    assert orchestrator.events[-1].payload["exit"] == "reviewer_pass"

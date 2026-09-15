@@ -230,6 +230,7 @@ class SeatCall:
                     return
                 except ReplyError:
                     raise AgentFailure(
-                        f"The {self.role} on {label} returned an invalid reply twice, so the run stops."
+                        f"The {self.role} on {label} returned an invalid reply twice, so the run stops.",
+                        invalid_reply=True,
                     ) from None
         raise AgentFailure(f"The {self.role} on {label} produced no reply, so the run stops.")

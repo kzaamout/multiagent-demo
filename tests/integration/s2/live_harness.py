@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from app.live.materials import DatasetFiles
+from app.live.materials import CONFIG_DIR, DatasetFiles
 from app.live.providers import live_roster
 from app.live.seat_call import SeatModel
 from app.live.source import LiveAgentSource, LiveContext
@@ -32,6 +32,18 @@ def dataset(tmp: Path) -> Path:
     return folder
 
 
+def checklist_items() -> list[str]:
+    """Every gradable item in the readiness checklist, as a real Intake reply must grade them."""
+    items: list[str] = []
+    graded = False
+    for line in (CONFIG_DIR / "readiness-checklist.md").read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            graded = line[3:].strip().lower() in {"request document", "drawing set", "consistency checks"}
+        elif graded and line.startswith("- "):
+            items.append(line[2:].split(" (")[0])
+    return items
+
+
 def intake_turns(blocking: bool = True) -> list[Turn]:
     return [
         [{"text": "Listing the request files."}, {"tool": "document_extract_attachments", "input": {}}],
@@ -48,8 +60,7 @@ def intake_turns(blocking: bool = True) -> list[Turn]:
                 "readiness": {
                     "verdict": "ready_with_assumptions",
                     "checklist": [
-                        {"item": "Scope of work", "status": "pass", "note": ""},
-                        {"item": "Submission deadline", "status": "pass", "note": ""},
+                        *({"item": item, "status": "pass", "note": ""} for item in checklist_items()),
                         {"item": "Service voltage", "status": "assumed", "note": "question raised"},
                     ],
                     "legibility": [{"page": "request.pdf p1", "confidence": 1.0}],

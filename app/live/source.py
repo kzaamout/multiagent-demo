@@ -16,10 +16,10 @@ from typing import TYPE_CHECKING, Any, cast
 from pydantic import BaseModel
 
 from app.agents.base import Emit, HumanScript, Marks, MeterDelta
-from app.agents.source import HeadlineResult, PlanResult, Timing
+from app.agents.source import AgentFailure, HeadlineResult, PlanResult, Timing
 from app.agents.stubs._common import rfp_plan
 from app.live.context import build_context
-from app.live.materials import DatasetFiles, build_materials
+from app.live.materials import CONFIG_DIR, DatasetFiles, build_materials
 from app.live.replies import (
     EstimatorReply,
     HeadlineProposal,
@@ -30,10 +30,11 @@ from app.live.replies import (
     ReviewerReply,
     WriterReply,
     blocker_payload,
+    checklist_item_count,
     completed_payload,
     draft_payload,
-    extract_json,
     intake_payloads,
+    parse_as,
     parse_reply,
     verdict_payload,
 )
@@ -249,10 +250,11 @@ class LiveAgentSource:
     async def intake(self) -> AsyncIterator[Emit]:
         bundle = self._bundle(
             "intake",
-            "Grade the request in the inputs folder against the readiness checklist. Return the brief, readiness, and clarifications as the JSON your instructions describe.",
+            "Grade the request in the inputs folder against every item of the readiness checklist, including the drawing set and consistency checks. Raise one clarification for each item that is not pass. Return the brief, readiness, and clarifications as the JSON your instructions describe.",
         )
+        expected_items = checklist_item_count(CONFIG_DIR / "readiness-checklist.md")
         async for emit, reply, pending, _ in self._stream(
-            "intake", "intake", bundle, lambda t: parse_reply("intake", t)
+            "intake", "intake", bundle, lambda t: parse_reply("intake", t, expected_items=expected_items)
         ):
             if emit is not None:
                 yield emit
@@ -267,20 +269,29 @@ class LiveAgentSource:
     async def plan(self) -> PlanResult:
         bundle = self._bundle(
             "orchestrator",
-            "Propose the work plan for this brief. Seats that can hold sub-tasks: estimator, pricing, writer. Return the plan JSON with subtasks and a reason.",
+            'Propose the work plan for this brief. Seats that can hold sub-tasks: estimator, pricing, writer. Return only this JSON object and nothing else: {"subtasks": [{"task_id": "...", "title": "...", "agent_id": "...", "depends_on": [], "scope": []}], "reason": "..."}',
         )
         meters: list[MeterDelta] = []
         proposal: PlanProposal | None = None
 
         def parse(text: str) -> BaseModel:
-            return PlanProposal.model_validate(extract_json(text))
+            return parse_as(PlanProposal, text)
 
         self.o.bundles[bundle.prompt_ref] = bundle
-        async for item in self._call("orchestrator", bundle, parse):
-            if item.kind == "usage" and item.usage is not None:
-                meters.append(item.usage)
-            elif item.kind == "reply":
-                proposal = cast(PlanProposal, item.reply)
+        try:
+            async for item in self._call("orchestrator", bundle, parse):
+                if item.kind == "usage" and item.usage is not None:
+                    meters.append(item.usage)
+                elif item.kind == "reply":
+                    proposal = cast(PlanProposal, item.reply)
+        except AgentFailure as failure:
+            if not failure.invalid_reply:
+                raise
+            return PlanResult(
+                standard_plan(),
+                "The Orchestrator's plan could not be read, so the standard plan is used.",
+                meters,
+            )
         if proposal is not None:
             try:
                 return PlanResult(validate_plan(proposal.subtasks), proposal.reason, meters)
@@ -389,18 +400,22 @@ class LiveAgentSource:
     async def headline(self, exit_value: str, default: str) -> HeadlineResult:
         bundle = self._bundle(
             "orchestrator",
-            f"The run ends with exit {exit_value} after {self.o.state.retries} retries. Write the termination headline JSON. A plain default is: {default}",
+            f'The run ends with exit {exit_value} after {self.o.state.retries} retries. Return only this JSON object: {{"headline": "one sentence under 12 words"}}. A plain default is: {default}',
         )
         self.o.bundles[bundle.prompt_ref] = bundle
         meters: list[MeterDelta] = []
         headline: str | None = None
 
         def parse(text: str) -> BaseModel:
-            return HeadlineProposal.model_validate(extract_json(text))
+            return parse_as(HeadlineProposal, text)
 
-        async for item in self._call("orchestrator", bundle, parse):
-            if item.kind == "usage" and item.usage is not None:
-                meters.append(item.usage)
-            elif item.kind == "reply":
-                headline = cast(HeadlineProposal, item.reply).headline.strip() or None
+        try:
+            async for item in self._call("orchestrator", bundle, parse):
+                if item.kind == "usage" and item.usage is not None:
+                    meters.append(item.usage)
+                elif item.kind == "reply":
+                    headline = cast(HeadlineProposal, item.reply).headline.strip() or None
+        except AgentFailure as failure:
+            if not failure.invalid_reply:
+                raise
         return HeadlineResult(headline, meters)

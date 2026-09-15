@@ -60,7 +60,7 @@ No alternates or unit prices are requested.
 
 = 8. Bid security
 
-The Owner has not yet confirmed the bid security requirement for this tender. Tenderers must confirm with the Owner's contact whether bid security is required, and in what form, before submitting a tender.
+The Owner has not yet confirmed the bid security requirement for this tender. Tenderers must confirm with the Owner's contact whether bid security is required, and in what form, before submitting a tender. A tender submitted without confirming the bid security requirement is non-compliant and will be rejected.
 
 = 9. Insurance
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
@@ -103,18 +104,53 @@ class Clarification(BaseModel):
     blocking: bool
 
 
+# Checklist items that are concerns for the Estimator rather than questions for the human
+# (config/electrical-rfp/readiness-checklist.md and the intake seat instructions).
+ESTIMATOR_CONCERN_WORDS = ("panel schedule", "rating")
+
+
+def checklist_item_count(path: Path) -> int:
+    """The number of gradable items: bullets under the request, drawing set, and consistency headings."""
+    count = 0
+    graded = False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            heading = line[3:].strip().lower()
+            graded = heading in {"request document", "drawing set", "consistency checks"}
+        elif graded and line.startswith("- "):
+            count += 1
+    return count
+
+
 class IntakeReply(BaseModel):
     brief: dict[str, Any]
     readiness: Readiness
     clarifications: list[Clarification] = Field(default_factory=list)
 
-    def check(self) -> None:
+    def check(self, expected_items: int | None = None) -> None:
         failing = [c for c in self.readiness.checklist if c.status == "fail"]
         assumed = [c for c in self.readiness.checklist if c.status == "assumed"]
         expected = "not_ready" if failing else "ready_with_assumptions" if assumed else "ready"
         if self.readiness.verdict != expected:
             raise ReplyError(
                 f"verdict {self.readiness.verdict} contradicts the checklist grades ({expected})"
+            )
+        if expected_items is not None and len(self.readiness.checklist) < expected_items:
+            raise ReplyError(
+                f"readiness.checklist grades {len(self.readiness.checklist)} items but the readiness checklist has "
+                f"{expected_items}: grade every item under Request document, Drawing set, and Consistency checks"
+            )
+        gaps = [
+            c
+            for c in failing + assumed
+            if not any(word in c.item.lower() for word in ESTIMATOR_CONCERN_WORDS)
+        ]
+        if len(self.clarifications) < len(gaps):
+            names = "; ".join(c.item for c in gaps)
+            raise ReplyError(
+                f"{len(gaps)} checklist items are not pass but there are {len(self.clarifications)} clarifications. "
+                f"Add one clarification with a proposed default for each of: {names}. Mark it blocking when the "
+                "request says the item must be settled before submitting"
             )
 
 
@@ -262,18 +298,32 @@ REPLY_MODELS: dict[str, type[BaseModel]] = {
 }
 
 
-def parse_reply(agent_id: str, text: str) -> BaseModel:
-    """Parse and validate a seat's reply. Raises ReplyError with a message fit to send back to the seat."""
-    data = extract_json(text)
-    model = REPLY_MODELS[agent_id]
+def validate_as[M: BaseModel](model: type[M], data: dict[str, Any]) -> M:
+    """Validate a reply object. Small models sometimes nest the requested object one level down, for
+    example {"plan": {...}}; the first nested object that validates is used. Raises ReplyError."""
     try:
-        reply = model.model_validate(data)
+        return model.model_validate(data)
     except ValidationError as error:
+        for value in data.values():
+            if isinstance(value, dict):
+                try:
+                    return model.model_validate(value)
+                except ValidationError:
+                    continue
         problems = "; ".join(f"{'.'.join(str(p) for p in e['loc'])}: {e['msg']}" for e in error.errors()[:8])
         raise ReplyError(problems) from error
+
+
+def parse_as[M: BaseModel](model: type[M], text: str) -> M:
+    return validate_as(model, extract_json(text))
+
+
+def parse_reply(agent_id: str, text: str, **check_args: Any) -> BaseModel:
+    """Parse and validate a seat's reply. Raises ReplyError with a message fit to send back to the seat."""
+    reply = parse_as(REPLY_MODELS[agent_id], text)
     check = getattr(reply, "check", None)
     if callable(check):
-        check()
+        check(**check_args)
     return reply
 
 
