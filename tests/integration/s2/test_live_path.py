@@ -168,6 +168,11 @@ async def test_invalid_reply_twice_stops_with_seat_named(tmp_path: Path) -> None
     assert last.payload["exit"] == "stopped"
     assert "Intake Analyst" in (last.reason or "") and "invalid reply twice" in (last.reason or "")
     assert validate_run(orchestrator.events) == []
+    rejected = sorted((orchestrator.run_folder or tmp_path).glob("rejected/*.txt"))
+    assert [r.name.rsplit("-", 1)[1] for r in rejected] == ["1.txt", "2.txt"], (
+        "both rejected replies are kept"
+    )
+    assert "still not json" in rejected[1].read_text(encoding="utf-8")
 
 
 async def test_provider_error_never_leaks_its_text(tmp_path: Path) -> None:

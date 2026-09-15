@@ -37,6 +37,7 @@ from app.live.replies import (
     parse_as,
     parse_reply,
     verdict_payload,
+    without_em_dashes,
 )
 from app.live.seat_call import CallItem, Requirement, SeatCall, SeatModel
 from app.live.strands_tools import ToolLog, build_tools
@@ -224,8 +225,21 @@ class LiveAgentSource:
             bundle=bundle,
             parse=parse,
             requirement=requirement,
+            on_rejected=lambda attempt, text, error: self._record_rejected(
+                bundle.prompt_ref, attempt, text, error
+            ),
         )
         return call.run()
+
+    def _record_rejected(self, prompt_ref: str, attempt: int, text: str, error: str) -> None:
+        """Keep each rejected reply beside the recording, so a stopped live run can be diagnosed."""
+        folder = self.o.run_folder
+        if folder is None:
+            return
+        target = folder / "rejected"
+        target.mkdir(parents=True, exist_ok=True)
+        body = f"Rejected: {error}\n\n{text}\n"
+        (target / f"{prompt_ref}-{attempt}.txt").write_text(without_em_dashes(body), encoding="utf-8")
 
     async def _stream(
         self,

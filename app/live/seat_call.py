@@ -166,6 +166,7 @@ class SeatCall:
         bundle: PromptBundle,
         parse: Callable[[str], BaseModel],
         requirement: Requirement | None = None,
+        on_rejected: Callable[[int, str, str], None] | None = None,
     ) -> None:
         self.agent_id = agent_id
         self.role = role
@@ -176,8 +177,16 @@ class SeatCall:
         self.bundle = bundle
         self.parse = parse
         self.requirement = requirement
+        self.on_rejected = on_rejected
         self.tools_used: list[str] = []
         self.tool_names = {str(getattr(t, "tool_name", getattr(t, "__name__", ""))) for t in tools}
+
+    def _rejected(self, attempt: int, text: str, error: ReplyError) -> None:
+        if self.on_rejected is not None:
+            try:
+                self.on_rejected(attempt, text, str(error))
+            except OSError:
+                pass  # diagnostics never stop a run
 
     def _accept(self, text: str) -> BaseModel:
         """Parse the reply and apply the seat's requirement on how it was produced. Raises ReplyError."""
@@ -262,6 +271,7 @@ class SeatCall:
                 yield CallItem("reply", reply=self._accept(text))
                 return
             except ReplyError as first_error:
+                self._rejected(1, text, first_error)
                 correction = (
                     "Your reply was not accepted: "
                     f"{first_error}. Fix this, using your tools if needed, then reply again with only the corrected JSON object."
@@ -282,7 +292,8 @@ class SeatCall:
                 try:
                     yield CallItem("reply", reply=self._accept(text))
                     return
-                except ReplyError:
+                except ReplyError as second_error:
+                    self._rejected(2, text, second_error)
                     raise AgentFailure(
                         f"The {self.role} on {label} returned an invalid reply twice, so the run stops.",
                         invalid_reply=True,
