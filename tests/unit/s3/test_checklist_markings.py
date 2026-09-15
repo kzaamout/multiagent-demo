@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from app.config import ROOT
 from app.live.replies import (
@@ -17,7 +18,7 @@ CHECKLIST = ROOT / "config" / "electrical-rfp" / "readiness-checklist.md"
 BRIEF = {"project": "Quillbrook Library", "scope": "Main floor fit-out"}
 
 
-def graded(failing: dict[str, str], clarifications: list[dict[str, str]], verdict: str) -> IntakeReply:
+def graded(failing: dict[str, str], clarifications: list[dict[str, Any]], verdict: str) -> IntakeReply:
     items = checklist_items(CHECKLIST, REQUIRED_SECTIONS)
     grades = [
         {"item": item, "status": failing.get(item, "pass"), "note": failing.get(item, "")} for item in items
