@@ -9,6 +9,8 @@ dependencies = [
     "pydantic==2.13.5",
     "pyyaml==6.0.3",
     "python-dotenv==1.2.3",
+    "strands-agents[litellm,ollama]==1.55.1",
+    "pypdfium2==5.13.0",
 ]
 
 [dependency-groups]
@@ -29,6 +31,10 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[tool.uv]
+# The repository sits in OneDrive, which refuses hardlinks from the uv cache.
+link-mode = "copy"
 
 [tool.ruff]
 line-length = 110

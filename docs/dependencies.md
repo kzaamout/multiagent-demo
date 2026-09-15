@@ -16,12 +16,21 @@ Required by constitution XV. One entry per major dependency, stating the problem
 | Playwright | 1.62.0 (2026-09-14) | Renders the export bundles for reference captures and the flattened pages for comparison at 1920 by 1080 | No screenshot acceptance, which constitution XIII requires | S1 |
 | Pillow | 12.3.0 (2026-09-14) | Pixel comparison of captures with masks | Hand-written PNG decoding | S1 |
 
+| Strands Agents (`strands-agents[litellm,ollama]`) | 1.55.1 (2026-09-14) | Model calls for every seat across Bedrock, Ollama, and LiteLLM providers, with tool calling, per-call usage, and hooks for tool calls; named in the stack (CLAUDE.md). Orchestration stays hand-written: Strands runs one seat's call, never the loop | A provider client per vendor plus hand-written tool-calling loops and usage accounting for each | S2 |
+| LiteLLM (via the Strands extra) | 1.96.0 (2026-09-14; latest is 1.101.0, but Strands 1.55.1 caps it at 1.96.0) | Gemini for the Reviewer and Grok, per the stack | A separate Google client and a second provider code path | S2 |
+| Ollama Python client (via the Strands extra) | 0.6.2 (2026-09-14) | The local model for Pricing | Hand-written HTTP calls to the Ollama API | S2 |
+| boto3 (via Strands) | 1.43.94 (2026-09-14) | Bedrock credentials and calls | None practical; it is Bedrock's official SDK | S2 |
+| pypdfium2 | 5.13.0 (2026-09-14) | Text per page and page rendering to PNG for the Intake parsing tool and the Estimator's drawing reading; BSD-3-Clause and Apache-2.0, Windows wheels | PyMuPDF does both but is AGPL; pypdf extracts text but cannot render pages | S2 |
+
 Not adopted, with reason:
 
 | Considered | Reason not used |
 |---|---|
 | sse-starlette 3.4.11 | The stream is sixty lines on a streaming response and resume needs the run's own event list anyway |
 | Any orchestration framework | Forbidden by constitution XV; the Orchestrator is the thing being demonstrated |
+| Strands multi-agent graphs and swarms | Orchestration framework features; the hand-written Orchestrator owns the loop (constitution XV) |
+| PyMuPDF 1.28.2 | AGPL licence; pypdfium2 covers the same need under permissive licences |
+| Strands native Gemini provider (`google-genai`) | The stack names LiteLLM for Gemini; one provider path for Gemini and Grok |
 | Frontend framework or bundler | Spec 2.10: static HTML, one stylesheet, vanilla scripts; the export runtime and React are not shipped |
 
-Later slices append here: Strands Agents 1.55.1 and its LiteLLM provider (S2), Typst 0.15.1 and the career-hub compile script (S4), Cloudflare Tunnel (S7).
+Later slices append here: Typst 0.15.1 and the career-hub compile script (S4), Cloudflare Tunnel (S7).

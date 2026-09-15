@@ -33,7 +33,12 @@ def repo_root() -> Path:
 
 def tracked_files(root: Path) -> list[str]:
     try:
-        out = subprocess.run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"], cwd=root, capture_output=True, check=True).stdout
+        out = subprocess.run(
+            ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+            cwd=root,
+            capture_output=True,
+            check=True,
+        ).stdout
     except (subprocess.CalledProcessError, FileNotFoundError):
         return [
             p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file() and ".git" not in p.parts
