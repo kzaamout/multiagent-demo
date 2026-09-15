@@ -600,7 +600,37 @@
     }
   }
 
+  function renderDraft(view, ui) {
+    var empty = document.getElementById('artifact-empty');
+    var scroll = document.getElementById('draft-scroll');
+    var page = document.getElementById('draft-page');
+    var title = document.getElementById('artifact-title');
+    var version = document.getElementById('artifact-version');
+    var draft = view.latestDraft;
+    var key = draft ? draft.runId + '/' + draft.path : null;
+    var entry = key ? ui.drafts[key] : null;
+    if (!draft || !entry || entry.status !== 'loaded') {
+      if (draft && !entry && ui.loadDraft) { ui.loadDraft(draft.runId, draft.path); }
+      scroll.hidden = true;
+      empty.hidden = false;
+      title.textContent = 'Deliverable';
+      version.textContent = '';
+      return;
+    }
+    empty.hidden = true;
+    scroll.hidden = false;
+    title.textContent = 'Deliverable · draft text';
+    version.textContent = 'v' + draft.version + ' · markdown';
+    if (page.__key !== key) {
+      var top = scroll.scrollTop;
+      page.innerHTML = global.S1Draft.renderMarkdown(entry.text);
+      page.__key = key;
+      scroll.scrollTop = top;
+    }
+  }
+
   function renderArtifact(view, ui) {
+    renderDraft(view, ui);
     var actions = document.getElementById('handoff-actions');
     var term = view.cards.filter(function (c) { return c.kind === 'termination' && c.handoff; })[0];
     actions.hidden = !term;

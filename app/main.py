@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -230,6 +230,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def stop(run_id: str) -> dict[str, str]:
         get_orchestrator(run_id).stop()
         return {"status": "accepted"}
+
+    @app.get("/api/runs/{run_id}/files/{path:path}")
+    async def run_file(run_id: str, path: str) -> FileResponse:
+        """A file a run's events refer to, such as a committed draft. Read-only, inside the run folder."""
+        runs_root = cfg.runs_dir.resolve()
+        folder = (runs_root / run_id).resolve()
+        target = (folder / path).resolve()
+        if folder.parent != runs_root or not target.is_relative_to(folder) or not target.is_file():
+            raise HTTPException(404, "file not found")
+        if target.suffix not in {".md", ".png", ".pdf", ".json"}:
+            raise HTTPException(404, "file not found")
+        return FileResponse(target)
 
     @app.get("/api/prompts/{prompt_ref}")
     async def prompt(prompt_ref: str) -> dict[str, Any]:

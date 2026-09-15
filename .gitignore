@@ -6,6 +6,9 @@
 # run recordings (golden logs live under datasets/, not here)
 runs/
 
+# client knowledge files written by live runs, seeded from datasets
+knowledge/
+
 # python
 .venv/
 __pycache__/

@@ -289,6 +289,17 @@ a:hover { color: #17171c; }
 .artifact-title { font-size: 16px; }
 .version-label { font-size: 13px; color: #75758a; font-family: var(--mono); }
 .artifact-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #75758a; font-size: 16px; text-align: center; padding: 40px; background: #eeece7; }
+.draft-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; background: #eeece7; }
+.draft-page { background: #ffffff; border: 1px solid #d9d9dd; padding: 24px 28px; font-size: 15px; line-height: 1.5; color: #212121; }
+.draft-page h1 { margin: 0 0 12px; font-size: 22px; font-weight: 500; font-family: var(--display); color: #17171c; }
+.draft-page h2 { margin: 20px 0 8px; font-size: 17px; font-weight: 500; color: #17171c; }
+.draft-page h3 { margin: 16px 0 6px; font-size: 15px; font-weight: 500; color: #17171c; }
+.draft-page p { margin: 0 0 10px; }
+.draft-page ul { margin: 0 0 10px; padding-left: 20px; }
+.draft-page table { width: 100%; border-collapse: collapse; margin: 0 0 12px; font-size: 13px; }
+.draft-page th, .draft-page td { border-bottom: 1px solid #e5e7eb; padding: 4px 6px; text-align: left; vertical-align: top; }
+.draft-page th { font-weight: 500; color: #75758a; }
+.draft-page .prov { border-bottom: 1.5px solid #1863dc; }
 .handoff-actions { flex: none; display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid #d9d9dd; }
 .btn-approve { flex: 1; min-height: 44px; border: none; border-radius: 32px; background: #17171c; color: #ffffff; font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; transition: filter 120ms ease-out; }
 .btn-approve:hover { filter: brightness(0.92); }

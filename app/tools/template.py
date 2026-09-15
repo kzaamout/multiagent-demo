@@ -1,0 +1,96 @@
+"""template.render and compile.trigger for the Writer (S2 markdown interim; Typst arrives in S4).
+
+Provenance tags are written as {{value|src:<source_id>}} (owner decision, 2026-09-14). The
+provenance appendix is generated from the tags actually present, so it cannot drift from the
+body.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+from app.config import ROOT
+
+TEMPLATE_PATH = ROOT / "templates" / "rfp-response.md"
+SECTIONS = (
+    "executive_summary",
+    "scope",
+    "pricing_summary",
+    "schedule_of_values",
+    "assumptions",
+    "exclusions",
+)
+REQUIRED_SECTIONS = ("executive_summary", "scope", "pricing_summary", "assumptions", "exclusions")
+TAG = re.compile(r"\{\{\s*([^|{}]+?)\s*\|\s*src:\s*([A-Za-z0-9_.:-]+)\s*\}\}")
+SLOT = re.compile(r"\{\{([a-z_]+)\}\}")
+
+
+@dataclass(frozen=True)
+class Tag:
+    tag_id: str
+    value: str
+    source_id: str
+
+
+@dataclass(frozen=True)
+class Rendered:
+    markdown: str
+    tags: tuple[Tag, ...]
+    gaps: tuple[str, ...]
+
+
+def find_tags(markdown: str) -> list[Tag]:
+    return [Tag(f"t{i:02d}", m.group(1), m.group(2)) for i, m in enumerate(TAG.finditer(markdown), start=1)]
+
+
+def strip_tags(markdown: str) -> str:
+    """The reader's view: tag syntax removed, values kept."""
+    return TAG.sub(lambda m: m.group(1), markdown)
+
+
+def render(
+    sections: dict[str, str],
+    *,
+    prospect_name: str,
+    project: str,
+    template_path: Path = TEMPLATE_PATH,
+) -> Rendered:
+    unknown = sorted(set(sections) - set(SECTIONS))
+    if unknown:
+        raise ValueError(f"unknown template sections {unknown}")
+    gaps = tuple(s for s in REQUIRED_SECTIONS if not sections.get(s, "").strip())
+    body_sections = {s: sections.get(s, "").strip() or "_Not supplied._" for s in SECTIONS}
+    body_text = "\n".join(body_sections.values())
+    tags = find_tags(body_text)
+    if tags:
+        appendix = "| Tag | Value | Source |\n|---|---|---|\n" + "\n".join(
+            f"| {t.tag_id} | {t.value} | {t.source_id} |" for t in tags
+        )
+    else:
+        appendix = "_No tagged figures._"
+    values = {
+        "prospect_name": prospect_name,
+        "project": project,
+        **body_sections,
+        "provenance_appendix": appendix,
+    }
+    template = template_path.read_text(encoding="utf-8")
+
+    def fill(match: re.Match[str]) -> str:
+        key = match.group(1)
+        if key not in values:
+            raise ValueError(f"template slot {key} has no value")
+        return values[key]
+
+    return Rendered(SLOT.sub(fill, template), tuple(tags), gaps)
+
+
+def commit_draft(run_folder: Path, version: int, markdown: str) -> str:
+    """compile.trigger in S2: store the draft for the run and return its path relative to the run folder."""
+    relative = f"drafts/draft-v{version}.md"
+    path = run_folder / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(markdown, encoding="utf-8", newline="\n")
+    return relative

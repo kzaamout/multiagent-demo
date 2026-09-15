@@ -36,6 +36,7 @@
       ceiling: ceiling,
       ceilingPct: '0%',
       raw: events,
+      latestDraft: null,
       eventCount: events.length
     };
     if (!events.length) {
@@ -168,6 +169,7 @@
         }
         case 'draft.committed':
           drafts[p.version] = addCard({ id: 'draft:' + p.version + ':' + event.event_id, kind: 'draft-committed', event: event });
+          view.latestDraft = { version: p.version, path: p.markdown_path, runId: event.run_id, eventId: event.event_id };
           break;
         case 'review.verdict':
           addCard({ id: 'verdict:' + event.event_id, kind: 'verdict', event: event, draftVersion: Object.keys(drafts).length });
