@@ -24,6 +24,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -257,9 +258,41 @@ def ensure_ollama(config: ModelConfig, args: argparse.Namespace) -> None:
 # Checks
 
 
-def network_checks(config: ModelConfig) -> None:
-    """Checks that cost nothing: identity and model metadata, never a model call."""
+def _bedrock_prerequisites(session: Any, bedrock: Any, foundation: str) -> list[str]:
+    """What stops Bedrock enabling a third-party model on its first call. Empty when nothing is known to."""
+    from botocore.exceptions import ClientError
+
+    missing: list[str] = []
+    if foundation.startswith("anthropic."):
+        try:
+            if not bedrock.get_use_case_for_model_access().get("formData"):
+                missing.append("submit Anthropic's first-time use case form in the Bedrock console")
+        except ClientError as error:
+            if error.response.get("Error", {}).get("Code") == "ResourceNotFoundException":
+                missing.append("submit Anthropic's first-time use case form in the Bedrock console")
+    try:
+        arn = session.client("sts").get_caller_identity()["Arn"]
+        if ":user/" in arn:
+            actions = [
+                "bedrock:InvokeModelWithResponseStream",
+                "aws-marketplace:Subscribe",
+                "aws-marketplace:ViewSubscriptions",
+            ]
+            result = session.client("iam").simulate_principal_policy(PolicySourceArn=arn, ActionNames=actions)
+            denied = [
+                r["EvalActionName"] for r in result["EvaluationResults"] if r["EvalDecision"] != "allowed"
+            ]
+            if denied:
+                missing.append("allow " + ", ".join(denied) + " for these keys")
+    except ClientError:
+        pass  # The keys may not be allowed to simulate their own policy; the first call will tell.
+    return missing
+
+
+def network_checks(config: ModelConfig) -> bool:
+    """Checks that cost nothing: identity, model metadata, and permissions, never a model call."""
     print("\n4. Provider access, without calling a model")
+    ok = True
     providers_in_use = {config.seat_spec(seat).provider for seat in config.seats}
     if "bedrock" in providers_in_use:
         try:
@@ -273,38 +306,43 @@ def network_checks(config: ModelConfig) -> None:
             session.client("sts").get_caller_identity()
             say(OK, "AWS credentials are valid")
             bedrock = session.client("bedrock")
-            for model_id in sorted(
-                {
-                    config.seat_spec(s).model_id
-                    for s in config.seats
-                    if config.seat_spec(s).provider == "bedrock"
-                }
-            ):
+            bedrock_models = {
+                config.seat_spec(s).model_id
+                for s in config.seats
+                if config.seat_spec(s).provider == "bedrock"
+            }
+            for model_id in sorted(bedrock_models):
                 try:
                     profile = bedrock.get_inference_profile(inferenceProfileIdentifier=model_id)
                     foundation = profile["models"][0]["modelArn"].rsplit("/", 1)[-1]
                     access = bedrock.get_foundation_model_availability(modelId=foundation)
-                    authorized = access.get("authorizationStatus") == "AUTHORIZED"
-                    agreed = access.get("agreementAvailability", {}).get("status") == "AVAILABLE"
-                    entitled = access.get("entitlementAvailability") == "AVAILABLE"
-                    if authorized and agreed and entitled:
-                        say(OK, f"{model_id} is enabled in {region}")
+                    if (
+                        access.get("regionAvailability") != "AVAILABLE"
+                        or access.get("entitlementAvailability") != "AVAILABLE"
+                    ):
+                        say(FAIL, f"{model_id} is not offered to this account in {region}")
+                        ok = False
+                    elif access.get("agreementAvailability", {}).get("status") == "AVAILABLE":
+                        say(OK, f"{model_id} is enabled for this account")
                     else:
-                        say(
-                            FAIL,
-                            f"{model_id}: open the Bedrock console in {region}, Model access, and enable the model "
-                            "(Anthropic models may ask for a one-time use case form)",
-                        )
+                        missing = _bedrock_prerequisites(session, bedrock, foundation)
+                        if missing:
+                            say(FAIL, f"{model_id} cannot be enabled yet: " + "; ".join(missing))
+                            ok = False
+                        else:
+                            say(
+                                WARN,
+                                f"{model_id} is not enabled yet. Bedrock enables it on the first live call, which "
+                                "accepts the model's licence terms and needs a valid payment method on the account.",
+                            )
                 except ClientError as error:
                     code = error.response.get("Error", {}).get("Code", "error")
-                    say(
-                        WARN,
-                        f"{model_id}: could not check model access ({code}); the keys may lack bedrock:Get permissions",
-                    )
+                    say(WARN, f"{model_id}: could not check model access ({code})")
         except LookupError:
             say(WARN, "no AWS credentials set, so Bedrock access was not checked")
         except (BotoCoreError, ClientError) as error:
             say(FAIL, f"AWS refused the credentials ({type(error).__name__})")
+            ok = False
     if "google" in providers_in_use:
         key = os.environ.get("GEMINI_API_KEY", "")
         for model_id in sorted(
@@ -321,8 +359,11 @@ def network_checks(config: ModelConfig) -> None:
                     say(OK, f"Gemini key works and {name} is available")
                 else:
                     say(FAIL, f"Gemini refused the key or model {name} (HTTP {response.status_code})")
+                    ok = False
             except httpx.HTTPError as error:
                 say(FAIL, f"Gemini not reachable ({type(error).__name__})")
+                ok = False
+    return ok
 
 
 def readiness(config: ModelConfig) -> bool:
@@ -359,7 +400,7 @@ def main(argv: list[str]) -> int:
         ensure_ollama(config, args)
     ready = readiness(config)
     if not args.skip_network_checks:
-        network_checks(config)
+        ready = network_checks(config) and ready
     if args.browser_tests:
         print("\n5. Browser for the visual tests")
         subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=False)
