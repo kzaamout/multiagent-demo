@@ -40,7 +40,9 @@
   function schedule() {
     if (scheduled) { return; }
     scheduled = true;
-    window.requestAnimationFrame(render);
+    /* Animation frames do not fire while the tab is hidden; keep the page current anyway so it
+       is right the moment the projector window is shown. */
+    if (document.hidden) { window.setTimeout(render, 50); } else { window.requestAnimationFrame(render); }
   }
 
   function onEvent(event) {
@@ -282,5 +284,5 @@
     return null;
   }).catch(function (error) { window.alertless(error); });
 
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) { refreshDatasets(); } });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { scheduled = false; render(); refreshDatasets(); } });
 })();
