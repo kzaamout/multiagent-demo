@@ -81,7 +81,7 @@ models:
     label: qwen3.5 9b, local
     image_input: true
     temperature: true
-    options: {num_ctx: 32768}     # room for drawing page images on the Estimator seat
+    options: {num_ctx: 65536}     # five drawing pages at about 4,800 tokens each fit; 7.6 GB on a 12 GB card
     additional_args: {think: false}   # thinking mode makes every call several times slower
     price_in: 0
     price_out: 0
