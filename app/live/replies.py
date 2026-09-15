@@ -155,6 +155,11 @@ class Clarification(BaseModel):
     proposed_default: str
     blocking: bool
 
+    @field_validator("proposed_default", mode="before")
+    @classmethod
+    def _no_default(cls, value: Any) -> Any:
+        return "" if value is None else value
+
 
 # Checklist items that are concerns for the Estimator rather than questions for the human
 # (config/electrical-rfp/readiness-checklist.md and the intake seat instructions).
@@ -220,7 +225,8 @@ class IntakeReply(BaseModel):
             for c in failing + assumed
             if not any(word in c.item.lower() for word in ESTIMATOR_CONCERN_WORDS)
         ]
-        if len(self.clarifications) < len(gaps):
+        # A not_ready run ends before any question is asked, so its gaps need grades, not questions.
+        if expected != "not_ready" and len(self.clarifications) < len(gaps):
             names = "; ".join(c.item for c in gaps)
             raise ReplyError(
                 f"{len(gaps)} checklist items are not pass but there are {len(self.clarifications)} clarifications. "

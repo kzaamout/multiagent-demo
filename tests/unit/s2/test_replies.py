@@ -206,3 +206,29 @@ def test_em_dashes_never_survive_a_reply() -> None:
 def test_malformed_json_is_reported_as_malformed() -> None:
     with pytest.raises(ReplyError, match="not valid JSON"):
         extract_json('{"brief": {"project": "x",, "readiness": 1}')
+
+
+def test_not_ready_needs_grades_not_a_question_per_gap() -> None:
+    from app.config import ROOT
+    from app.live.replies import checklist_items
+
+    items = checklist_items(ROOT / "config" / "electrical-rfp" / "readiness-checklist.md")
+    grades = [{"item": item, "status": "pass", "note": ""} for item in items]
+    grades[1] = {"item": items[1], "status": "fail", "note": "no closing date"}
+    grades[5] = {"item": items[5], "status": "assumed", "note": "bid security open"}
+    question = {
+        "question_id": "q_deadline",
+        "question": "When do tenders close?",
+        "why_it_matters": "No response can be scheduled.",
+        "proposed_default": None,
+        "blocking": True,
+    }
+    text = json.dumps(
+        {
+            "brief": {},
+            "readiness": {"verdict": "not_ready", "checklist": grades},
+            "clarifications": [question],
+        }
+    )
+    reply = parse_reply("intake", text, expected_items=items)
+    assert isinstance(reply, IntakeReply) and reply.clarifications[0].proposed_default == ""
