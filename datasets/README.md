@@ -3,10 +3,11 @@
 Each subfolder is one selectable scenario in the Demo composer dropdown. A dataset is complete when it has:
 
 - `README.md`: the scenario, the planted defects and where they are, the expected stage sequence, the expected termination exit, and what the presenter should say when the defect fires.
-- `inputs/`: the request (email or PDF) and the drawing set (PDF, one file per sheet or one multi-page file).
+- `inputs/`: the request files (email or PDF) at the top level, and the drawing set under `inputs/drawings/` (PDF, one file per sheet or one multi-page file). Name each sheet file by its sheet number, for example `E-001.pdf`, because the tools refer to sheets by file name.
 - `fixtures/`: `supplier-prices.csv` (item code, description, unit, price, supplier, lead time days), and any other fixture the specialists need.
 - `knowledge.seed.md`: per-scenario copy of the knowledge file seed, so runs do not pollute each other.
 - `brand.yaml`: `prospect_name`, `logo_path`, `primary_colour` for the deliverable cover.
+- Live mode: a dataset runs live when it has at least one request file in `inputs/`, at least one PDF in `inputs/drawings/`, and `fixtures/supplier-prices.csv`. Otherwise it runs on the S1 stubs. `AGENT_MODE=stub` in `.env` forces stubs for every dataset.
 - `golden-events.jsonl`: the recorded event log of a verified live run, used by the replay-and-compare tests. Compare stage sequence and termination exit; do not compare model text.
 
 ## Curation checklist (owner tasks)

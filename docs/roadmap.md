@@ -57,6 +57,7 @@ Compared with `docs/spec-input.md` section 9: the Reviewer joins in the first li
 - **Design.** `Demo.html` running and paused states. `Demo.png`.
 - **Datasets.** clean-run.
 - **Evidence.** A live Clean run replays against its golden stage sequence and exit. The second run shows no repeated clarification and a `knowledge.appended` event in the first. Criteria 5 for clarifications and 7.
+- **Status.** Part A built 2026-09-14 on branch `002-live-team-clean-run`: live seat path on Strands, provider registry and refusal, knowledge store with ask once, draft text view. Proven with scripted models against the Clean run golden stage sequence and exit, in the test suite and in the browser. Part B waits on owner inputs: the curated Clean run dataset, credentials in `.env`, Ollama with the local model pulled, and the four model questions in `specs/002-live-team-clean-run/plan.md`. No live run has been made.
 - **Constitution risks.** Non-goal "memory beyond the knowledge file": one file, appended by the Orchestrator only. Principle IV: the banner is the only door. Principle V: the Reviewer bundle provably excludes specialist reasoning and sources.
 
 ### S3. Failure paths and presenter controls
