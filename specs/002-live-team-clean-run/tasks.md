@@ -55,11 +55,11 @@
 ## Phase 8: Part B (waits for the owner's inputs)
 
 - [x] T028 Clean run inputs and fixtures: a synthetic stand-in built 2026-09-15 at the owner's request (roadmap decision 11); the owner's curated set replaces it when found
-- [ ] T029 Owner: credentials in `.env` for Bedrock and Gemini (Gemini done 2026-09-15; AWS keys pending); Ollama with the chosen local model pulled (via `scripts/setup.ps1`)
+- [x] T029 Credentials in `.env` for Bedrock and Gemini; Ollama with the seat models pulled via `scripts/setup.ps1` (2026-09-15)
 - [x] T030 Owner: confirm the four model questions in the plan (answered 2026-09-15)
-- [ ] T031 Live Clean run from the Demo page; record it; replay compare against the golden stage sequence and exit (2026-09-15: local run `963686a4` ended `retry_exhausted`; after decision 14, headless run `e7b70d2a` matched the golden sequence and exit; a Demo page run is still to do)
-- [ ] T032 Second live run for the same client; no repeated clarification; `knowledge.appended` present in the first
-- [ ] T033 Screenshot comparison and all S1 gates green; update `docs/roadmap.md` S2 status
+- [x] T031 Live Clean run from the Demo page; recorded as `ff627dab`; matches the golden stage sequence and exit `reviewer_pass`; approved at Handoff (2026-09-15)
+- [x] T032 Second live run `fe4832ee` for the same prospect: no clarification asked, the stored bid security answer accepted; `knowledge.appended` present in `ff627dab` (2026-09-15)
+- [x] T033 Screenshot comparison and all gates green (172 tests, 14 visual); roadmap S2 status updated (2026-09-15)
 
 ## Added at the owner's request (2026-09-15)
 
