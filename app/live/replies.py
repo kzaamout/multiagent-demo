@@ -34,6 +34,13 @@ class Loose(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
+def blank_for_none(data: Any) -> Any:
+    """A seat that writes null for an optional string means it had nothing to say there."""
+    if isinstance(data, dict):
+        return {key: "" if value is None else value for key, value in data.items()}
+    return data
+
+
 EM_DASH = chr(0x2014)
 
 
@@ -291,6 +298,8 @@ class IntakeReply(BaseModel):
 
 
 class BomLine(Loose):
+    _blank = model_validator(mode="before")(blank_for_none)
+
     group: str
     description: str
     quantity: float | str
@@ -306,6 +315,8 @@ class Labour(Loose):
 
 
 class Referenced(BaseModel):
+    _blank = model_validator(mode="before")(blank_for_none)
+
     text: str
     drawing_ref: str = ""
 
@@ -334,6 +345,8 @@ class EstimatorReply(BaseModel):
 
 
 class PricedBomLine(Loose):
+    _blank = model_validator(mode="before")(blank_for_none)
+
     line_ref: str
     description: str
 
@@ -450,7 +463,10 @@ def validate_as[M: BaseModel](model: type[M], data: dict[str, Any]) -> M:
     try:
         return model.model_validate(data)
     except ValidationError as error:
-        for value in data.values():
+        # Only look one level down when the reply carries none of the model's own fields, so that a reply that
+        # is the right shape but has one bad line reports that line instead of matching an inner object.
+        nested = [] if set(data) & set(model.model_fields) else list(data.values())
+        for value in nested:
             if isinstance(value, dict):
                 try:
                     return model.model_validate(value)
