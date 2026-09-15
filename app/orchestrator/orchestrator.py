@@ -145,6 +145,10 @@ class Orchestrator:
         self._pending_question_ids: list[str] = []
         self._pending_blocker: dict[str, Any] | None = None
         self._terminating = False
+        self._run_task: asyncio.Task[Any] | None = None
+        self._started = False
+        self._pause_announced = False
+        self._control_tasks: set[asyncio.Task[Any]] = set()
         self.finished = asyncio.Event()
         self._call_counter = 0
         self._task_event_ids: dict[str, str] = {}
@@ -195,29 +199,71 @@ class Orchestrator:
         self._decision = (decision, notes)
         self._human_gate.set()
 
+    def attach_task(self, task: asyncio.Task[Any]) -> None:
+        """The task running this Orchestrator, so Stop can cancel work in flight."""
+        self._run_task = task
+
     def pause(self) -> None:
-        if self.state.terminated or self.state.paused:
+        """Freeze dispatch. Calls in flight complete. Ignored while waiting on a human or after the end.
+        A pause before the run starts holds dispatch without an event, since run.started comes first."""
+        if (
+            self.state.terminated
+            or self._terminating
+            or self.state.paused
+            or self.state.pending_human is not None
+        ):
             return
         self.state.paused = True
         self._pause_gate.clear()
+        if self._started and self.events:
+            self._pause_announced = True
+            self._control_event("run.paused", "paused")
 
     def resume(self) -> None:
-        if not self.state.paused:
+        if not self.state.paused or self.state.terminated or self._terminating:
             return
         self.state.paused = False
         self._pause_gate.set()
+        if self._pause_announced:
+            self._pause_announced = False
+            self._control_event("run.resumed", "resumed")
+
+    def _control_event(self, type_: str, reason_key: str) -> None:
+        async def emit() -> None:
+            if self.state.terminated or self._terminating:
+                return
+            try:
+                await self._emit_orchestrator(
+                    type_,
+                    stage=self.state.stage,
+                    offset=self._after(0),
+                    reason=self._reason(reason_key),
+                    payload={"by": "human"},
+                )
+            except RuntimeError:
+                pass  # the run ended between the request and the emission
+
+        task = asyncio.get_running_loop().create_task(emit())
+        self._control_tasks.add(task)
+        task.add_done_callback(self._control_tasks.discard)
 
     def stop(self) -> None:
+        """End the run with exit stopped from any state, cancelling work in flight."""
         if self.state.terminated:
             return
         self.state.stopped = True
         self._terminating = True
         self._pause_gate.set()
         self._human_gate.set()
+        task = self._run_task
+        # A run that has not started yet stops at its first gate; cancelling it would skip run() entirely.
+        if self._started and task is not None and not task.done() and task is not asyncio.current_task():
+            task.cancel()
 
     # Run loop
 
     async def run(self) -> None:
+        self._started = True
         try:
             await self._start()
             await self._intake_stage()
@@ -231,6 +277,14 @@ class Orchestrator:
         except RunStopped:
             if not self.state.terminated:
                 await self._terminate("stopped", self._reason("stopped"))
+        except asyncio.CancelledError:
+            if not self.state.stopped:
+                raise
+            current = asyncio.current_task()
+            if current is not None:
+                current.uncancel()
+            if not self.state.terminated:
+                await asyncio.shield(self._terminate("stopped", self._reason("stopped")))
         except CostCeilingBreached:
             if not self.state.terminated:
                 await self._terminate("cost_ceiling", self._reason("cost_ceiling"))
@@ -439,6 +493,7 @@ class Orchestrator:
                     await runs[dep].done.wait()
             if self.state.terminated or self._terminating:
                 return
+            await self._gate()
             await self._run_task_steps(task_run, self.scenario.task(task_run.subtask))
             task_run.done.set()
 
@@ -880,7 +935,11 @@ class Orchestrator:
                     await self._meter("orchestrator", delta, None, self._after(0), check_ceiling=False)
                 if proposed.headline:
                     headline = proposed.headline
-        offset = self._mark("end")
+        if exit_value in ("stopped", "cost_ceiling"):
+            # Control exits end now, not at the fixture's scripted end.
+            offset = max(self._last_offset, self.clock.elapsed_offset_ms())
+        else:
+            offset = self._mark("end")
         summary = {
             "headline": headline,
             "missing": [

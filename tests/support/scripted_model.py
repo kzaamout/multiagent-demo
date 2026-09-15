@@ -7,6 +7,7 @@ exception instance to raise. Usage is reported per call so meters can be checked
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import AsyncIterator, Callable
 from typing import Any
@@ -14,7 +15,24 @@ from typing import Any
 from strands.models import Model
 
 Block = dict[str, Any]
-Turn = list[Block] | Callable[[str], list[Block]] | BaseException
+
+
+class Hang:
+    """A turn that never returns, standing in for a long provider call with no output."""
+
+
+HANG = Hang()
+
+
+class WaitFor:
+    """A turn that waits for a test to release it, then plays its blocks."""
+
+    def __init__(self, release: asyncio.Event, blocks: list[Block]) -> None:
+        self.release = release
+        self.blocks = blocks
+
+
+Turn = list[Block] | Callable[[str], list[Block]] | BaseException | Hang | WaitFor
 
 
 def _prompt_text(messages: list[dict[str, Any]]) -> str:
@@ -67,7 +85,14 @@ class ScriptedModel(Model):
         self.prompts.append(text)
         if isinstance(turn, BaseException):
             raise turn
-        blocks = turn(text) if callable(turn) else turn
+        if isinstance(turn, Hang):
+            await asyncio.Event().wait()
+            return
+        if isinstance(turn, WaitFor):
+            await turn.release.wait()
+            blocks = turn.blocks
+        else:
+            blocks = turn(text) if callable(turn) else turn
         stop = "end_turn"
         yield {"messageStart": {"role": "assistant"}}
         for index, block in enumerate(blocks):

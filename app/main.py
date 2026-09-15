@@ -37,6 +37,7 @@ class RunRequest(BaseModel):
     workflow: str = "electrical_rfp"
     mode: Literal["team"] = "team"
     names: dict[str, str] | None = None
+    dry_intake: bool = False
 
 
 class AnswerItem(BaseModel):
@@ -165,7 +166,7 @@ def create_app(
         if registry.is_live():
             raise HTTPException(409, "a run is already in progress")
         try:
-            orchestrator = registry.start_run(body.dataset_id, names=body.names)
+            orchestrator = registry.start_run(body.dataset_id, names=body.names, dry_intake=body.dry_intake)
         except LiveUnavailable as unavailable:
             raise HTTPException(409, "Live run unavailable: " + "; ".join(unavailable.problems)) from None
         except ValueError as error:

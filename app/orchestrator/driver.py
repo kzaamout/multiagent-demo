@@ -14,6 +14,7 @@ from app.orchestrator.orchestrator import Answer, Orchestrator
 
 async def drive(orchestrator: Orchestrator, script: HumanScript) -> None:
     run_task = asyncio.create_task(orchestrator.run())
+    orchestrator.attach_task(run_task)
     try:
         while not run_task.done():
             waiter = asyncio.create_task(orchestrator.human_needed.wait())
