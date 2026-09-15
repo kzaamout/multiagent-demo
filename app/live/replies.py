@@ -10,9 +10,9 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from app.schema.events import (
     BlockerRaisedPayload,
@@ -33,41 +33,88 @@ class Loose(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
+EM_DASH = chr(0x2014)
+
+
+def without_em_dashes(value: Any) -> Any:
+    """Models are told not to use em dashes; small ones still do. Replace them in every reply string."""
+    if isinstance(value, str):
+        return value.replace(f" {EM_DASH} ", ", ").replace(EM_DASH, ", ")
+    if isinstance(value, list):
+        return [without_em_dashes(item) for item in value]
+    if isinstance(value, dict):
+        return {key: without_em_dashes(item) for key, item in value.items()}
+    return value
+
+
+def _balanced_object(text: str, start: int) -> str | None:
+    depth = 0
+    in_string = False
+    escape = False
+    for index in range(start, len(text)):
+        char = text[index]
+        if in_string:
+            if escape:
+                escape = False
+            elif char == "\\":
+                escape = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : index + 1]
+    return None
+
+
+def _load_repaired(candidate: str) -> Any:
+    """json.loads, repairing a stray closing brace that ends the object before its remaining fields.
+    Small models sometimes close a nested object one level too early, so later fields become extra data."""
+    text = candidate
+    for _ in range(6):
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as error:
+            if error.msg != "Extra data" or not text[error.pos :].lstrip().startswith(","):
+                raise
+            cut = len(text[: error.pos].rstrip()) - 1
+            if cut < 0 or text[cut] != "}":
+                raise
+            text = text[:cut] + text[cut + 1 :]
+    return json.loads(text)
+
+
 def extract_json(text: str) -> dict[str, Any]:
-    """Find the reply object in model text: a fenced block, else the outermost balanced object."""
+    """Find the reply object in model text: the whole span from the first to the last brace (repairing
+    a stray closing brace), else a fenced block, else the first balanced object."""
+    candidates: list[str] = []
+    start, last = text.find("{"), text.rfind("}")
+    if start != -1 and last > start:
+        candidates.append(text[start : last + 1])
     fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.S)
-    candidates = [fenced.group(1)] if fenced else []
-    start = text.find("{")
+    if fenced:
+        candidates.append(fenced.group(1))
     if start != -1:
-        depth = 0
-        in_string = False
-        escape = False
-        for index in range(start, len(text)):
-            char = text[index]
-            if in_string:
-                if escape:
-                    escape = False
-                elif char == "\\":
-                    escape = True
-                elif char == '"':
-                    in_string = False
-                continue
-            if char == '"':
-                in_string = True
-            elif char == "{":
-                depth += 1
-            elif char == "}":
-                depth -= 1
-                if depth == 0:
-                    candidates.append(text[start : index + 1])
-                    break
+        balanced = _balanced_object(text, start)
+        if balanced:
+            candidates.append(balanced)
+    first_error: json.JSONDecodeError | None = None
     for candidate in candidates:
         try:
-            value = json.loads(candidate)
-        except json.JSONDecodeError:
+            value = _load_repaired(candidate)
+        except json.JSONDecodeError as error:
+            first_error = first_error or error
             continue
         if isinstance(value, dict):
-            return value
+            return cast(dict[str, Any], without_em_dashes(value))
+    if first_error is not None:
+        near = first_error.doc[max(0, first_error.pos - 40) : first_error.pos + 40]
+        raise ReplyError(f"the reply is not valid JSON ({first_error.msg} near {near!r})")
     raise ReplyError("no JSON object found in the reply")
 
 
@@ -78,6 +125,11 @@ class ChecklistGrade(BaseModel):
     item: str
     status: Literal["pass", "fail", "assumed"]
     note: str = ""
+
+    @field_validator("note", mode="before")
+    @classmethod
+    def _empty_note(cls, value: Any) -> Any:
+        return "" if value is None else value
 
 
 class PageLegibility(BaseModel):
@@ -109,17 +161,27 @@ class Clarification(BaseModel):
 ESTIMATOR_CONCERN_WORDS = ("panel schedule", "rating")
 
 
-def checklist_item_count(path: Path) -> int:
-    """The number of gradable items: bullets under the request, drawing set, and consistency headings."""
-    count = 0
+def checklist_items(path: Path) -> list[str]:
+    """The gradable items: bullets under the request, drawing set, and consistency headings, without their markings."""
+    items: list[str] = []
     graded = False
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.startswith("## "):
             heading = line[3:].strip().lower()
             graded = heading in {"request document", "drawing set", "consistency checks"}
         elif graded and line.startswith("- "):
-            count += 1
-    return count
+            items.append(line[2:].split(" (")[0].strip())
+    return items
+
+
+def checklist_item_count(path: Path) -> int:
+    return len(checklist_items(path))
+
+
+BRIEF_FIELDS = (
+    "project", "client", "site_address", "scope", "deliverables", "bid_format", "deadline", "drawing_set",
+    "drawing_pages", "specification", "alternates", "bonding", "unreliable_pages", "knowledge_used",
+)  # fmt: skip
 
 
 class IntakeReply(BaseModel):
@@ -127,7 +189,20 @@ class IntakeReply(BaseModel):
     readiness: Readiness
     clarifications: list[Clarification] = Field(default_factory=list)
 
-    def check(self, expected_items: int | None = None) -> None:
+    @model_validator(mode="before")
+    @classmethod
+    def _fold_brief_fields(cls, data: Any) -> Any:
+        """Brief fields a model placed beside the brief instead of inside it belong to the brief."""
+        if isinstance(data, dict) and isinstance(data.get("brief"), dict):
+            data = dict(data)
+            brief = dict(data["brief"])
+            for name in BRIEF_FIELDS:
+                if name in data and name not in brief:
+                    brief[name] = data.pop(name)
+            data["brief"] = brief
+        return data
+
+    def check(self, expected_items: list[str] | None = None) -> None:
         failing = [c for c in self.readiness.checklist if c.status == "fail"]
         assumed = [c for c in self.readiness.checklist if c.status == "assumed"]
         expected = "not_ready" if failing else "ready_with_assumptions" if assumed else "ready"
@@ -135,10 +210,10 @@ class IntakeReply(BaseModel):
             raise ReplyError(
                 f"verdict {self.readiness.verdict} contradicts the checklist grades ({expected})"
             )
-        if expected_items is not None and len(self.readiness.checklist) < expected_items:
+        if expected_items is not None and len(self.readiness.checklist) < len(expected_items):
             raise ReplyError(
                 f"readiness.checklist grades {len(self.readiness.checklist)} items but the readiness checklist has "
-                f"{expected_items}: grade every item under Request document, Drawing set, and Consistency checks"
+                f"{len(expected_items)}. Grade each of these, in order: " + "; ".join(expected_items)
             )
         gaps = [
             c
@@ -298,6 +373,19 @@ REPLY_MODELS: dict[str, type[BaseModel]] = {
 }
 
 
+def _problems(error: ValidationError, limit: int = 8) -> str:
+    """One line per distinct problem, with list positions folded together, so a correction names every kind."""
+    seen: dict[str, str] = {}
+    for item in error.errors():
+        path = ".".join("*" if isinstance(p, int) else str(p) for p in item["loc"])
+        key = f"{path}: {item['msg']}"
+        if key not in seen:
+            seen[key] = ".".join(str(p) for p in item["loc"]) + f": {item['msg']}"
+    lines = list(seen.values())
+    more = f"; and {len(lines) - limit} more" if len(lines) > limit else ""
+    return "; ".join(lines[:limit]) + more
+
+
 def validate_as[M: BaseModel](model: type[M], data: dict[str, Any]) -> M:
     """Validate a reply object. Small models sometimes nest the requested object one level down, for
     example {"plan": {...}}; the first nested object that validates is used. Raises ReplyError."""
@@ -310,8 +398,7 @@ def validate_as[M: BaseModel](model: type[M], data: dict[str, Any]) -> M:
                     return model.model_validate(value)
                 except ValidationError:
                     continue
-        problems = "; ".join(f"{'.'.join(str(p) for p in e['loc'])}: {e['msg']}" for e in error.errors()[:8])
-        raise ReplyError(problems) from error
+        raise ReplyError(_problems(error)) from error
 
 
 def parse_as[M: BaseModel](model: type[M], text: str) -> M:

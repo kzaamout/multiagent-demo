@@ -137,11 +137,11 @@ def _intake(checklist: list[dict[str, str]], clarifications: list[dict[str, Any]
 
 def test_intake_must_grade_every_item_and_ask_about_every_gap() -> None:
     from app.config import ROOT
-    from app.live.replies import checklist_item_count
+    from app.live.replies import checklist_items
 
-    expected = checklist_item_count(ROOT / "config" / "electrical-rfp" / "readiness-checklist.md")
-    assert expected == 20
-    passes = [{"item": f"Item {i}", "status": "pass", "note": ""} for i in range(expected - 2)]
+    expected = checklist_items(ROOT / "config" / "electrical-rfp" / "readiness-checklist.md")
+    assert len(expected) == 20 and expected[0] == "Scope statement describing the electrical work requested"
+    passes = [{"item": f"Item {i}", "status": "pass", "note": None} for i in range(len(expected) - 2)]
     bonding = {
         "item": "Bonding or insurance requirements stated",
         "status": "assumed",
@@ -155,9 +155,54 @@ def test_intake_must_grade_every_item_and_ask_about_every_gap() -> None:
         "proposed_default": "No bid security required",
         "blocking": True,
     }
-    with pytest.raises(ReplyError, match="grades 9 items"):
+    with pytest.raises(ReplyError, match="grades 9 items.*Scope statement describing"):
         parse_reply("intake", _intake(passes[:8] + [bonding], [question]), expected_items=expected)
     with pytest.raises(ReplyError, match="Bonding or insurance"):
         parse_reply("intake", _intake([*passes, bonding, rating], []), expected_items=expected)
     reply = parse_reply("intake", _intake([*passes, bonding, rating], [question]), expected_items=expected)
     assert isinstance(reply, IntakeReply), "a rating disagreement is the Estimator's concern, not a question"
+
+
+def test_correction_names_every_kind_of_problem() -> None:
+    grades = [{"item": f"Item {i}", "status": "pass", "note": 5} for i in range(12)]
+    text = json.dumps(
+        {
+            "brief": {},
+            "readiness": {"verdict": "ready", "checklist": grades},
+            "clarifications": [
+                {"question_id": "q_x", "question": "?", "why_it_matters": "cost", "blocking": True}
+            ],
+        }
+    )
+    with pytest.raises(ReplyError) as raised:
+        parse_reply("intake", text)
+    message = str(raised.value)
+    assert "readiness.checklist.0.note" in message and "clarifications.0.proposed_default" in message
+    assert "checklist.5.note" not in message, "repeats of one problem are folded together"
+
+
+def test_stray_closing_brace_is_repaired_and_brief_fields_folded_back() -> None:
+    from app.config import ROOT
+    from app.live.replies import checklist_items
+
+    items = checklist_items(ROOT / "config" / "electrical-rfp" / "readiness-checklist.md")
+    grades = ", ".join(json.dumps({"item": item, "status": "pass", "note": ""}) for item in items)
+    broken = (
+        '{"brief": {"project": "Library", "drawing_set": {"sheets": ["E-001"]}}, "bonding": "open"}, '
+        f'"readiness": {{"verdict": "ready", "checklist": [{grades}]}}, "clarifications": []}}'
+    )
+    reply = parse_reply("intake", broken, expected_items=items)
+    assert isinstance(reply, IntakeReply) and reply.brief["bonding"] == "open"
+
+
+def test_em_dashes_never_survive_a_reply() -> None:
+    dash = chr(0x2014)
+    nl, fence = chr(10), chr(96) * 3
+    body = '{"note": "counted ' + dash + ' two sheets", "list": ["a' + dash + 'b"]}'
+    fenced = "Here it is:" + nl + fence + "json" + nl + body + nl + fence + nl + "Thanks {ok}"
+    assert extract_json(fenced) == {"note": "counted, two sheets", "list": ["a, b"]}
+
+
+def test_malformed_json_is_reported_as_malformed() -> None:
+    with pytest.raises(ReplyError, match="not valid JSON"):
+        extract_json('{"brief": {"project": "x",, "readiness": 1}')

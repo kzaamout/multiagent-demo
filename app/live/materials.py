@@ -100,12 +100,15 @@ def build_materials(
     materials: list[Material] = []
 
     request_lines = [f"- {p.name} ({_pages(p)})" for p in files.request_files()]
-    if request_lines:
+    drawing_lines = [f"- drawings/{p.name} ({_pages(p)})" for p in files.drawing_files()]
+    if request_lines or drawing_lines:
         materials.append(
             Material(
                 d.REQUEST_DOCUMENTS,
-                "Request documents in the inputs folder",
-                "\n".join(request_lines) + "\nUse document_parse_pdf with a file name to read each one.",
+                "Request documents and drawing sheets in the inputs folder",
+                "\n".join(request_lines + drawing_lines)
+                + "\nUse document_parse_pdf with each path above to read every document and every drawing sheet, "
+                "so the drawing set, consistency, and legibility items are graded from what the sheets show.",
             )
         )
     materials.append(Material(d.KNOWLEDGE_FILE, "Client knowledge file", knowledge_text))

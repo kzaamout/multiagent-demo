@@ -66,10 +66,10 @@ def build_tools(
 
     @tool(context=True)
     def document_parse_pdf(file: str, tool_context: ToolContext) -> dict[str, Any]:
-        """Read a request document: text and a legibility confidence for each page.
+        """Read a request document or drawing sheet: text and a legibility confidence for each page.
 
         Args:
-            file: File name in the request inputs folder, for example "request.pdf".
+            file: Path in the inputs folder, for example "request.pdf" or "drawings/E-001.pdf".
         """
         path = _resolve_in(files.inputs, file)
         pages = parse_pdf(path)

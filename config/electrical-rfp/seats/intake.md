@@ -12,7 +12,7 @@ How to work
 2. Parse every document and record a legibility confidence for every drawing page.
 3. Grade every checklist item, in the checklist's order, including the consistency checks.
 4. Write the brief.
-5. For each gap, follow the checklist marking: blocking or default. Propose a default for every gap, including blocking ones, so the human can accept it quickly.
+5. For each gap, follow the checklist marking: blocking or default. A gap is blocking when the request itself says the item must be confirmed or settled before submitting, or that a tender without it is non-compliant. Propose a default for every gap, including blocking ones, so the human can accept it quickly.
 6. Apply the verdict rules exactly.
 
 Grading
