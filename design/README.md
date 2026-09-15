@@ -56,7 +56,6 @@ Format and delivery
 Demo screen
 - Fixed 1920 by 1080 frame with overflow hidden. The brief's "reasonable at 1440" is not covered; a 1440 layout is out of scope unless asked.
 - Handoff actions are Approve, Download PDF, Download run timeline. Edit and Reject (spec stage 6) are absent; add them in the same button style.
-- The composer has no Dry intake control. Decision 2026-09-14: a Dry intake toggle beside the Team / Single switch, in the export's switch style, disabled until Dry intake mode is built (spec 2.2, `docs/roadmap.md`).
 - No blocker card exists (`data-kind` values present: orchestrator-note, agent-message, assumption, question, human-answer, specialist-thread, plan-card, draft-committed, verdict, termination). Add one in the card family with the brief's red left border and the Answer and Escalate actions from spec stage 3. No Work to Intake routing example either.
 - The plan card lists Assemble as sub-task 3 assigned to the Writer. Adopted in spec 0.4.
 - Thread replies are timestamped progress lines. Spec 0.4 adds `task.progress` and `tool.called`; tool calls need a reply variant in the same style.

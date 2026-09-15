@@ -244,6 +244,17 @@
     try { stored = window.localStorage.getItem('s1.dataset'); } catch (err) { stored = null; }
     var wanted = params.get('dataset') || stored || 'planted-inconsistency';
     ctx.selectedDataset = ctx.datasets.some(function (d) { return d.id === wanted; }) ? wanted : (ctx.datasets[0] || {}).id;
+    var recordedRun = params.get('run');
+    if (recordedRun) {
+      /* A recorded run rendered from its event list, used to compare a replay with its source. */
+      return api('GET', '/api/runs/' + encodeURIComponent(recordedRun) + '/events').then(function (list) {
+        resetView('replay');
+        ui.animate = false;
+        ui.autoScroll = false;
+        events = list;
+        schedule();
+      });
+    }
     var goldenId = params.get('golden');
     if (goldenId) {
       /* Fixed state for screenshot comparison: a prefix of the committed golden log, rendered

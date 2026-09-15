@@ -50,11 +50,19 @@ uv run python scripts/regen_golden.py
 
 The replay-and-compare suite is `tests/integration/test_golden_compare.py`.
 
-## Screenshot comparison
+## Screenshot comparison and browser tests
 
 ```
-uv run python scripts/capture_export.py        # renders the export bundles to tests/visual/reference/
-uv run pytest tests/visual -m visual           # compares the flattened pages against them
+uv run playwright install chromium              # once
+uv run python scripts/capture_export.py         # re-renders the export bundles to tests/visual/reference/
+uv run pytest -m visual                         # screenshot comparison and end-to-end clicks in Chromium
 ```
 
-Reference captures live under `tests/visual/reference/` and are committed. Masks for regions deferred to later slices are listed in `tests/visual/masks.py`.
+Reference captures live under `tests/visual/reference/` and are committed. Diff overlays are written to `tests/visual/output/`. Masks for regions deferred to later slices are listed with reasons in `tests/visual/masks.py`.
+
+## Page parameters for inspection
+
+- `/demo?golden=<dataset>&upto=<seq>` renders a fixed state from the committed golden log.
+- `/demo?run=<run_id>` renders a recorded run from `runs/<run_id>/events.jsonl`.
+- `/demo?pin=export` starts runs with the export's names (Oscar, Anna, Elena, Pavel, Willa, Rafael) instead of random ones.
+- `/demo?dataset=<dataset>` preselects a dataset.

@@ -46,7 +46,7 @@ Versions and service names were verified on 2026-09-14 and are recorded in [rese
 | VIII Reliability on demo day | Every run recorded; Replay at 1x and 4x; cost ceiling in the state machine. Pre-flight live in S7. | Pass |
 | IX Writing rules | Em-dash lint is a gate; fixture copy reviewed. | Pass |
 | X Controlled sources of truth | Spec 0.5 and the export govern; schema additions (`title`, `text`, nullable `pdf_path`) are recorded in the contract. | Pass |
-| XI Reconcile before building | Deviations listed in `design/README.md`; new ones in this plan: deferred comparison regions, Dry intake toggle, blocker card. | Pass |
+| XI Reconcile before building | Pre-build deviations are in `design/README.md`; deviations found while building are in `docs/design-deviations.md`, since `design/` is never edited. | Pass |
 | XII Vertical slices on one foundation | S1 is the foundation plus a demonstrable slice; nothing built ahead of need except the eight exits, which the schema freeze requires. | Pass |
 | XIII Acceptance testable and recorded | Golden logs, replay-compare suite, screenshot comparison, gates. | Pass |
 | XIV Built for a projector | Export sizes copied verbatim; one-click controls. | Pass |

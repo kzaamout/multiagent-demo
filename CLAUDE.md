@@ -26,6 +26,10 @@ A sales demo that shows several AI agents, under an orchestrator, taking a busin
 - Scenario datasets and curation checklist: `datasets/`
 - Sales playbook (humans only, do not load unless asked): `docs/sales-playbook.md`
 - Approved slice roadmap and pre-S1 decisions: `docs/roadmap.md`
+- Frozen event schema: `docs/schema/events-v1.0.0.md` (typed models in `app/schema/`)
+- Dependency rationale record: `docs/dependencies.md`
+- Deviations found while building (design/ is never edited): `docs/design-deviations.md`
+- Quality gates: `uv run python scripts/check.py`; screenshots and browser tests: `uv run pytest -m visual`
 
 ## Stack (verify current versions before pinning)
 Python 3.13, FastAPI, server-sent events, static HTML with one CSS file and vanilla JS flattened from the Claude Design export in `design/` (the export's runtime and React are not shipped; see `docs/spec-input.md` section 2.10), Strands Agents SDK for model calls (Bedrock, Anthropic, Ollama native; Gemini and Grok via its LiteLLM provider), custom orchestrator (no CrewAI, no LangGraph for orchestration), Typst for PDF and page PNG compile, Ollama for local models, Cloudflare Tunnel for demo-day hosting. Credentials in `.env` only.

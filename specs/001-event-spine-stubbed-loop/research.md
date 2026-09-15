@@ -87,6 +87,11 @@ Pins are exact (`==`) in `pyproject.toml` with a `uv.lock`. Upgrades are deliber
 - Decision: the app and scripts set `PYTHONUTF8=1` via `pyproject.toml` `[tool.uv]` env is not possible; instead every script that prints non-ASCII reconfigures `sys.stdout` to UTF-8, and the quickstart tells the presenter to run with `PYTHONUTF8=1`.
 - Rationale: the reference machine's console defaults to cp1252 and the export text uses arrows and check marks.
 
+### D14. Fixed states for the comparison come from golden log prefixes
+- Decision: the screenshot comparison renders each Demo state from a prefix of the committed Planted inconsistency golden log, through the same reducer and renderer as a live run. Live runs through the page are exercised by browser end-to-end tests.
+- Rationale: stub timing at any pace leaves windows of about a second between events, which makes live captures flaky. A golden prefix is still events only, and it is exactly what a replay shows at that moment.
+- Supersedes: the live-driving method described in D9. The pixel rule and masks in D9 stand.
+
 ## Open questions resolved
 
 - Dry intake exit, control, git, replay source, Python: settled by the owner on 2026-09-14 (`docs/roadmap.md`).

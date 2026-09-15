@@ -7,7 +7,7 @@ Compared with `docs/spec-input.md` section 9: the Reviewer joins in the first li
 ## Decisions taken before S1 (owner approvals under constitution XIX, 2026-09-14)
 
 1. **Dry intake exit.** An eighth control exit, `dry_intake`, is added to the schema. Dry intake mode terminates after Intake with this exit whatever the verdict, and the structured summary carries the readiness verdict.
-2. **Dry intake control.** A Dry intake toggle sits in the composer beside the Team / Single switch, in the export's switch style. It exists disabled in S1 and goes live in S3. Recorded as a known deviation in `design/README.md`.
+2. **Dry intake control.** A Dry intake toggle sits in the composer beside the Team / Single switch, in the export's switch style. It exists disabled in S1 and goes live in S3. Recorded as a deviation in `docs/design-deviations.md`.
 3. **Git.** The folder becomes a git repository at the start of S1, with `.env` and `runs/` ignored and the current documents committed as the baseline.
 4. **Replay source.** Replay plays the most recent recording for the selected dataset, falling back to that dataset's golden log. There is no run browser.
 5. **Python.** 3.13, the interpreter installed on the reference machine. `CLAUDE.md` and spec open item 11 updated.
@@ -24,6 +24,8 @@ Compared with `docs/spec-input.md` section 9: the Reviewer joins in the first li
 ## Slices
 
 ### S1. Event spine and stubbed loop
+
+- **Status.** Built 2026-09-14 on branch `001-event-spine-stubbed-loop`, awaiting the owner's review in the browser. Evidence: golden logs in `datasets/*/golden-events.jsonl`; suites under `tests/`; screenshot references in `tests/visual/reference/`; deviations in `docs/design-deviations.md`; quickstart in `specs/001-event-spine-stubbed-loop/quickstart.md`.
 
 - **Outcome.** The presenter opens the Demo page, picks any of the six datasets, presses Run, and the loop strip, feed, meters, and raw drawer play a complete run from stubbed agents with no model calls. All four Demo states appear on cue, any recorded run replays at 1x or 4x, and the display is identical whether live-stubbed or replayed.
 - **Scope.** Event schema frozen as a versioned document plus typed models with validators. Orchestrator state machine: six stages, all eight exits, review retry budget, Work to Intake cap, Handoff sequence ending in `run.terminated`, pause gating, cost ceiling check. Stubbed agents emitting canned sequences for all six scenarios, scenario 2 from the export's sample transcript, the rest minimal fixture text. Stub prompt bundles stored per call so the prompt toggle works. SSE stream. Run recording under `runs/<run_id>/` and verbatim Replay. The full Demo page flattened per spec 2.10 with the state switcher removed: header with nav and a pending-state pre-flight dot, loop strip with all three backward arrows given the fired treatment, composer with Run and Replay live and Pause, Stop, Dry intake, and Single model disabled, feed with every card kind including a new blocker card, prompt toggle, meters with the detail row, raw drawer, artifact panel placeholder, chat panel markup disabled. Login, Settings, and Pre-flight flattened as static pages. Random name and avatar pairing per run with initials placeholders. Golden event logs for all six scenarios and the replay-and-compare test suite. Quality gates: test runner, type checker, linter, em-dash lint, `.env` leak test. Dependency rationale record opened. Capture of the missing export screenshots, then the screenshot comparison.
