@@ -88,7 +88,7 @@ description: "Task list for slice S3, failure paths and presenter controls"
 
 **Independent Test**: live Escalate run matches the golden log; live Answer run resumes Work.
 
-- [ ] T019 [US2] Scripted tests in `tests/integration/s3/test_blocker_live.py`: an Estimator blocker needing a human pauses with the blocker attached; Answer reaches only the Estimator's rework context and is not appended to the knowledge store; Escalate ends `blocker_escalated` with the description in the summary's missing list; a first route back to Intake reruns Intake and a second becomes a blocker
+- [x] T019 [US2] Scripted tests in `tests/integration/s3/test_blocker_live.py`: an Estimator blocker needing a human pauses with the blocker attached; Answer reaches the Estimator's task, stays run-local in the brief, and is not appended to the knowledge store; Escalate ends `blocker_escalated` with the description in the summary's missing list; a first route back to Intake reruns Intake and a second becomes a blocker
 - [ ] T020 [US2] Live run of Missing sheet from the Demo page, press Escalate; `scripts/compare_run.py`; confirm the card names the LP-2 schedule; fix and rerun on a mismatch
 - [ ] T021 [US2] Live run of Missing sheet, answer the blocker instead; confirm the run resumes at Work, record its exit, and confirm the knowledge file gained no entry
 
@@ -100,7 +100,7 @@ description: "Task list for slice S3, failure paths and presenter controls"
 
 **Independent Test**: live run matches the golden log with one backward Review to Work change and retry count 1.
 
-- [ ] T022 [US1] Scripted tests in `tests/integration/s3/test_review_routing_live.py`: a fail routed to the Estimator dispatches only the Estimator with the findings in its bundle, then the Writer, then a passing review, matching the Planted inconsistency golden transitions; a fail routed to Assemble dispatches only the Writer; three fails end `retry_exhausted` with the unresolved findings
+- [x] T022 [US1] Scripted tests in `tests/integration/s3/test_review_routing_live.py`: a fail routed to the Estimator dispatches only the Estimator with the findings in its bundle, then the Writer, then a passing review, matching the Planted inconsistency golden transitions; a fail routed to Assemble dispatches only the Writer; three fails end `retry_exhausted` with the unresolved findings
 - [ ] T023 [US1] Live run of Planted inconsistency from the Demo page; `scripts/compare_run.py`; on a mismatch diagnose from the recording (Estimator concern, draft text, Reviewer finding and route) and adjust within documented rules; up to three runs, reporting how many matched
 
 ---

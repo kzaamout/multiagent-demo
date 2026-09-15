@@ -47,7 +47,7 @@ The presenter runs Missing sheet. The single-line shows a panel whose schedule i
 
 1. **Given** a blocker that needs a human, **When** it is raised, **Then** the Orchestrator asks with the blocker attached, the run pauses, and the blocker card shows the description, the reason, an answer field, Answer, and Escalate.
 2. **Given** the blocker card, **When** the presenter chooses Escalate, **Then** the run ends with exit blocker_escalated and the termination card lists the missing items from the structured summary.
-3. **Given** the blocker card, **When** the presenter answers, **Then** the run resumes at Work, the answer reaches only the blocked specialist, and the answer is not written to the client knowledge file.
+3. **Given** the blocker card, **When** the presenter answers, **Then** the run resumes at Work with the answer in the blocked specialist's task, the answer stays in this run's brief for the seats that see the brief, and it is not written to the client knowledge file.
 4. **Given** a specialist that finds the brief incomplete, **When** it routes back to Intake for the first time in the run, **Then** Intake runs again once; a second route back becomes a blocker.
 
 ---
@@ -167,7 +167,7 @@ Each failure dataset starts from the Clean run inputs and changes only what its 
 - **FR-002**: Rework MUST dispatch only the routed seat, with the routed findings in its context, and the Writer MUST reassemble after specialist rework.
 - **FR-003**: A failed review with the budget spent MUST go to Handoff with exit retry_exhausted and the unresolved findings listed.
 - **FR-004**: A blocker that needs a human MUST pause the run through the Orchestrator's question with the blocker attached, and the blocker card MUST offer Answer and Escalate.
-- **FR-005**: Answer MUST resume Work with the answer in the blocked specialist's context only; the answer MUST NOT be written to the client knowledge file.
+- **FR-005**: Answer MUST resume Work with the answer in the blocked specialist's task; the answer is run-local (spec input section 3): it stays in this run's brief and MUST NOT be written to the client knowledge file.
 - **FR-006**: Escalate MUST end the run with exit blocker_escalated and a structured list of what is missing, shown on the termination card.
 - **FR-007**: A route from Work back to Intake MUST be allowed once per run and a second attempt MUST become a blocker.
 - **FR-008**: A not_ready verdict MUST end the run before Plan with exit not_ready and the failing items listed on the card.
