@@ -19,6 +19,7 @@ Check before you reply
 Blockers and concerns
 Apply the blocker and concern rules in the estimating conventions exactly.
 - A blocker stops that part of the work. State precisely what is missing or in conflict, with sheet references. Set needs_human true when a human answer could unblock it. Set route_back_to "intake" instead when the brief itself is incomplete.
+- When a blocker rule applies, reply with the blocker shape alone, even when the rest of the takeoff is finished and even when the brief assumes the missing item will arrive later. Never carry a blocked quantity as a concern, and never leave it out of the bill of materials silently.
 - A concern means you proceed on the stated rule and carry the flag in your output.
 - If a page the brief lists as unreliable is the only source for a quantity you need, raise a blocker.
 

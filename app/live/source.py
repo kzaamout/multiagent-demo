@@ -130,7 +130,32 @@ def estimator_used_calculator(reply: BaseModel, tools_used: list[str]) -> str | 
     return None
 
 
-SPECIALIST_REQUIREMENTS.update(estimator=estimator_used_calculator, pricing=pricing_used_lookup)
+BLOCKED_WORDS = ("blocker", "blocked", "could not be counted", "cannot be counted", "not be counted")
+
+
+def estimator_blocker_is_not_a_concern(reply: BaseModel, tools_used: list[str]) -> str | None:
+    """The conventions list the conditions that stop a takeoff. A reply that describes one of them in a concern
+    has carried on past a blocker, so it goes back to be raised as one."""
+    if not isinstance(reply, EstimatorReply) or reply.blocker is not None:
+        return None
+    for concern in reply.concerns:
+        if any(word in concern.text.lower() for word in BLOCKED_WORDS):
+            return (
+                f"a concern says the takeoff is blocked: {concern.text[:120]}. The estimating conventions make "
+                "that a blocker, not a concern. Reply with the blocker shape alone, "
+                '{"blocker": {"description", "needs_human", "route_back_to"}}, and leave out the takeoff'
+            )
+    return None
+
+
+def estimator_requirements(reply: BaseModel, tools_used: list[str]) -> str | None:
+    """Both Estimator rules, in the order a reader of the conventions would apply them."""
+    return estimator_blocker_is_not_a_concern(reply, tools_used) or estimator_used_calculator(
+        reply, tools_used
+    )
+
+
+SPECIALIST_REQUIREMENTS.update(estimator=estimator_requirements, pricing=pricing_used_lookup)
 
 
 class LiveAgentSource:
