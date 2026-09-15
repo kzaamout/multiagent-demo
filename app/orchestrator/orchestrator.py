@@ -87,6 +87,8 @@ DEFAULT_REASONS: dict[str, str] = {
     "escalated": "You escalated the blocker, so the run ends with what is missing listed.",
     "route_back_intake": "A specialist found the brief incomplete, so Intake runs again once.",
     "terminated_pass": "The verdict is pass; the package is approved and the run closes.",
+    "terminated_exhausted": "The retry budget is spent; your decision on the draft is recorded and the run closes with findings unresolved.",
+    "terminated_rejected": "You rejected the package; the rejection is recorded and the run closes without re-entering the loop.",
     "terminated": "The run has reached its exit and nothing further can be dispatched.",
     "cost_ceiling": "The estimated cost passed the per-run ceiling, so nothing further is dispatched.",
     "stopped": "The presenter stopped the run.",
@@ -674,7 +676,13 @@ class Orchestrator:
         await self._emit_human(
             "human.approved", stage="handoff", payload={"decision": decision, "notes": notes}, mark="approve"
         )
-        await self._terminate(exit_value, self._reason("terminated_pass"), human_decision=decision)
+        if decision == "reject":
+            closing = "terminated_rejected"
+        elif exit_value == "reviewer_pass":
+            closing = "terminated_pass"
+        else:
+            closing = "terminated_exhausted"
+        await self._terminate(exit_value, self._reason(closing), human_decision=decision)
 
     # Human gate
 

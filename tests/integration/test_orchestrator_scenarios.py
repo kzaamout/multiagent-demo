@@ -124,6 +124,8 @@ async def test_retry_exhausted_goes_through_handoff(settings: Settings) -> None:
     assert [e.payload["count"] for e in of_type(events, "retry.incremented")] == [1, 2]
     assert of_type(events, "handoff.ready")[0].payload["exit_determination"] == "retry_exhausted"
     assert events[-1].payload["summary"]["unresolved_findings"] == ["f1", "f2"]
+    assert "verdict is pass" not in (events[-1].reason or ""), "the closing reason matches the exit"
+    assert "retry budget is spent" in (events[-1].reason or "")
 
 
 async def test_review_fail_routed_to_assemble_uses_backward_arrow(settings: Settings) -> None:
