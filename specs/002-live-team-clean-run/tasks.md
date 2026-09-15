@@ -57,7 +57,7 @@
 - [x] T028 Clean run inputs and fixtures: a synthetic stand-in built 2026-09-15 at the owner's request (roadmap decision 11); the owner's curated set replaces it when found
 - [ ] T029 Owner: credentials in `.env` for Bedrock and Gemini (Gemini done 2026-09-15; AWS keys pending); Ollama with the chosen local model pulled (via `scripts/setup.ps1`)
 - [x] T030 Owner: confirm the four model questions in the plan (answered 2026-09-15)
-- [ ] T031 Live Clean run from the Demo page; record it; replay compare against the golden stage sequence and exit
+- [ ] T031 Live Clean run from the Demo page; record it; replay compare against the golden stage sequence and exit (2026-09-15, local models: run `963686a4` completed with `retry_exhausted`, golden mismatch; see roadmap S2 status)
 - [ ] T032 Second live run for the same client; no repeated clarification; `knowledge.appended` present in the first
 - [ ] T033 Screenshot comparison and all S1 gates green; update `docs/roadmap.md` S2 status
 
