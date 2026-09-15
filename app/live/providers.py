@@ -35,6 +35,7 @@ class ModelSpec:
     price_out: float
     options: dict[str, Any] | None = None
     additional_args: dict[str, Any] | None = None
+    max_tokens: int | None = None
 
     def model_object(self) -> Model:
         return Model(provider=self.provider, model_id=self.model_id, label=self.label)
@@ -74,6 +75,7 @@ class ModelConfig:
                 price_out=float(value.get("price_out", 0)),
                 options=dict(value["options"]) if value.get("options") else None,
                 additional_args=dict(value["additional_args"]) if value.get("additional_args") else None,
+                max_tokens=int(value["max_tokens"]) if value.get("max_tokens") else None,
             )
             for key, value in data["models"].items()
         }
@@ -165,6 +167,8 @@ def strands_model_for(config: ModelConfig, agent_id: str) -> SeatModel:
         kwargs: dict[str, Any] = {"model_id": spec.model_id, "region_name": provider.get("region")}
         if choice.temperature is not None:
             kwargs["temperature"] = choice.temperature
+        if spec.max_tokens:
+            kwargs["max_tokens"] = spec.max_tokens
         strands_model = BedrockModel(**kwargs)
     elif spec.provider == "ollama":
         from strands.models.ollama import OllamaModel
@@ -176,6 +180,8 @@ def strands_model_for(config: ModelConfig, agent_id: str) -> SeatModel:
             kwargs["options"] = dict(spec.options)
         if spec.additional_args:
             kwargs["additional_args"] = dict(spec.additional_args)
+        if spec.max_tokens:
+            kwargs["max_tokens"] = spec.max_tokens
         strands_model = OllamaModel(str(provider.get("host", "http://localhost:11434")), **kwargs)
     elif spec.provider in ("google", "xai"):
         from strands.models.litellm import LiteLLMModel
@@ -183,6 +189,8 @@ def strands_model_for(config: ModelConfig, agent_id: str) -> SeatModel:
         params: dict[str, Any] = {}
         if choice.temperature is not None:
             params["temperature"] = choice.temperature
+        if spec.max_tokens:
+            params["max_tokens"] = spec.max_tokens
         strands_model = LiteLLMModel(model_id=spec.model_id, params=params)
     else:
         raise ValueError(f"no Strands provider for {spec.provider}")

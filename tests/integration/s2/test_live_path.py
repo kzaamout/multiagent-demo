@@ -252,3 +252,20 @@ async def test_pricing_tool_call_written_as_text_is_corrected(tmp_path: Path) ->
     ]
     assert pricing_tools == ["price_list_lookup"]
     assert orchestrator.events[-1].payload["exit"] == "reviewer_pass"
+
+
+async def test_output_limit_stops_without_a_costly_retry(tmp_path: Path) -> None:
+    from strands.types.exceptions import MaxTokensReachedException
+
+    turns = h.full_turns()
+    vision = h.estimator_turns()[0]
+    turns["estimator"] = [vision, MaxTokensReachedException("cut off"), *h.estimator_turns()]
+    orchestrator = h.build(tmp_path, turns, "10000000-0000-4000-8000-000000000013")
+    await drive(orchestrator, SCRIPT)
+    last = orchestrator.events[-1]
+    assert last.payload["exit"] == "stopped"
+    assert "reached its output limit" in (last.reason or "")
+    vision_reads = [
+        e for e in of_type(orchestrator.events, "tool.called") if e.payload["tool"] == "vision_read_drawing"
+    ]
+    assert len(vision_reads) == 1, "the drawings are not read a second time"

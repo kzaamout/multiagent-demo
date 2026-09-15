@@ -19,6 +19,7 @@ from strands import Agent
 from strands.hooks import AfterModelCallEvent, AfterToolCallEvent, HookProvider, HookRegistry
 from strands.models import Model as StrandsModel
 from strands.tools.executors import SequentialToolExecutor
+from strands.types.exceptions import MaxTokensReachedException
 
 from app.agents.base import MeterDelta
 from app.agents.source import AgentFailure
@@ -244,6 +245,11 @@ class SeatCall:
                         yield item
             except AgentFailure:
                 raise
+            except MaxTokensReachedException:
+                # Retrying would repeat the whole call, tool reads included, and stop at the same limit.
+                raise AgentFailure(
+                    f"The {self.role} on {label} reached its output limit before finishing the reply, so the run stops."
+                ) from None
             except Exception as error:  # noqa: BLE001
                 if attempt == 2:
                     raise AgentFailure(

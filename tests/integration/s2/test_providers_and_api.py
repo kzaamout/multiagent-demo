@@ -53,6 +53,14 @@ def test_model_config_loads_and_checks_temperature(tmp_path: Path) -> None:
             )
     pricing = strands_model_for(config, "pricing").strands_model.get_config()
     assert pricing["temperature"] == 0.1
+    for seat in config.seats:
+        spec = config.seat_spec(seat)
+        if spec.provider == "bedrock":
+            assert (
+                spec.max_tokens
+                and strands_model_for(config, seat).strands_model.get_config()["max_tokens"]
+                == spec.max_tokens
+            )
     estimator = strands_model_for(config, "estimator").strands_model.get_config()
     if config.seat_spec("estimator").additional_args:
         assert estimator["additional_args"] == config.seat_spec("estimator").additional_args

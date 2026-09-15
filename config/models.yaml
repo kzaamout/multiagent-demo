@@ -24,6 +24,7 @@ models:
     label: claude-sonnet-5 via Bedrock
     image_input: true
     temperature: false            # rejects any non-default temperature
+    max_tokens: 16000             # a full bill of materials reply is long; the provider default cut it off
     price_in: 2.20
     price_out: 11.00
   bedrock-sonnet-4-6:
