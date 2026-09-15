@@ -269,3 +269,16 @@ async def test_output_limit_stops_without_a_costly_retry(tmp_path: Path) -> None
         e for e in of_type(orchestrator.events, "tool.called") if e.payload["tool"] == "vision_read_drawing"
     ]
     assert len(vision_reads) == 1, "the drawings are not read a second time"
+
+
+async def test_writer_draft_without_provenance_gets_a_correction(tmp_path: Path) -> None:
+    turns = h.full_turns()
+    render, final = h.writer_turns()
+    body = "# Proposal" + chr(10) + chr(10) + "We will install 25 troffers for $6,362.94." + chr(10)
+    untagged = reply({"markdown": body, "note": "no tags"})
+    turns["writer"] = [render, untagged, final]
+    orchestrator = h.build(tmp_path, turns, "10000000-0000-4000-8000-000000000014")
+    await drive(orchestrator, SCRIPT)
+    draft = of_type(orchestrator.events, "draft.committed")[0]
+    assert len(draft.payload["provenance_tags"]) == 2
+    assert orchestrator.events[-1].payload["exit"] == "reviewer_pass"

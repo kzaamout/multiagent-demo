@@ -41,6 +41,30 @@ class Rendered:
     gaps: tuple[str, ...]
 
 
+MONEY = re.compile(r"\$\s?\d[\d,]*(?:\.\d+)?")
+SOURCE_ID = re.compile(r"\(source id: ([A-Za-z0-9_.:-]+)\)")
+
+
+def provenance_problems(markdown: str, offered_context: str) -> list[str]:
+    """What stops a draft's provenance from being checkable: no tags, tags naming sources the Writer was
+    never given, or dollar amounts left untagged in the body. The appendix is excluded."""
+    body = markdown.split("\n## Provenance", 1)[0]
+    tags = find_tags(body)
+    offered = set(SOURCE_ID.findall(offered_context))
+    problems: list[str] = []
+    if not tags:
+        problems.append("the draft has no provenance tags; tag every figure as {{value|src:<source_id>}}")
+    unknown = sorted({tag.source_id for tag in tags if tag.source_id not in offered})
+    if unknown:
+        problems.append("these tags name a source id that is not in your context: " + ", ".join(unknown[:5]))
+    untagged = MONEY.findall(TAG.sub("", body))
+    if untagged:
+        problems.append(
+            "these dollar amounts have no provenance tag: " + ", ".join(dict.fromkeys(untagged[:6]))
+        )
+    return problems
+
+
 def find_tags(markdown: str) -> list[Tag]:
     return [Tag(f"t{i:02d}", m.group(1), m.group(2)) for i, m in enumerate(TAG.finditer(markdown), start=1)]
 

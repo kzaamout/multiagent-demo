@@ -44,7 +44,7 @@ from app.orchestrator.knowledge_store import KnowledgeStore
 from app.schema.bundles import PromptBundle
 from app.schema.events import Event, Subtask
 from app.seats.definitions import SEAT_DEFINITIONS, load_instructions
-from app.tools.template import commit_draft, find_tags
+from app.tools.template import commit_draft, find_tags, provenance_problems
 
 if TYPE_CHECKING:
     from app.orchestrator.orchestrator import Orchestrator
@@ -400,8 +400,13 @@ class LiveAgentSource:
         if findings:
             task += " Fix only the Reviewer findings routed to you."
         bundle = self._bundle("writer", task, findings or None)
+
+        def provenance_checked(reply: BaseModel, _tools: list[str]) -> str | None:
+            problems = provenance_problems(cast(WriterReply, reply).markdown, bundle.context_slice)
+            return "; ".join(problems) if problems else None
+
         async for emit, reply, pending, _ in self._stream(
-            "writer", f"assemble-v{version}", bundle, lambda t: parse_reply("writer", t)
+            "writer", f"assemble-v{version}", bundle, lambda t: parse_reply("writer", t), provenance_checked
         ):
             if emit is not None:
                 yield emit

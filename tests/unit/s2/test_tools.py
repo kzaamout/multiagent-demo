@@ -143,3 +143,20 @@ def test_knowledge_store_seeds_once_and_appends_answers(tmp_path: Path) -> None:
     assert "q_site_visit" in store.read("northgate-library"), "ensure never reseeds"
     with pytest.raises(ValueError):
         store.path_for("../escape")
+
+
+def test_provenance_check_names_every_problem() -> None:
+    from app.tools.template import provenance_problems
+
+    context = "## Estimator output (source id: est-1)\n## Pricing output (source id: price-1)"
+    assert (
+        provenance_problems("We bid {{$6,362.94|src:price-1}} for {{25 troffers|src:est-1}}.", context) == []
+    )
+    problems = provenance_problems(
+        "We bid $6,362.94 for {{25 troffers|src:made-up}}.\n## Provenance\n$1", context
+    )
+    assert any("made-up" in p for p in problems) and any("$6,362.94" in p for p in problems)
+    assert not any("$1" in p.split(": ", 1)[-1].split(", ") for p in problems), "the appendix is not checked"
+    assert provenance_problems("No figures at all.", context)[0].startswith(
+        "the draft has no provenance tags"
+    )
