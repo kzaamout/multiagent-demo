@@ -22,7 +22,7 @@ from strands.tools.executors import SequentialToolExecutor
 
 from app.agents.base import MeterDelta
 from app.agents.source import AgentFailure
-from app.live.replies import ReplyError
+from app.live.replies import ReplyError, extract_json
 from app.live.strands_tools import ToolLog
 from app.schema.bundles import PromptBundle
 from app.schema.events import Model
@@ -130,6 +130,22 @@ def compose_prompt(task: str, context_text: str) -> str:
     return f"## Task\n{task.strip()}\n\n{context_text.strip()}\n"
 
 
+def _tool_call_written_as_text(text: str, tool_names: set[str]) -> str | None:
+    """Small models sometimes print a tool call as JSON instead of making it. Returns the tool's name."""
+    try:
+        data = extract_json(text)
+    except ReplyError:
+        return None
+    name = data.get("name") or data.get("tool") or data.get("function")
+    if (
+        isinstance(name, str)
+        and name in tool_names
+        and ("parameters" in data or "arguments" in data or "input" in data)
+    ):
+        return name
+    return None
+
+
 Requirement = Callable[[BaseModel, list[str]], str | None]
 """Given a parsed reply and the tools used so far, a sentence saying what is missing, or None."""
 
@@ -158,10 +174,20 @@ class SeatCall:
         self.parse = parse
         self.requirement = requirement
         self.tools_used: list[str] = []
+        self.tool_names = {str(getattr(t, "tool_name", getattr(t, "__name__", ""))) for t in tools}
 
     def _accept(self, text: str) -> BaseModel:
         """Parse the reply and apply the seat's requirement on how it was produced. Raises ReplyError."""
-        reply = self.parse(text)
+        try:
+            reply = self.parse(text)
+        except ReplyError as error:
+            written = _tool_call_written_as_text(text, self.tool_names)
+            if written:
+                raise ReplyError(
+                    f"you wrote a call to {written} as text instead of calling the tool. Call {written} as a tool, "
+                    "wait for its result, then reply with the required JSON object"
+                ) from error
+            raise
         if self.requirement is not None:
             unmet = self.requirement(reply, self.tools_used)
             if unmet:

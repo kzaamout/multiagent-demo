@@ -140,7 +140,7 @@ def test_intake_must_grade_every_item_and_ask_about_every_gap() -> None:
     from app.live.replies import checklist_items
 
     expected = checklist_items(ROOT / "config" / "electrical-rfp" / "readiness-checklist.md")
-    assert len(expected) == 20 and expected[0] == "Scope statement describing the electrical work requested"
+    assert len(expected) == 21 and expected[0] == "Scope statement describing the electrical work requested"
     passes = [{"item": f"Item {i}", "status": "pass", "note": None} for i in range(len(expected) - 2)]
     bonding = {
         "item": "Bonding or insurance requirements stated",

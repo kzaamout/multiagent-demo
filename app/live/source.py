@@ -105,6 +105,19 @@ class LiveContext:
     retry_budget: int
 
 
+def pricing_used_lookup(reply: BaseModel, tools_used: list[str]) -> str | None:
+    """Prices and totals must come from price_list_lookup, never from the model."""
+    if isinstance(reply, PricingReply) and "price_list_lookup" not in tools_used:
+        return (
+            "no price came from price_list_lookup. Call the price_list_lookup tool with every bill of materials "
+            "line, the markup rate, the labour hours, and the labour rate, then copy its prices and totals"
+        )
+    return None
+
+
+SPECIALIST_REQUIREMENTS: dict[str, Requirement] = {}
+
+
 def estimator_used_calculator(reply: BaseModel, tools_used: list[str]) -> str | None:
     """A completed takeoff must take its totals from quantity_calculate, never from the model's own arithmetic."""
     if isinstance(reply, EstimatorReply) and reply.blocker is None and "quantity_calculate" not in tools_used:
@@ -113,6 +126,9 @@ def estimator_used_calculator(reply: BaseModel, tools_used: list[str]) -> str | 
             "counted and measured line, then copy its quantities with waste and its labour hours into your reply"
         )
     return None
+
+
+SPECIALIST_REQUIREMENTS.update(estimator=estimator_used_calculator, pricing=pricing_used_lookup)
 
 
 class LiveAgentSource:
@@ -346,7 +362,7 @@ class LiveAgentSource:
         agent_id = subtask.agent_id
         task = f"Sub-task {subtask.task_id}: {subtask.title}. {extra}".strip()
         bundle = self._bundle(agent_id, task, findings)
-        requirement = estimator_used_calculator if agent_id == "estimator" else None
+        requirement = SPECIALIST_REQUIREMENTS.get(agent_id)
         async for emit, reply, pending, tools_used in self._stream(
             agent_id, subtask.task_id, bundle, lambda t: parse_reply(agent_id, t), requirement
         ):

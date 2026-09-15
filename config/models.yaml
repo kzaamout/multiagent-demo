@@ -105,13 +105,14 @@ models:
     price_in: 0
     price_out: 0
 
-# Seat models. Every seat runs locally on Ollama, so runs cost nothing (owner decision, 2026-09-15).
+# Seat models. Every seat except the Estimator runs locally on Ollama (owner decisions, 2026-09-15). The Estimator
+# runs on Claude through Bedrock and costs cents per run; keep COST_CEILING low in .env as the guard.
 # The Reviewer is a different model family from the Writer. Qwen 3.5 and Gemma 4 read images, so the
 # Estimator can see drawing pages and the Reviewer can judge compiled pages from S4.
 seats:
   orchestrator: {model: qwen3-5-9b, temperature: 0.1}
   intake: {model: qwen3-5-9b, temperature: 0.1}
-  estimator: {model: qwen3-5-9b}
+  estimator: {model: bedrock-sonnet-5}   # owner decision 1b, 2026-09-15: the local 9B model misread quantities; run with COST_CEILING
   pricing: {model: llama3-1-8b, temperature: 0.1}
   writer: {model: qwen3-5-9b}
   reviewer: {model: gemma4-12b, temperature: 0.2}

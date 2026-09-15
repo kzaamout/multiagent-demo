@@ -236,3 +236,19 @@ async def test_estimator_totals_must_come_from_the_calculator(tmp_path: Path) ->
     ]
     assert estimator_tools == ["vision_read_drawing", "quantity_calculate"]
     assert orchestrator.events[-1].payload["exit"] == "reviewer_pass"
+
+
+async def test_pricing_tool_call_written_as_text_is_corrected(tmp_path: Path) -> None:
+    turns = h.full_turns()
+    lookup, final = h.pricing_turns()
+    written = [{"text": 'Here is the call: {"name": "price_list_lookup", "parameters": {"items": []}}'}]
+    turns["pricing"] = [written, lookup, final]
+    orchestrator = h.build(tmp_path, turns, "10000000-0000-4000-8000-000000000012")
+    await drive(orchestrator, SCRIPT)
+    pricing_tools = [
+        e.payload["tool"]
+        for e in of_type(orchestrator.events, "tool.called")
+        if e.payload["agent_id"] == "pricing"
+    ]
+    assert pricing_tools == ["price_list_lookup"]
+    assert orchestrator.events[-1].payload["exit"] == "reviewer_pass"
