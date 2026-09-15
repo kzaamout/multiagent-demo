@@ -10,6 +10,18 @@ Freeze the event schema as version 1.0.0 (prose document plus Pydantic models wi
 
 Versions and service names were verified on 2026-09-14 and are recorded in [research.md](research.md); nothing is pinned from memory.
 
+### Verified on 2026-09-14 (sources and the full table in research.md)
+
+| Item | Verified | Source |
+|---|---|---|
+| Strands Agents (Python SDK, package `strands-agents`) | 1.55.1, released 2026-09-09; extras `anthropic`, `ollama`, `litellm`, `gemini` | PyPI, github.com/strands-agents/sdk-python |
+| Strands Agents tools (`strands-agents-tools`) | 0.8.8, released 2026-09-04 | PyPI |
+| Amazon Bedrock AgentCore Python SDK (`bedrock-agentcore`) | 1.23.0, released 2026-09-11 | PyPI |
+| Amazon Bedrock AgentCore service names | Harness, Runtime, Memory, Gateway, Identity, Code Interpreter, Browser, Observability, Payments, Evaluations, Optimization, Policy, Registry | AWS developer guide overview page |
+| Typst | 0.15.1, released 2026-07-17; 0.15.1 installed locally | github.com/typst/typst releases, `typst --version` |
+
+None of these is installed in S1. Strands arrives in S2, Typst in S4, and AgentCore stays a phase 2 production story per the non-goals. The AgentCore list is longer than the one most copy assumes (Harness, Payments, Optimization, Policy, and Registry are recent), so the Introduction copy check in S6 should use this list.
+
 ## Technical Context
 
 **Language/Version**: Python 3.13 (3.13.14 on the reference machine; owner decision 2026-09-14)
