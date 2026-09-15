@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sterling AI · Pre-flight</title>
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="page-white">
+<div class="page">
+  <header class="hdr" data-part="header">
+    <div class="brand-wrap"><span class="brand">Sterling AI <span class="muted">· Multi-agent demo</span></span></div>
+    <nav class="nav">
+      <a href="/demo">Demo</a>
+      <a aria-disabled="true" title="The Introduction tab arrives in slice S6">Introduction</a>
+      <span class="nav-current nav-pf">Pre-flight<span class="pf-dot" data-part="preflight-indicator" data-status="pending" title="Pre-flight: not run yet">○</span></span>
+      <a href="/settings">Settings</a>
+      <span class="build-stamp" data-part="build-stamp">{{BUILD_STAMP}}</span>
+    </nav>
+  </header>
+  <main class="pf-main">
+    <div class="pf-head">
+      <h1 class="page-title">Pre-flight</h1>
+      <button class="btn-pf" type="button" disabled title="Live pre-flight checks arrive in slice S7">Run pre-flight</button>
+    </div>
+    <div class="pf-rows">
+      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Amazon Bedrock responds</div><div class="check-detail">○ Pending</div></div>
+      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Google Gemini responds</div><div class="check-detail">○ Pending</div></div>
+      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Ollama reachable, models present</div><div class="check-detail">○ Pending</div></div>
+      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Typst present, test compile</div><div class="check-detail">○ Pending</div></div>
+      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Page PNG export</div><div class="check-detail">○ Pending</div></div>
+      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Tunnel reachable from outside</div><div class="check-detail">○ Pending</div></div>
+      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Disk space</div><div class="check-detail">○ Pending</div></div>
+      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">.env completeness</div><div class="check-detail">○ Pending</div></div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

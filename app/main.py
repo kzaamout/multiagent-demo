@@ -19,7 +19,10 @@ from app.agents.stubs import bundle_for
 from app.buildinfo import build_info
 from app.config import Settings, load_settings
 from app.orchestrator.orchestrator import Answer
+from app.orchestrator.roster import EXPORT_NAMES as EXPORT_NAMES_FOR_IDLE
+from app.orchestrator.roster import build_roster
 from app.runs.bus import StreamBus
+from app.runs.recorder import read_events
 from app.runs.registry import Registry
 from app.runs.replay import ReplaySession
 from app.schema.bundles import PromptBundle
@@ -117,11 +120,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "cost_ceiling": cfg.cost_ceiling,
             "schema_version": cfg.schema_version,
             "live_run_id": registry.live.run_id if registry.is_live() and registry.live else None,
+            "idle_roster": {
+                seat: agent.model_dump()
+                for seat, agent in build_roster(cfg.workflow, names=EXPORT_NAMES_FOR_IDLE).items()
+            },
         }
 
     @app.get("/api/datasets")
     async def datasets() -> list[dict[str, Any]]:
         return registry.dataset_listing()
+
+    @app.get("/api/datasets/{dataset_id}/golden")
+    async def golden(dataset_id: str, upto: int | None = None) -> list[dict[str, Any]]:
+        """The committed golden log, optionally cut at a seq. Used to render a fixed state."""
+        if dataset_id not in registry.datasets:
+            raise HTTPException(404, f"unknown dataset {dataset_id}")
+        path = registry.dataset(dataset_id).golden_path
+        if not path.exists():
+            raise HTTPException(404, "no golden log for this dataset")
+        events = read_events(path)
+        if upto is not None:
+            events = [e for e in events if e.seq <= upto]
+        return [e.model_dump(mode="json", by_alias=True) for e in events]
 
     # Runs
 

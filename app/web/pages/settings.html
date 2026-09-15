@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sterling AI · Settings</title>
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="page-white">
+<div class="page">
+  <header class="hdr" data-part="header">
+    <div class="brand-wrap"><span class="brand">Sterling AI <span class="muted">· Multi-agent demo</span></span></div>
+    <nav class="nav">
+      <a href="/demo">Demo</a>
+      <a aria-disabled="true" title="The Introduction tab arrives in slice S6">Introduction</a>
+      <a href="/preflight" class="nav-pf">Pre-flight<span class="pf-dot" data-part="preflight-indicator" data-status="pending" title="Pre-flight: not run yet">○</span></a>
+      <span class="nav-current">Settings</span>
+      <span class="build-stamp" data-part="build-stamp">{{BUILD_STAMP}}</span>
+    </nav>
+  </header>
+  <main class="settings-main">
+    <h1 class="page-title">Agent seats</h1>
+    <p class="page-sub">Changes apply at the next stage.</p>
+
+    <div class="seat-row" data-part="seat-row">
+      <div class="agent agent-lg" data-part="agent-card"><div class="avatar" style="background:#17171c">O</div><div class="agent-text"><div class="agent-name">Oscar, Orchestrator</div><div class="agent-model">claude-sonnet via Bedrock</div></div></div>
+      <div class="seat-select-col"><div class="model-select" data-part="model-select" aria-disabled="true" title="Model swap arrives in slice S5"><span>claude-sonnet via Bedrock</span><span class="select-chev">▾</span></div></div>
+      <div class="seat-dep">Runs every stage transition</div>
+    </div>
+    <div class="seat-row" data-part="seat-row">
+      <div class="agent agent-lg" data-part="agent-card"><div class="avatar" style="background:#003c33">A</div><div class="agent-text"><div class="agent-name">Anna, Intake Analyst</div><div class="agent-model">claude-sonnet via Bedrock</div></div></div>
+      <div class="seat-select-col"><div class="model-select" data-part="model-select" aria-disabled="true" title="Model swap arrives in slice S5"><span>claude-sonnet via Bedrock</span><span class="select-chev">▾</span></div></div>
+      <div class="seat-dep">Stage 1, before Plan</div>
+    </div>
+    <div class="seat-row" data-part="seat-row">
+      <div class="agent agent-lg" data-part="agent-card"><div class="avatar" style="background:#b45309">E</div><div class="agent-text"><div class="agent-name">Elena, Estimator</div><div class="agent-model">claude-sonnet via Bedrock (vision)</div></div></div>
+      <div class="seat-select-col"><div class="model-select" data-part="model-select" aria-disabled="true" title="Model swap arrives in slice S5"><span>claude-sonnet via Bedrock (vision)</span><span class="select-chev">▾</span></div></div>
+      <div class="seat-dep">RFP workflow. Needs vision on drawings</div>
+    </div>
+    <div class="seat-row" data-part="seat-row">
+      <div class="agent agent-lg" data-part="agent-card"><div class="avatar" style="background:#1863dc">P</div><div class="agent-text"><div class="agent-name">Pavel, Pricing</div><div class="agent-model">llama3.1 8b, local</div></div></div>
+      <div class="seat-select-col"><div class="model-select" data-part="model-select" aria-disabled="true" title="Model swap arrives in slice S5"><span>llama3.1 8b, local</span><span class="select-chev">▾</span></div></div>
+      <div class="seat-dep">RFP workflow. Runs after Estimator</div>
+    </div>
+    <div class="seat-row" data-part="seat-row">
+      <div class="agent agent-lg" data-part="agent-card"><div class="avatar" style="background:#071829">W</div><div class="agent-text"><div class="agent-name">Willa, Writer</div><div class="agent-model">claude-sonnet via Bedrock</div></div></div>
+      <div class="seat-select-col"><div class="model-select" data-part="model-select" aria-disabled="true" title="Model swap arrives in slice S5"><span>claude-sonnet via Bedrock</span><span class="select-chev">▾</span></div></div>
+      <div class="seat-dep">Runs after all specialists</div>
+    </div>
+    <div class="seat-row" data-part="seat-row">
+      <div class="agent agent-lg" data-part="agent-card"><div class="avatar" style="background:#b30000">R</div><div class="agent-text"><div class="agent-name">Rafael, Reviewer</div><div class="agent-model">gemini-2.5-pro via Google</div></div></div>
+      <div class="seat-select-col"><div class="model-select" data-part="model-select" aria-disabled="true" title="Model swap arrives in slice S5"><span>gemini-2.5-pro via Google</span><span class="select-chev">▾</span></div></div>
+      <div class="seat-dep">Different model family from Writer</div>
+    </div>
+    <div class="seat-row" data-part="seat-row">
+      <div class="agent agent-lg" data-part="agent-card"><div class="avatar" style="background:#2f6b5e">C</div><div class="agent-text"><div class="agent-name">Clara, Case Manager</div><div class="agent-model">claude-sonnet via Bedrock</div></div></div>
+      <div class="seat-select-col"><div class="model-select" data-part="model-select" aria-disabled="true" title="Model swap arrives in slice S5"><span>claude-sonnet via Bedrock</span><span class="select-chev">▾</span></div></div>
+      <div class="seat-dep">Appraisal workflow</div>
+    </div>
+    <div class="seat-row" data-part="seat-row">
+      <div class="agent agent-lg" data-part="agent-card"><div class="avatar" style="background:#4a4a8a">M</div><div class="agent-text"><div class="agent-name">Marcus, Market Analyst</div><div class="agent-model">llama3.1 8b, local</div></div></div>
+      <div class="seat-select-col"><div class="model-select" data-part="model-select" aria-disabled="true" title="Model swap arrives in slice S5"><span>llama3.1 8b, local</span><span class="select-chev">▾</span></div></div>
+      <div class="seat-dep">Appraisal workflow. Runs after Case Manager</div>
+    </div>
+  </main>
+</div>
+</body>
+</html>
