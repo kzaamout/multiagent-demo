@@ -60,15 +60,15 @@
       <button class="seg-btn" type="button" aria-pressed="true" disabled>Team</button>
       <button class="seg-btn is-unbuilt" type="button" aria-pressed="false" disabled title="Single-model mode arrives in slice S5">Single model</button>
     </div>
-    <div class="seg is-disabled" data-part="dry-intake-toggle" title="Dry intake mode arrives in slice S3">
+    <div class="seg" data-part="dry-intake-toggle" id="dry-intake" title="Dry intake stops the run after Intake and shows the readiness verdict">
       <span class="seg-label">Dry intake</span>
-      <button class="seg-btn" type="button" aria-pressed="true" disabled>Off</button>
-      <button class="seg-btn" type="button" aria-pressed="false" disabled>On</button>
+      <button class="seg-btn" type="button" id="dry-off" data-action="dry-off" aria-pressed="true">Off</button>
+      <button class="seg-btn" type="button" id="dry-on" data-action="dry-on" aria-pressed="false">On</button>
     </div>
     <div class="spacer"></div>
     <button class="btn-run" data-part="run" id="btn-run" type="button">▶ Run</button>
-    <button class="btn-ghost" data-part="pause" id="btn-pause" type="button" disabled title="Pause arrives in slice S3">Pause</button>
-    <button class="btn-ghost" data-part="stop" id="btn-stop" type="button" disabled title="Stop arrives in slice S3">Stop</button>
+    <button class="btn-ghost" data-part="pause" id="btn-pause" data-action="control-pause" type="button" disabled title="Pause freezes dispatch; calls in flight complete">Pause</button>
+    <button class="btn-ghost" data-part="stop" id="btn-stop" data-action="control-stop" type="button" disabled title="Stop ends the run">Stop</button>
     <div class="vdiv"></div>
     <div class="replay" data-part="replay">
       <button class="replay-btn" id="btn-replay" type="button" aria-pressed="false"><span class="replay-ring"></span>Replay</button>

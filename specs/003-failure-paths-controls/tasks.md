@@ -23,14 +23,14 @@ description: "Task list for slice S3, failure paths and presenter controls"
 
 ## Phase 1: Setup
 
-- [ ] T001 Create test packages `tests/integration/s3/__init__.py` and `tests/unit/s3/__init__.py`
-- [ ] T002 [P] Write `scripts/compare_run.py`: take a run id, read `runs/<run_id>/events.jsonl`, find the dataset from the `run.started` payload, compare with `datasets/<dataset>/golden-events.jsonl` through `app.runs.golden.compare`, print transitions, exit, retries, clarifications asked, blockers raised, and estimated cost, and exit 1 on a mismatch; test it in `tests/unit/s3/test_compare_run.py` on a deterministic stub run written to a temporary runs folder
+- [x] T001 Create test packages `tests/integration/s3/__init__.py` and `tests/unit/s3/__init__.py`
+- [x] T002 [P] Write `scripts/compare_run.py`: take a run id, read `runs/<run_id>/events.jsonl`, find the dataset from the `run.started` payload, compare with `datasets/<dataset>/golden-events.jsonl` through `app.runs.golden.compare`, print transitions, exit, retries, clarifications asked, blockers raised, and estimated cost, and exit 1 on a mismatch; test it in `tests/unit/s3/test_compare_run.py` on a deterministic stub run written to a temporary runs folder
 
 ---
 
 ## Phase 2: Foundational
 
-- [ ] T003 The registry hands each run's asyncio task to its Orchestrator (`attach_task`) so Stop can cancel it, in `app/runs/registry.py` and `app/orchestrator/orchestrator.py`; test that the task is attached in `tests/integration/s3/test_controls.py`
+- [x] T003 The registry hands each run's asyncio task to its Orchestrator (`attach_task`) so Stop can cancel it, in `app/runs/registry.py` and `app/orchestrator/orchestrator.py`; test that the task is attached in `tests/integration/s3/test_controls.py`
 
 **Checkpoint**: controls and datasets can proceed.
 
@@ -42,13 +42,13 @@ description: "Task list for slice S3, failure paths and presenter controls"
 
 **Independent Test**: start a slow stub run, pause during Work, check no dispatch while paused, resume, stop; exit `stopped` within 5 s; last event is `run.terminated`.
 
-- [ ] T004 [US5] Tests in `tests/integration/s3/test_controls.py`: pause emits `run.paused` with payload `{"by": "human"}` and a reason; no `task.dispatched` between `run.paused` and `run.resumed`; resume emits `run.resumed` with `{"by": "human"}`; pause is ignored while waiting on a human, at Handoff, and after termination; Stop during a scripted seat call that never yields ends with exit `stopped` within 5 s and no event after `run.terminated`; Stop while waiting on a clarification ends `stopped` with no `clarification.answered`
-- [ ] T005 [US5] Emit `run.paused` and `run.resumed` through the serialised emitter from `pause()` and `resume()`, ignoring pause while `pending_human` is set or the run has ended, in `app/orchestrator/orchestrator.py` (research D2); add reasons `paused` and `resumed` to use
-- [ ] T006 [US5] Stop cancels the attached run task and the work stage's child tasks; `run()` catches the cancellation that follows a stop request, terminates with `stopped` under `asyncio.shield`, and late results are discarded, in `app/orchestrator/orchestrator.py` (research D1)
-- [ ] T007 [P] [US5] API tests for `POST /api/runs/{id}/pause`, `/resume`, `/stop` returning 202 and producing the events of `contracts/controls.md`, in `tests/integration/s3/test_controls_api.py`
-- [ ] T008 [US5] Enable Pause and Stop per the control-state table in `data-model.md`: Pause reads Resume while paused by the presenter; both disabled when idle, waiting on a human (Pause only), ended, or in replay and fixed states; wire the buttons to the routes; in `app/web/pages/demo.html`, `app/web/static/js/demo.js`, `app/web/static/js/render.js`
-- [ ] T009 [US5] Browser test in `tests/visual/test_e2e_controls.py`: a slow stub run; Pause shows the paused note and the Resume label; Resume continues; Stop ends with the stopped termination card; buttons disabled after the end and in a replay
-- [ ] T010 [US5] Run `uv run pytest -m visual` and confirm the screenshot comparison still passes with controls disabled in fixed states
+- [x] T004 [US5] Tests in `tests/integration/s3/test_controls.py`: pause emits `run.paused` with payload `{"by": "human"}` and a reason; no `task.dispatched` between `run.paused` and `run.resumed`; resume emits `run.resumed` with `{"by": "human"}`; pause is ignored while waiting on a human, at Handoff, and after termination; Stop during a scripted seat call that never yields ends with exit `stopped` within 5 s and no event after `run.terminated`; Stop while waiting on a clarification ends `stopped` with no `clarification.answered`
+- [x] T005 [US5] Emit `run.paused` and `run.resumed` through the serialised emitter from `pause()` and `resume()`, ignoring pause while `pending_human` is set or the run has ended, in `app/orchestrator/orchestrator.py` (research D2); add reasons `paused` and `resumed` to use
+- [x] T006 [US5] Stop cancels the attached run task and the work stage's child tasks; `run()` catches the cancellation that follows a stop request, terminates with `stopped` under `asyncio.shield`, and late results are discarded, in `app/orchestrator/orchestrator.py` (research D1)
+- [x] T007 [P] [US5] API tests for `POST /api/runs/{id}/pause`, `/resume`, `/stop` returning 202 and producing the events of `contracts/controls.md`, in `tests/integration/s3/test_controls_api.py`
+- [x] T008 [US5] Enable Pause and Stop per the control-state table in `data-model.md`: Pause reads Resume while paused by the presenter; both disabled when idle, waiting on a human (Pause only), ended, or in replay and fixed states; wire the buttons to the routes; in `app/web/pages/demo.html`, `app/web/static/js/demo.js`, `app/web/static/js/render.js`
+- [x] T009 [US5] Browser test in `tests/visual/test_e2e_controls.py`: a slow stub run; Pause shows the paused note and the Resume label; Resume continues; Stop ends with the stopped termination card; buttons disabled after the end and in a replay
+- [x] T010 [US5] Run `uv run pytest -m visual` and confirm the screenshot comparison still passes with controls disabled in fixed states
 
 **Checkpoint**: US5 works on stubs and in the browser.
 
@@ -121,8 +121,8 @@ description: "Task list for slice S3, failure paths and presenter controls"
 
 **Independent Test**: toggle on, run Clean run; exit `dry_intake` with the verdict on the card.
 
-- [ ] T025 [US6] Add `dry_intake: bool = False` to `RunRequest` in `app/main.py`; `Registry.start_run(dataset_id, names, dry_intake)` sets the agent source's `dry_intake` for live and stub runs in `app/runs/registry.py`; tests in `tests/integration/s3/test_dry_intake.py` for a stub and a scripted live run ending `dry_intake` with the readiness verdict in the summary
-- [ ] T026 [US6] Enable the Dry intake toggle while idle and lock it while a run is live; send `dry_intake` with Run; in `app/web/pages/demo.html`, `app/web/static/js/demo.js`, `app/web/static/js/render.js`; browser test in `tests/visual/test_e2e_controls.py`
+- [x] T025 [US6] Add `dry_intake: bool = False` to `RunRequest` in `app/main.py`; `Registry.start_run(dataset_id, names, dry_intake)` sets the agent source's `dry_intake` for live and stub runs in `app/runs/registry.py`; tests in `tests/integration/s3/test_dry_intake.py` for a stub and a scripted live run ending `dry_intake` with the readiness verdict in the summary
+- [x] T026 [US6] Enable the Dry intake toggle while idle and lock it while a run is live; send `dry_intake` with Run; in `app/web/pages/demo.html`, `app/web/static/js/demo.js`, `app/web/static/js/render.js`; browser test in `tests/visual/test_e2e_controls.py`
 - [ ] T027 [US6] Live Dry intake run on Clean run from the Demo page; confirm exit `dry_intake` and the verdict on the card
 
 ---
@@ -133,8 +133,8 @@ description: "Task list for slice S3, failure paths and presenter controls"
 
 **Independent Test**: ceiling below one Estimator call ends `cost_ceiling` with no dispatch after the breach.
 
-- [ ] T028 [US7] Termination card for `cost_ceiling` shows "Estimated spend" against the ceiling from `/api/meta` in `app/web/static/js/render.js`; browser test with a stub run at a low ceiling in `tests/visual/test_e2e_controls.py`
-- [ ] T029 [P] [US7] Scripted live test in `tests/integration/s3/test_cost_ceiling_live.py`: priced scripted seat usage passes the ceiling after the first Estimator call; exit `cost_ceiling`; no `task.dispatched` after the breach
+- [x] T028 [US7] Termination card for `cost_ceiling` shows "Estimated spend" against the ceiling from `/api/meta` in `app/web/static/js/render.js`; browser test with a stub run at a low ceiling in `tests/visual/test_e2e_controls.py`
+- [x] T029 [P] [US7] Scripted live test in `tests/integration/s3/test_cost_ceiling_live.py`: priced scripted seat usage passes the ceiling after the first Estimator call; exit `cost_ceiling`; no `task.dispatched` after the breach
 - [ ] T030 [US7] Live check: restart the server with `COST_CEILING=0.02`, run Clean run from the Demo page, confirm exit `cost_ceiling` and the spend line; restart with `COST_CEILING=1.00`
 
 ---

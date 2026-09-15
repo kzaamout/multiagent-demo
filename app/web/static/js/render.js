@@ -425,6 +425,9 @@
     if (summary && summary.unresolved_findings && summary.unresolved_findings.length) {
       main.push(el('div', { class: 'term-reason' }, [el('span', { class: 'term-reason-k', text: 'Notes carried to Handoff:' }), ' ' + summary.unresolved_findings.length]));
     }
+    if (exit === 'cost_ceiling' && summary) {
+      main.push(el('div', { class: 'term-reason' }, [el('span', { class: 'term-reason-k', text: 'Estimated spend:' }), ' ' + F.fmtUsd(summary.est_cost || 0) + ' against a ceiling of ' + F.fmtUsd(view.ceiling || 0)]));
+    }
     if (summary && summary.human_decision) {
       main.push(el('div', { class: 'term-reason' }, [el('span', { class: 'term-reason-k', text: 'Your decision:' }), ' ' + summary.human_decision]));
     }
@@ -663,6 +666,21 @@
     replayBtn.setAttribute('aria-disabled', String(busy));
     replayBtn.title = canReplay ? 'Replays the ' + (ds.replay_source === 'recording' ? 'most recent recording' : 'golden log') + ' for this dataset' : 'No recording or golden log for this dataset yet';
     replayBtn.setAttribute('aria-pressed', String(ui.mode === 'replay' && !view.terminated));
+    /* Presenter controls: only for a run this page started and follows (data-model.md control states). */
+    var following = ui.mode === 'live' && ui.following && !!view.hasRun && !view.terminated;
+    var waiting = !!view.banner || !!view.blockerPending || view.handoffPending;
+    var pauseBtn = document.getElementById('btn-pause');
+    pauseBtn.disabled = !following || (waiting && !view.pausedByHuman);
+    pauseBtn.textContent = view.pausedByHuman ? 'Resume' : 'Pause';
+    pauseBtn.setAttribute('data-action', view.pausedByHuman ? 'control-resume' : 'control-pause');
+    document.getElementById('btn-stop').disabled = !following;
+    var dryLocked = busy || ui.mode === 'replay' || (ui.mode === 'live' && !ui.following && view.hasRun);
+    document.getElementById('dry-intake').classList.toggle('is-disabled', dryLocked);
+    ['dry-off', 'dry-on'].forEach(function (id) {
+      var btn = document.getElementById(id);
+      btn.disabled = dryLocked;
+      btn.setAttribute('aria-pressed', String(id === 'dry-on' ? ui.dryIntake : !ui.dryIntake));
+    });
     document.getElementById('speed-1').setAttribute('aria-pressed', String(ui.speed === 1));
     document.getElementById('speed-4').setAttribute('aria-pressed', String(ui.speed === 4));
   }

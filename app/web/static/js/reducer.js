@@ -29,6 +29,7 @@
       banner: null,
       blockerPending: null,
       handoffPending: false,
+      pausedByHuman: false,
       terminated: null,
       cards: [],
       meters: {},
@@ -244,6 +245,7 @@
     view.elapsedMs = F.tsMs(last.ts) - view.startMs;
     view.retryText = 'retry ' + retry.count + ' of ' + retry.budget;
     view.terminated = terminated;
+    view.pausedByHuman = pausedByHuman && !terminated;
     view.ceilingPct = Math.round(view.totalCost / ceiling * 100) + '%';
 
     /* Pending clarifications: open asks with unanswered questions. */

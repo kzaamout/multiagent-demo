@@ -291,7 +291,7 @@ def full_turns(blocking: bool = True) -> dict[str, list[Turn]]:
     }
 
 
-def build(tmp: Path, turns: dict[str, list[Turn]], run_id: str) -> Orchestrator:
+def build(tmp: Path, turns: dict[str, list[Turn]], run_id: str, cost_ceiling: float = 5.0) -> Orchestrator:
     folder = dataset(tmp)
     models = seat_models(turns)
     roster, _ = live_roster(build_roster("electrical_rfp", names=EXPORT_NAMES), lambda seat: models[seat])
@@ -318,7 +318,7 @@ def build(tmp: Path, turns: dict[str, list[Turn]], run_id: str) -> Orchestrator:
         scenario=source,
         roster=roster,
         retry_budget=2,
-        cost_ceiling=5.0,
+        cost_ceiling=cost_ceiling,
         clock=Clock(dt.datetime.now(dt.UTC), pace=1.0),
         bus=StreamBus(),
         recorder=recorder,

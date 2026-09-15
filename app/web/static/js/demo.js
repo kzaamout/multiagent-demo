@@ -12,7 +12,7 @@
   var ui = {
     open: {}, promptOpen: {}, prompts: {}, mode: 'idle', speed: 1, submitting: false,
     meterOpen: null, rawOpen: false, compareOpen: false, animatedArrows: {}, animate: params.get('animate') !== '0',
-    autoScroll: true, bannerAskId: null, drafts: {}, loadDraft: null
+    autoScroll: true, bannerAskId: null, drafts: {}, loadDraft: null, dryIntake: false, following: false
   };
   var ctx = { datasets: [], selectedDataset: null, retryBudget: 2, costCeiling: 5, idleRoster: {} };
   var scheduled = false;
@@ -81,6 +81,7 @@
     ui.meterOpen = null;
     ui.submitting = false;
     ui.mode = mode;
+    ui.following = false;
     var feed = document.getElementById('feed');
     Array.prototype.forEach.call(feed.querySelectorAll('article.card'), function (n) { n.remove(); });
   }
@@ -91,10 +92,11 @@
 
   function startRun() {
     if (!ctx.selectedDataset || isBusy()) { return; }
-    var body = { dataset_id: ctx.selectedDataset };
+    var body = { dataset_id: ctx.selectedDataset, dry_intake: ui.dryIntake };
     if (params.get('pin') === 'export') { body.names = EXPORT_NAMES; }
     api('POST', '/api/runs', body).then(function (data) {
       resetView('live');
+      ui.following = true;
       runId = data.run_id;
       ctx.retryBudget = data.retry_budget;
       ctx.costCeiling = data.cost_ceiling;
@@ -190,6 +192,18 @@
       var text = input ? input.value.trim() : '';
       if (action === 'blocker-answer' && !text) { if (input) { input.focus(); } return; }
       submitAnswers([{ question_id: blockerId, answer: text, action: action === 'blocker-answer' ? 'answer' : 'escalate' }]);
+      return;
+    }
+    if (action === 'control-pause' || action === 'control-resume' || action === 'control-stop') {
+      if (ui.mode !== 'live' || !ui.following || !runId) { return; }
+      var route = action === 'control-pause' ? 'pause' : action === 'control-resume' ? 'resume' : 'stop';
+      api('POST', '/api/runs/' + runId + '/' + route).catch(function (error) { window.alertless(error); });
+      return;
+    }
+    if (action === 'dry-off' || action === 'dry-on') {
+      if (isBusy()) { return; }
+      ui.dryIntake = action === 'dry-on';
+      schedule();
       return;
     }
     if (action === 'meter') {
