@@ -57,7 +57,7 @@
 - [x] T028 Clean run inputs and fixtures: a synthetic stand-in built 2026-09-15 at the owner's request (roadmap decision 11); the owner's curated set replaces it when found
 - [ ] T029 Owner: credentials in `.env` for Bedrock and Gemini (Gemini done 2026-09-15; AWS keys pending); Ollama with the chosen local model pulled (via `scripts/setup.ps1`)
 - [x] T030 Owner: confirm the four model questions in the plan (answered 2026-09-15)
-- [ ] T031 Live Clean run from the Demo page; record it; replay compare against the golden stage sequence and exit (2026-09-15, local models: run `963686a4` completed with `retry_exhausted`, golden mismatch; see roadmap S2 status)
+- [ ] T031 Live Clean run from the Demo page; record it; replay compare against the golden stage sequence and exit (2026-09-15: local run `963686a4` ended `retry_exhausted`; after decision 14, headless run `e7b70d2a` matched the golden sequence and exit; a Demo page run is still to do)
 - [ ] T032 Second live run for the same client; no repeated clarification; `knowledge.appended` present in the first
 - [ ] T033 Screenshot comparison and all S1 gates green; update `docs/roadmap.md` S2 status
 
@@ -66,5 +66,6 @@
 - [x] T034 Clean run dataset integrity tests in `tests/integration/s2/test_clean_run_dataset.py`
 - [x] T035 Ollama context length sent per request from `config/models.yaml`, with a test
 - [x] T036 Tests refuse to build real provider models; deterministic golden runs force stub mode now that Clean run is curated
+- [x] T039 Seat call requirements: Estimator must use quantity_calculate, Pricing must use price_list_lookup, Writer provenance checked; tool calls written as text corrected; output limit and thinking off for Claude; draft table cells keep tags whole; em dashes removed from progress lines (roadmap decision 14)
 - [x] T038 Every seat on a local Ollama model; extra Ollama request arguments from config (thinking off); setup asks only for credentials the seats use; provider tests independent of seat choices (roadmap decision 13)
 - [x] T037 One-command setup: `.env.example`, `scripts/setup.ps1`, `scripts/setup.sh`, `scripts/setup.py`, with a test that credentials are written only to `.env` and never printed (roadmap decision 12)
