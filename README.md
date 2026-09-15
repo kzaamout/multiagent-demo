@@ -6,12 +6,13 @@ Slice S1, the event spine and stubbed loop, is built. Slice S2, the live team on
 
 ## Set it up
 
-Every seat runs on a local model through Ollama, so runs cost nothing and need no cloud account. Setup takes about half an hour on a new laptop, most of it downloading the three local models.
+Five seats run on local models through Ollama and cost nothing. The Estimator runs on Claude Sonnet 5 through Amazon Bedrock, which reads the drawings far more accurately and costs roughly 30 to 40 US cents per run. A per-run cost ceiling stops any run whose estimated spend passes it. Setup takes about half an hour on a new laptop, most of it downloading the two local models.
 
 ### What you need first
 
-- **A laptop** running Windows 10 or 11, macOS, or Linux, with an internet connection and about 25 GB of free disk space.
-- **A graphics card with 12 GB of memory** for a comfortable pace. The seats use Qwen 3.5 9B, Gemma 4 12B, and Llama 3.1 8B, each between 5 and 10 GB in memory, loaded one at a time. With less graphics memory they run on the processor and a run takes much longer.
+- **A laptop** running Windows 10 or 11, macOS, or Linux, with an internet connection and about 20 GB of free disk space.
+- **A graphics card with 12 GB of memory** for a comfortable pace. The local seats use Qwen 3.5 9B and Gemma 4 12B, each between 7 and 9 GB in memory, loaded one at a time. With less graphics memory they run on the processor and a run takes much longer.
+- **An AWS account with Amazon Bedrock** for the Estimator. See "Getting AWS access keys" below.
 - **The code.** Clone the repository or unzip a copy, and open a terminal in its folder.
 
 You do not need to install Python, uv, or Ollama yourself. The setup script installs them.
@@ -20,25 +21,25 @@ You do not need to install Python, uv, or Ollama yourself. The setup script inst
 
 | Seat | Model | Why |
 |---|---|---|
-| Orchestrator, Intake, Estimator, Writer | Qwen 3.5 9B | Calls tools, reads drawing pages as images |
-| Pricing | Llama 3.1 8B | Copies numbers from the price lookup tool |
-| Reviewer | Gemma 4 12B | A different model family from the Writer, reads images |
+| Orchestrator, Intake, Pricing, Writer | Qwen 3.5 9B, local | Calls tools reliably and follows the reply formats |
+| Estimator | Claude Sonnet 5 on Bedrock, thinking off | Reads quantities from drawing pages accurately; local models misread them |
+| Reviewer | Gemma 4 12B, local | A different model family from the Writer, reads images |
 
-The seats are set in `config/models.yaml`. The Settings page is a preview until slice S5: its selectors do nothing and its model labels are the design's cloud examples, not the running seats. Until then, change a seat by editing its `model` in that file, run the setup script to pull the model, and restart the server. The Demo page always shows the models a run actually uses.
+The seats are set in `config/models.yaml`. The Settings page is a preview until slice S5: its selectors do nothing and its model labels are the design's cloud examples, not the running seats. Until then, change a seat by editing its `model` in that file, run the setup script to pull any new local model, and restart the server. The Demo page always shows the models a run actually uses.
 
-### Cloud models (optional)
+Set the cost ceiling in `.env`, for example `COST_CEILING=1.00`. It is an estimate from token counts and model prices, checked after every model call, so a run can pass it by at most one call. The default is 5.00.
 
-`config/models.yaml` also defines Claude Sonnet 5 on Amazon Bedrock and Gemini 2.5 Pro, the cloud seat models chosen on 2026-09-15, in a comment under the seats. Cloud runs cost money per run. To use them:
+### Getting AWS access keys
 
-1. Point the seats at `bedrock-sonnet-5` and `gemini-2-5-pro` as the comment shows.
-2. Create a Gemini API key at https://aistudio.google.com/apikey.
-3. In the AWS console, open IAM and create a user for the demo. Give it the AWS managed policy `AmazonBedrockFullAccess`, or a narrower policy with `bedrock:InvokeModel`, `bedrock:InvokeModelWithResponseStream`, `aws-marketplace:Subscribe`, `aws-marketplace:Unsubscribe`, and `aws-marketplace:ViewSubscriptions`. The setup checks also use `bedrock:GetInferenceProfile`, `bedrock:GetFoundationModelAvailability`, `bedrock:GetUseCaseForModelAccess`, and `iam:SimulatePrincipalPolicy` when allowed.
-4. Create an access key for the user. AWS shows the secret once.
-5. Once per AWS account or organization, submit Anthropic's first-time use case form: in the Bedrock console, open the model catalog, choose a Claude model, and submit the use case details.
-6. Make sure the AWS account has a valid payment method.
-7. Run the setup script, which asks for the keys it now needs and checks access without calling a model.
+1. In the AWS console, open IAM and create a user for the demo. Give it the AWS managed policy `AmazonBedrockFullAccess`, or a narrower policy with `bedrock:InvokeModel`, `bedrock:InvokeModelWithResponseStream`, `aws-marketplace:Subscribe`, `aws-marketplace:Unsubscribe`, and `aws-marketplace:ViewSubscriptions`. The setup checks also use `bedrock:GetInferenceProfile`, `bedrock:GetFoundationModelAvailability`, `bedrock:GetUseCaseForModelAccess`, and `iam:SimulatePrincipalPolicy` when allowed.
+2. Create an access key for the user. AWS shows the secret once.
+3. Once per AWS account or organization, submit Anthropic's first-time use case form: in the Bedrock console, open the model catalog, choose a Claude model, and submit the use case details.
+4. Make sure the AWS account has a valid payment method.
+5. Run the setup script, which asks for the keys and checks access without calling a model.
 
-Claude is enabled for the account automatically on the first cloud call, which accepts the model's licence terms.
+Claude is enabled for the account automatically on the first call, which accepts the model's licence terms. The first few minutes after that can return access denied while the subscription completes.
+
+`config/models.yaml` also defines Gemini 2.5 Pro for the Reviewer and Claude for the other seats, the all-cloud choices from 2026-09-15, in a comment under the seats. A Gemini key comes from https://aistudio.google.com/apikey.
 
 ### Run the setup script
 
@@ -96,7 +97,7 @@ Open http://localhost:8000/demo. The server reads `.env` when it starts, so rest
 
 ### A live run
 
-1. Choose **01 · Clean run** in the composer and press **Run**. It runs on the local models at no cost. The first call to each model waits while Ollama loads it.
+1. Choose **01 · Clean run** in the composer and press **Run**. The Estimator's call costs a few tens of cents; the other seats are free. The first call to each local model waits while Ollama loads it.
 2. Intake should ask one question, about bid security. Answer it in the banner, for example "No bid security required", and resume.
 3. The team works through Plan, Work, Assemble, and Review. The draft appears in the artifact panel.
 4. At Handoff, approve the proposal. The run ends.

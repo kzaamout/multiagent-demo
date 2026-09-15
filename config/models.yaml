@@ -116,7 +116,7 @@ seats:
   orchestrator: {model: qwen3-5-9b, temperature: 0.1}
   intake: {model: qwen3-5-9b, temperature: 0.1}
   estimator: {model: bedrock-sonnet-5}   # owner decision 1b, 2026-09-15: the local 9B model misread quantities; run with COST_CEILING
-  pricing: {model: llama3-1-8b, temperature: 0.1}
+  pricing: {model: qwen3-5-9b, temperature: 0.1}   # owner decision 2026-09-15: Llama 3.1 8B printed its tool call as text
   writer: {model: qwen3-5-9b}
   reviewer: {model: gemma4-12b, temperature: 0.2}
 

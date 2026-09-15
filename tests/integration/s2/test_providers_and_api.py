@@ -39,7 +39,7 @@ def no_credentials(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
 
 def test_model_config_loads_and_checks_temperature(tmp_path: Path) -> None:
     config = ModelConfig.load()
-    assert config.seat_spec("pricing").model_id == "llama3.1:8b"
+    assert config.seat_spec("pricing").provider == "ollama", "Pricing stays local"
     assert config.seat_spec("estimator").image_input, "the Estimator reads drawing pages as images"
     writer, reviewer = config.seat_spec("writer"), config.seat_spec("reviewer")
     assert writer.model_id.split(":")[0].rstrip("0123456789.") != reviewer.model_id.split(":")[0].rstrip(
