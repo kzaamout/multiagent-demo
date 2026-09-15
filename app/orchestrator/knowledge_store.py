@@ -60,6 +60,20 @@ class KnowledgeStore:
             text += lines
         path.write_text(text, encoding="utf-8", newline="\n")
 
+    def answers(self, client_id: str) -> dict[str, str]:
+        """Question id to the most recent stored answer, or empty when the file does not exist yet."""
+        path = self.path_for(client_id)
+        if not path.exists():
+            return {}
+        text = path.read_text(encoding="utf-8")
+        if ANSWERS_HEADING not in text:
+            return {}
+        section = text.split(ANSWERS_HEADING, 1)[1]
+        found: dict[str, str] = {}
+        for match in re.finditer(r"^- (q_[a-z0-9_]+): (.*?) \(run [^)]*\)$", section, flags=re.M):
+            found[match.group(1)] = match.group(2)
+        return found
+
     def answered_question_ids(self, client_id: str) -> set[str]:
         text = self.read(client_id)
         if ANSWERS_HEADING not in text:

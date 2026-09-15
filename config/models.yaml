@@ -1,0 +1,93 @@
+# Providers, models, and seat defaults for live runs.
+# Facts verified 2026-09-14 from official pages; see specs/002-live-team-clean-run/research.md.
+# Prices are USD per million tokens and are used for estimated cost on the meters only.
+# No credentials here: availability is detected from .env and the boto3 credential chain.
+
+providers:
+  bedrock:
+    label: Amazon Bedrock
+    region: ca-central-1          # pending owner question 4: us. geo profile from ca-central-1
+  google:
+    label: Google Gemini
+    env_key: GEMINI_API_KEY
+  xai:
+    label: xAI
+    env_key: XAI_API_KEY
+  ollama:
+    label: Ollama
+    host: http://localhost:11434
+
+models:
+  bedrock-sonnet-5:
+    provider: bedrock
+    model_id: us.anthropic.claude-sonnet-5
+    label: claude-sonnet-5 via Bedrock
+    image_input: true
+    temperature: false            # rejects any non-default temperature
+    price_in: 2.20
+    price_out: 11.00
+  bedrock-sonnet-4-6:
+    provider: bedrock
+    model_id: us.anthropic.claude-sonnet-4-6
+    label: claude-sonnet-4.6 via Bedrock
+    image_input: true
+    temperature: true
+    price_in: 3.30
+    price_out: 16.50
+  bedrock-haiku-4-5:
+    provider: bedrock
+    model_id: us.anthropic.claude-haiku-4-5-20251001-v1:0
+    label: claude-haiku-4.5 via Bedrock
+    image_input: true
+    temperature: true
+    price_in: 1.10
+    price_out: 5.50
+  gemini-2-5-pro:
+    provider: google
+    model_id: gemini/gemini-2.5-pro
+    label: gemini-2.5-pro via Google
+    image_input: true
+    temperature: true
+    price_in: 1.25
+    price_out: 10.00
+  gemini-3-8-flash:
+    provider: google
+    model_id: gemini/gemini-3.8-flash
+    label: gemini-3.8-flash via Google
+    image_input: true
+    temperature: true
+    price_in: 0.75
+    price_out: 3.75
+  grok-4-6:
+    provider: xai
+    model_id: xai/grok-4.6
+    label: grok-4.6 via xAI
+    image_input: true
+    temperature: true
+    price_in: 2.00
+    price_out: 6.00
+  llama3-1-8b:
+    provider: ollama
+    model_id: llama3.1:8b
+    label: llama3.1 8b, local
+    image_input: false
+    temperature: true
+    price_in: 0
+    price_out: 0
+  granite4-1-8b:
+    provider: ollama
+    model_id: granite4.1:8b
+    label: granite4.1 8b, local
+    image_input: false
+    temperature: true
+    price_in: 0
+    price_out: 0
+
+# Seat defaults. Pending owner questions 1 to 3 in specs/002-live-team-clean-run/plan.md.
+seats:
+  orchestrator: {model: bedrock-sonnet-5}
+  intake: {model: bedrock-sonnet-5}
+  estimator: {model: bedrock-sonnet-5}
+  pricing: {model: llama3-1-8b, temperature: 0.1}
+  writer: {model: bedrock-sonnet-5}
+  reviewer: {model: gemini-2-5-pro, temperature: 0.2}

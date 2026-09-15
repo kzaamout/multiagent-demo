@@ -10,10 +10,10 @@ from app.seats.definitions import SEAT_DEFINITIONS, InstructionsError, load_inst
 
 SPEC_TOOLS = {
     "orchestrator": (),
-    "intake": ("document.parse_pdf", "document.extract_attachments"),
-    "estimator": ("vision.read_drawing", "quantity.calculate"),
-    "pricing": ("price_list.lookup",),
-    "writer": ("template.render", "compile.trigger"),
+    "intake": ("document_parse_pdf", "document_extract_attachments"),
+    "estimator": ("vision_read_drawing", "quantity_calculate"),
+    "pricing": ("price_list_lookup",),
+    "writer": ("template_render", "compile_trigger"),
     "reviewer": (),
 }
 
@@ -55,7 +55,7 @@ def everything() -> list[Material]:
         Material(d.ESTIMATING_CONVENTIONS, "Conventions", "conventions"),
         Material(d.ESTIMATOR_OUTPUT, "Estimator output", "bom lines", "evt-est"),
         Material(d.SPECIALIST_OUTPUTS, "Pricing output", "priced bom", "evt-price"),
-        Material(d.TOOL_RESULTS, "Tool results", "vision.read_drawing raw output"),
+        Material(d.TOOL_RESULTS, "Tool results", "vision_read_drawing raw output"),
         Material(d.AGENT_REASONING, "Reasoning", "estimator chain of thought"),
         Material(d.PRICE_FIXTURE, "Price fixture", "csv rows"),
         Material(d.TEMPLATE, "Template", "template"),

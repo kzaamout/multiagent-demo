@@ -77,25 +77,25 @@ SEAT_DEFINITIONS: dict[str, SeatDefinition] = {
     "intake": SeatDefinition(
         "intake",
         "intake.md",
-        ("document.parse_pdf", "document.extract_attachments"),
+        ("document_parse_pdf", "document_extract_attachments"),
         frozenset({REQUEST_DOCUMENTS, KNOWLEDGE_FILE, READINESS_CHECKLIST}),
     ),
     "estimator": SeatDefinition(
         "estimator",
         "estimator.md",
-        ("vision.read_drawing", "quantity.calculate"),
+        ("vision_read_drawing", "quantity_calculate"),
         frozenset({BRIEF, DRAWING_PAGES, ESTIMATING_CONVENTIONS, FINDINGS}),
     ),
     "pricing": SeatDefinition(
         "pricing",
         "pricing.md",
-        ("price_list.lookup",),
+        ("price_list_lookup",),
         frozenset({ESTIMATOR_OUTPUT, KNOWLEDGE_FILE, FINDINGS}),
     ),
     "writer": SeatDefinition(
         "writer",
         "writer.md",
-        ("template.render", "compile.trigger"),
+        ("template_render", "compile_trigger"),
         frozenset({BRIEF, SPECIALIST_OUTPUTS, TEMPLATE, KNOWLEDGE_FILE, FINDINGS}),
     ),
     "reviewer": SeatDefinition(

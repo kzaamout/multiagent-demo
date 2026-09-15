@@ -1,20 +1,22 @@
 """The Orchestrator: the only component that changes stage, talks to the human, writes the
-knowledge file, and ends a run (constitution III). Stubbed agents supply canned emissions;
-the Orchestrator relays them as validated events and owns everything else.
+knowledge file, and ends a run (constitution III). An agent source (stub or live) supplies
+what each seat said; the Orchestrator relays it as validated events and owns everything else.
 """
 
 from __future__ import annotations
 
 import asyncio
 import uuid
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
 from app.agents.base import Emit, MeterDelta, StubScenario
+from app.agents.source import AgentSource, as_source
 from app.orchestrator.clock import Clock
 from app.orchestrator.knowledge import KnowledgeFile
+from app.orchestrator.knowledge_store import KnowledgeStore
 from app.orchestrator.state import RunState
 from app.runs.bus import StreamBus
 from app.runs.recorder import Recorder
@@ -64,6 +66,7 @@ DEFAULT_REASONS: dict[str, str] = {
     "assumption": "The gap is non-blocking and the default is safe to proceed on; it is flagged for Handoff.",
     "clarification": "Blocking gaps are batched into one question set so you are asked once.",
     "knowledge": "Answers about the client are facts worth keeping for the next run.",
+    "known_answer": "The client knowledge file already answers this, so the stored answer is used and nobody is asked again.",
     "not_ready": "The request is missing items no specialist can work without, so the run stops here.",
     "dry_intake": "Dry intake stops after the readiness grade so the request can be fixed before a full run.",
     "plan_enter": "The brief is ready, so the work can be decomposed and assigned.",
@@ -99,7 +102,7 @@ class Orchestrator:
         run_id: str,
         workflow: str,
         dataset: DatasetRef,
-        scenario: StubScenario,
+        scenario: StubScenario | AgentSource,
         roster: dict[str, Agent],
         retry_budget: int,
         cost_ceiling: float,
@@ -109,13 +112,17 @@ class Orchestrator:
         knowledge_path: Path,
         event_log_path: str,
         id_factory: Callable[[int], str] | None = None,
+        knowledge_store: KnowledgeStore | None = None,
+        run_folder: Path | None = None,
     ) -> None:
         self._id_factory = id_factory or (lambda _seq: str(uuid.uuid4()))
         self.run_id = run_id
         self.workflow = workflow
         self.dataset = dataset
-        self.scenario = scenario
+        self.scenario = as_source(scenario)
         self.roster = roster
+        self.knowledge_store = knowledge_store
+        self.run_folder = run_folder
         self.clock = clock
         self.bus = bus
         self.recorder = recorder
@@ -139,6 +146,9 @@ class Orchestrator:
         self.finished = asyncio.Event()
         self._call_counter = 0
         self._task_event_ids: dict[str, str] = {}
+        self.plan: list[Subtask] = []
+        self.latest_draft: Event | None = None
+        self.scenario.bind(self)
 
     # Public control surface (used by the API and the test driver)
 
@@ -292,7 +302,19 @@ class Orchestrator:
             await self._terminate("not_ready", self._reason("not_ready"))
             return
         blocking: list[Event] = []
+        known = self._known_answers()
         for question in questions:
+            qid = question.payload["question_id"]
+            if qid in known:
+                self.state.assumptions.append(qid)
+                await self._emit_orchestrator(
+                    "assumption.accepted",
+                    stage="intake",
+                    offset=self._mark("assumption"),
+                    reason=self._reason("known_answer"),
+                    payload={"question_id": qid, "default_used": known[qid]},
+                )
+                continue
             if question.payload["blocking"]:
                 blocking.append(question)
             else:
@@ -313,7 +335,7 @@ class Orchestrator:
     async def _run_intake_steps(self) -> tuple[Event | None, list[Event]]:
         readiness: Event | None = None
         questions: list[Event] = []
-        for emit in self.scenario.intake:
+        async for emit in self.scenario.intake():
             event = await self._relay(emit, stage="intake")
             if event.type == "intake.readiness":
                 readiness = event
@@ -349,6 +371,10 @@ class Orchestrator:
             )
         for entry in entries:
             self.knowledge.append([entry], self.clock.ts(self._last_offset))
+            if self.knowledge_store is not None:
+                self.knowledge_store.append(
+                    self.dataset.client_id, [entry], run_id=self.run_id, when=self.clock.ts(self._last_offset)
+                )
             await self._emit_orchestrator(
                 "knowledge.appended",
                 stage="intake",
@@ -359,24 +385,28 @@ class Orchestrator:
 
     async def _plan_stage(self) -> None:
         await self._change_stage("plan", self._reason("plan_enter"), mark="plan_enter")
+        result = await self.scenario.plan()
+        self.plan = list(result.subtasks)
         await self._emit_orchestrator(
             "plan.created",
             stage="plan",
             offset=self._mark("plan"),
-            reason=self._reason("plan"),
-            payload={"subtasks": [s.model_dump() for s in self.scenario.plan]},
+            reason=result.reason or self._reason("plan"),
+            payload={"subtasks": [s.model_dump() for s in self.plan]},
             meter_key="plan",
         )
+        for delta in result.meters:
+            await self._meter("orchestrator", delta, "plan", self._after(0))
 
     def _work_subtasks(self) -> list[Subtask]:
-        return [s for s in self.scenario.plan if s.task_id in self.scenario.tasks]
+        return self.scenario.work_subtasks(self.plan)
 
     async def _work_stage(self) -> None:
         await self._change_stage("work", self._reason("work_enter"), mark="work_enter")
         runs: dict[str, _TaskRun] = {s.task_id: _TaskRun(subtask=s) for s in self._work_subtasks()}
         for task_run in runs.values():
             await self._dispatch(task_run.subtask, mark="dispatch")
-        await self._run_tasks(runs, self.scenario.tasks)
+        await self._run_tasks(runs)
         if self.state.terminated:
             return
         await self._change_stage("assemble", self._reason("assemble_enter"), mark="assemble_enter")
@@ -397,14 +427,14 @@ class Orchestrator:
             meter_key=mark,
         )
 
-    async def _run_tasks(self, runs: dict[str, _TaskRun], steps_by_task: dict[str, list[Emit]]) -> None:
+    async def _run_tasks(self, runs: dict[str, _TaskRun]) -> None:
         async def one(task_run: _TaskRun) -> None:
             for dep in task_run.subtask.depends_on:
                 if dep in runs:
                     await runs[dep].done.wait()
             if self.state.terminated or self._terminating:
                 return
-            await self._run_task_steps(task_run, steps_by_task.get(task_run.subtask.task_id, []))
+            await self._run_task_steps(task_run, self.scenario.task(task_run.subtask))
             task_run.done.set()
 
         tasks = [asyncio.create_task(one(r)) for r in runs.values()]
@@ -421,8 +451,8 @@ class Orchestrator:
                 if not task.done():
                     task.cancel()
 
-    async def _run_task_steps(self, task_run: _TaskRun, steps: list[Emit]) -> None:
-        for emit in steps:
+    async def _run_task_steps(self, task_run: _TaskRun, steps: AsyncIterator[Emit]) -> None:
+        async for emit in steps:
             event = await self._relay(emit, stage="work")
             if event.type == "task.completed":
                 task_run.completed_event_id = event.event_id
@@ -441,8 +471,7 @@ class Orchestrator:
                 return
             needs_human = True
         if not needs_human:
-            continuation = self.scenario.blocker_answer_continuation.get(task_run.subtask.task_id, [])
-            await self._run_task_steps(task_run, continuation)
+            await self._run_task_steps(task_run, self.scenario.blocker_continuation(task_run.subtask, ""))
             return
         blocker = {
             "blocker_id": payload["blocker_id"],
@@ -472,8 +501,9 @@ class Orchestrator:
             await self._terminate("blocker_escalated", self._reason("escalated"))
             return
         _ = answered
-        continuation = self.scenario.blocker_answer_continuation.get(task_run.subtask.task_id, [])
-        await self._run_task_steps(task_run, continuation)
+        await self._run_task_steps(
+            task_run, self.scenario.blocker_continuation(task_run.subtask, answer.answer)
+        )
 
     async def _route_back_to_intake(self, task_run: _TaskRun) -> None:
         await self._change_stage("intake", self._reason("route_back_intake"), mark="route_back_intake")
@@ -484,21 +514,21 @@ class Orchestrator:
             stage="plan",
             offset=self._mark(None),
             reason=self._reason("plan"),
-            payload={"subtasks": [s.model_dump() for s in self.scenario.plan]},
+            payload={"subtasks": [s.model_dump() for s in self.plan]},
         )
         await self._change_stage("work", self._reason("work_enter"))
         await self._dispatch(
             task_run.subtask, mark=None, inputs="Re-dispatched after Intake completed the brief"
         )
-        continuation = self.scenario.blocker_answer_continuation.get(task_run.subtask.task_id, [])
-        await self._run_task_steps(task_run, continuation)
+        await self._run_task_steps(task_run, self.scenario.blocker_continuation(task_run.subtask, ""))
 
     async def _assemble_review_loop(self) -> None:
         version = 0
         review_round = 0
+        findings_for_rework: list[dict[str, Any]] = []
         while True:
             version += 1
-            await self._assemble(version)
+            await self._assemble(version, findings_for_rework)
             if self.state.terminated:
                 return
             await self._change_stage("review", self._reason("review_enter"), mark=f"review_enter_{version}")
@@ -523,6 +553,7 @@ class Orchestrator:
                 meter_key="retry",
             )
             routed = [f for f in findings if f["severity"] != "minor" and f.get("route_to")]
+            findings_for_rework = routed
             route_to = routed[0]["route_to"] if routed else "assemble"
             if route_to == "work":
                 agent_id = routed[0].get("agent_id") or "estimator"
@@ -532,7 +563,7 @@ class Orchestrator:
                     mark="route_back",
                     target_reason=self._target_reason("route_back_work", self._reason("route_back_work")),
                 )
-                await self._rework(agent_id, self.state.retries)
+                await self._rework(agent_id, self.state.retries, routed)
                 if self.state.terminated:
                     return
                 await self._change_stage(
@@ -548,8 +579,8 @@ class Orchestrator:
                     ),
                 )
 
-    async def _rework(self, agent_id: str, count: int) -> None:
-        original = next((s for s in self.scenario.plan if s.agent_id == agent_id), None)
+    async def _rework(self, agent_id: str, count: int, findings: list[dict[str, Any]]) -> None:
+        original = next((s for s in self.plan if s.agent_id == agent_id), None)
         if original is None:
             raise RuntimeError(f"no sub-task for {agent_id} to rework")
         subtask = Subtask(
@@ -566,11 +597,11 @@ class Orchestrator:
             or "Reviewer finding and the original sub-task",
         )
         task_run = _TaskRun(subtask=subtask)
-        await self._run_task_steps(task_run, self.scenario.rework.get(agent_id, []))
+        await self._run_task_steps(task_run, self.scenario.rework(agent_id, subtask, findings))
 
-    async def _assemble(self, version: int) -> None:
+    async def _assemble(self, version: int, findings: list[dict[str, Any]]) -> None:
         await self._gate()
-        assemble_task = next((s for s in self.scenario.plan if s.agent_id == "writer"), None)
+        assemble_task = next((s for s in self.plan if s.agent_id == "writer"), None)
         if assemble_task is None:
             raise RuntimeError("the plan has no Assemble sub-task")
         await self._emit_orchestrator(
@@ -584,22 +615,21 @@ class Orchestrator:
                 "inputs_summary": f"Brief, specialist outputs, template, knowledge file; draft v{version}",
             },
         )
-        steps = self.scenario.assemble[min(version, len(self.scenario.assemble)) - 1]
-        for emit in steps:
+        async for emit in self.scenario.assemble(version, findings):
             event = await self._relay(emit, stage="assemble")
             if event.type == "draft.committed":
                 self.state.draft_version = event.payload["version"]
+                self.latest_draft = event
                 await self._emit_system(
                     "artifact.compiled",
                     stage="assemble",
-                    offset=self._last_offset + 500,
+                    offset=self._after(500),
                     payload={"version": event.payload["version"], "pdf_path": None, "page_images": []},
                 )
 
     async def _review(self, review_round: int) -> Event:
-        steps = self.scenario.review[min(review_round, len(self.scenario.review) - 1)]
         verdict: Event | None = None
-        for emit in steps:
+        async for emit in self.scenario.review(review_round, self.latest_draft):
             event = await self._relay(emit, stage="review")
             if event.type == "review.verdict":
                 verdict = event
@@ -656,6 +686,8 @@ class Orchestrator:
             raise RunStopped()
         answers = list(self._answers)
         self._answers = []
+        if self.scenario.timing == "wall":
+            return answers
         # If the human took longer than the fixture allowed, shift every later offset.
         expected = self._mark(mark)
         actual = max(expected, self.clock.elapsed_offset_ms())
@@ -683,8 +715,22 @@ class Orchestrator:
         text = self.scenario.target_reasons.get(key)
         return text.format_map(self._names()) if text else fallback
 
+    def _after(self, fixture_ms: int) -> int:
+        """Offset shortly after the last event: fixture spacing for stubs, the wall clock for live runs."""
+        if self.scenario.timing == "wall":
+            return max(self._last_offset, self.clock.elapsed_offset_ms())
+        return self._last_offset + fixture_ms
+
+    def _known_answers(self) -> dict[str, str]:
+        """Answers already in the client knowledge file (ask once). Live runs only."""
+        if self.knowledge_store is None:
+            return {}
+        return self.knowledge_store.answers(self.dataset.client_id)
+
     def _mark(self, key: str | None) -> int:
         """Offset for an Orchestrator-owned moment: the scenario mark if given, else one second on."""
+        if self.scenario.timing == "wall":
+            return max(self._last_offset, self.clock.elapsed_offset_ms())
         if key is not None:
             value = self.scenario.marks.get(key)
             if value is not None:
@@ -696,7 +742,7 @@ class Orchestrator:
         if self._terminating or self.state.stopped:
             raise RunStopped()
         actor = self.roster[emit.seat]
-        offset = emit.offset_ms + self._shift_ms
+        offset = emit.offset_ms + self._shift_ms if self.scenario.timing == "fixture" else self._mark(None)
         await self.clock.wait_for(offset)
         prompt_ref = emit.bundle.prompt_ref if emit.bundle else None
         if emit.bundle is not None:
@@ -723,7 +769,9 @@ class Orchestrator:
             return [self._resolve(v) for v in value]
         return value
 
-    async def _meter(self, seat: str, delta: MeterDelta, stage: Stage | None, offset: int) -> None:
+    async def _meter(
+        self, seat: str, delta: MeterDelta, stage: Stage | None, offset: int, check_ceiling: bool = True
+    ) -> None:
         self._call_counter += 1
         outcome = self.state.on_meter(seat, delta.tokens_in, delta.tokens_out, delta.est_cost)
         await self._emit_system(
@@ -739,7 +787,7 @@ class Orchestrator:
                 "est_cost": delta.est_cost,
             },
         )
-        if outcome == "cost_ceiling":
+        if outcome == "cost_ceiling" and check_ceiling:
             self._terminating = True
             raise CostCeilingBreached()
 
@@ -810,9 +858,20 @@ class Orchestrator:
 
     async def _terminate(self, exit_value: Exit, reason: str, human_decision: str | None = None) -> None:
         self._terminating = True
+        headline = self._headline(exit_value)
+        if exit_value in ("reviewer_pass", "retry_exhausted"):
+            try:
+                proposed = await self.scenario.headline(exit_value, headline)
+            except Exception:  # noqa: BLE001
+                proposed = None
+            if proposed is not None:
+                for delta in proposed.meters:
+                    await self._meter("orchestrator", delta, None, self._after(0), check_ceiling=False)
+                if proposed.headline:
+                    headline = proposed.headline
         offset = self._mark("end")
         summary = {
-            "headline": self._headline(exit_value),
+            "headline": headline,
             "missing": [
                 {"item": item, "note": note, "source_event_id": source}
                 for item, note, source in self.state.missing
