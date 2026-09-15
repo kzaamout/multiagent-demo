@@ -66,4 +66,5 @@
 - [x] T034 Clean run dataset integrity tests in `tests/integration/s2/test_clean_run_dataset.py`
 - [x] T035 Ollama context length sent per request from `config/models.yaml`, with a test
 - [x] T036 Tests refuse to build real provider models; deterministic golden runs force stub mode now that Clean run is curated
+- [x] T038 Every seat on a local Ollama model; extra Ollama request arguments from config (thinking off); setup asks only for credentials the seats use; provider tests independent of seat choices (roadmap decision 13)
 - [x] T037 One-command setup: `.env.example`, `scripts/setup.ps1`, `scripts/setup.sh`, `scripts/setup.py`, with a test that credentials are written only to `.env` and never printed (roadmap decision 12)

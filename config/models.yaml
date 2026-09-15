@@ -75,6 +75,26 @@ models:
     options: {num_ctx: 16384}     # Ollama defaults to 4K on GPUs under 24 GB and drops overflow silently
     price_in: 0
     price_out: 0
+  qwen3-5-9b:
+    provider: ollama
+    model_id: qwen3.5:9b
+    label: qwen3.5 9b, local
+    image_input: true
+    temperature: true
+    options: {num_ctx: 32768}     # room for drawing page images on the Estimator seat
+    additional_args: {think: false}   # thinking mode makes every call several times slower
+    price_in: 0
+    price_out: 0
+  gemma4-12b:
+    provider: ollama
+    model_id: gemma4:12b
+    label: gemma4 12b, local
+    image_input: true
+    temperature: true
+    options: {num_ctx: 16384}
+    additional_args: {think: false}
+    price_in: 0
+    price_out: 0
   granite4-1-8b:
     provider: ollama
     model_id: granite4.1:8b
@@ -85,12 +105,18 @@ models:
     price_in: 0
     price_out: 0
 
-# Seat defaults, confirmed by the owner on 2026-09-15 (specs/002-live-team-clean-run/plan.md).
-# Claude seats run Sonnet 5 at its default temperature, which it does not let callers change.
+# Seat models. Every seat runs locally on Ollama, so runs cost nothing (owner decision, 2026-09-15).
+# The Reviewer is a different model family from the Writer. Qwen 3.5 and Gemma 4 read images, so the
+# Estimator can see drawing pages and the Reviewer can judge compiled pages from S4.
 seats:
-  orchestrator: {model: bedrock-sonnet-5}
-  intake: {model: bedrock-sonnet-5}
-  estimator: {model: bedrock-sonnet-5}
+  orchestrator: {model: qwen3-5-9b}
+  intake: {model: qwen3-5-9b}
+  estimator: {model: qwen3-5-9b}
   pricing: {model: llama3-1-8b, temperature: 0.1}
-  writer: {model: bedrock-sonnet-5}
-  reviewer: {model: gemini-2-5-pro, temperature: 0.2}
+  writer: {model: qwen3-5-9b}
+  reviewer: {model: gemma4-12b, temperature: 0.2}
+
+# Cloud seat models confirmed on 2026-09-15, kept for when the owner switches back:
+#   orchestrator, intake, estimator, writer: bedrock-sonnet-5
+#   pricing: llama3-1-8b at temperature 0.1
+#   reviewer: gemini-2-5-pro at temperature 0.2

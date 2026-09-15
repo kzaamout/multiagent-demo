@@ -6,30 +6,39 @@ Slice S1, the event spine and stubbed loop, is built. Slice S2, the live team on
 
 ## Set it up
 
-Setup takes about fifteen minutes on a new laptop, most of it downloading the local model.
+Every seat runs on a local model through Ollama, so runs cost nothing and need no cloud account. Setup takes about half an hour on a new laptop, most of it downloading the three local models.
 
 ### What you need first
 
-- **A laptop** running Windows 10 or 11, macOS, or Linux, with an internet connection and about 12 GB of free disk space.
-- **Memory for the local model.** Llama 3.1 8B uses about 7 GB. It runs fast on a graphics card with 8 GB or more of memory, and slowly on the processor otherwise.
+- **A laptop** running Windows 10 or 11, macOS, or Linux, with an internet connection and about 25 GB of free disk space.
+- **A graphics card with 12 GB of memory** for a comfortable pace. The seats use Qwen 3.5 9B, Gemma 4 12B, and Llama 3.1 8B, each between 5 and 10 GB in memory, loaded one at a time. With less graphics memory they run on the processor and a run takes much longer.
 - **The code.** Clone the repository or unzip a copy, and open a terminal in its folder.
-- **An AWS account with Amazon Bedrock.** The Orchestrator, Intake, Estimator, and Writer seats run Claude Sonnet 5 through Bedrock in ca-central-1. See "Getting AWS access keys" below.
-- **A Google Gemini API key.** The Reviewer seat runs Gemini 2.5 Pro. Create a key at https://aistudio.google.com/apikey.
 
 You do not need to install Python, uv, or Ollama yourself. The setup script installs them.
 
-### Getting AWS access keys
+### Seat models
 
-1. In the AWS console, open IAM and create a user for the demo, or use an existing one.
-2. Give the user Bedrock permissions. The simplest is the AWS managed policy `AmazonBedrockFullAccess`. A narrower policy needs these actions:
-   - `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream`, to run the seats.
-   - `aws-marketplace:Subscribe`, `aws-marketplace:Unsubscribe`, and `aws-marketplace:ViewSubscriptions`, so Bedrock can enable Claude on the first call.
-   - Optional, for the setup checks: `bedrock:GetInferenceProfile`, `bedrock:GetFoundationModelAvailability`, `bedrock:GetUseCaseForModelAccess`, and `iam:SimulatePrincipalPolicy`.
-3. Create an access key for the user and keep the key ID and secret for the setup script. AWS shows the secret once.
-4. Once per AWS account or organization, submit Anthropic's first-time use case form: in the Bedrock console, open the model catalog, choose a Claude model, and submit the use case details.
-5. Make sure the AWS account has a valid payment method. Bedrock bills Claude through AWS Marketplace.
+| Seat | Model | Why |
+|---|---|---|
+| Orchestrator, Intake, Estimator, Writer | Qwen 3.5 9B | Calls tools, reads drawing pages as images |
+| Pricing | Llama 3.1 8B | Copies numbers from the price lookup tool |
+| Reviewer | Gemma 4 12B | A different model family from the Writer, reads images |
 
-Claude is enabled for the account automatically on the first live call, which accepts the model's licence terms. The setup script tells you if anything above is missing.
+The seats are set in `config/models.yaml`. The model selectors on the Settings page are a preview and start working in slice S5; until then, change a seat by editing its `model` in that file, run the setup script to pull the model, and restart the server.
+
+### Cloud models (optional)
+
+`config/models.yaml` also defines Claude Sonnet 5 on Amazon Bedrock and Gemini 2.5 Pro, the cloud seat models chosen on 2026-09-15, in a comment under the seats. Cloud runs cost money per run. To use them:
+
+1. Point the seats at `bedrock-sonnet-5` and `gemini-2-5-pro` as the comment shows.
+2. Create a Gemini API key at https://aistudio.google.com/apikey.
+3. In the AWS console, open IAM and create a user for the demo. Give it the AWS managed policy `AmazonBedrockFullAccess`, or a narrower policy with `bedrock:InvokeModel`, `bedrock:InvokeModelWithResponseStream`, `aws-marketplace:Subscribe`, `aws-marketplace:Unsubscribe`, and `aws-marketplace:ViewSubscriptions`. The setup checks also use `bedrock:GetInferenceProfile`, `bedrock:GetFoundationModelAvailability`, `bedrock:GetUseCaseForModelAccess`, and `iam:SimulatePrincipalPolicy` when allowed.
+4. Create an access key for the user. AWS shows the secret once.
+5. Once per AWS account or organization, submit Anthropic's first-time use case form: in the Bedrock console, open the model catalog, choose a Claude model, and submit the use case details.
+6. Make sure the AWS account has a valid payment method.
+7. Run the setup script, which asks for the keys it now needs and checks access without calling a model.
+
+Claude is enabled for the account automatically on the first cloud call, which accepts the model's licence terms.
 
 ### Run the setup script
 
@@ -49,10 +58,10 @@ On macOS, install Ollama from https://ollama.com/download and start it before ru
 
 The script works through four steps and prints `ok`, `warn`, or `FAIL` for each check:
 
-1. **Credentials.** It creates `.env` from `.env.example` and asks for the AWS access key ID, the AWS secret access key, and the Gemini API key. Secrets are typed with hidden input, saved only to `.env`, and never printed. `.env` is ignored by git.
-2. **Ollama.** It installs Ollama if it is missing, after asking: winget on Windows, the official install script on Linux. It starts Ollama and pulls Llama 3.1 8B.
+1. **Credentials.** It creates `.env` from `.env.example` and asks only for the keys the configured seats need, which is none while every seat is local. Secrets are typed with hidden input, saved only to `.env`, and never printed. `.env` is ignored by git.
+2. **Ollama.** It installs Ollama if it is missing, after asking: winget on Windows, the official install script on Linux. It starts Ollama and pulls every seat model.
 3. **Seat providers.** It confirms that every seat's provider is configured.
-4. **Provider access.** It confirms the AWS keys and the Gemini key work, and that Claude Sonnet 5 can be enabled, without calling a model or spending money.
+4. **Provider access.** When a seat uses a cloud model, it confirms the keys work and the model can be enabled, without calling a model or spending money.
 
 It ends with "Ready for live runs" or with the list of what is still missing. Run it again at any time: it keeps what is already set and repeats the checks.
 
@@ -87,7 +96,7 @@ Open http://localhost:8000/demo. The server reads `.env` when it starts, so rest
 
 ### A live run
 
-1. Choose **01 · Clean run** in the composer and press **Run**. It runs on real models and costs money; the meters show the estimated spend as it goes.
+1. Choose **01 · Clean run** in the composer and press **Run**. It runs on the local models at no cost. The first call to each model waits while Ollama loads it.
 2. Intake should ask one question, about bid security. Answer it in the banner, for example "No bid security required", and resume.
 3. The team works through Plan, Work, Assemble, and Review. The draft appears in the artifact panel.
 4. At Handoff, approve the proposal. The run ends.
@@ -104,8 +113,9 @@ The other datasets have no curated inputs yet and run on stubbed agents at no co
 | `uv` is not found right after setup installed it | Open a new terminal and run the setup again |
 | `uv sync` fails with access denied, and the folder is in OneDrive | Pause OneDrive syncing and run the setup again |
 | Run is refused with "Live run unavailable" | The message names the seat and the missing provider. Run the setup again to see what to fix |
-| Pricing cannot reach Ollama | Start the Ollama app, or run the setup again, which starts it |
-| The first Bedrock call fails with AccessDeniedException | Check the use case form, the Marketplace permissions, and the payment method above; a new subscription can take up to 15 minutes |
+| A seat cannot reach Ollama | Start the Ollama app, or run the setup again, which starts it and pulls missing models |
+| A run is very slow | The models are running on the processor. Close other programs that use the graphics card, or use a laptop with 12 GB of graphics memory |
+| With cloud models, the first Bedrock call fails with AccessDeniedException | Check the use case form, the Marketplace permissions, and the payment method above; a new subscription can take up to 15 minutes |
 | A key in `.env` seems ignored | A Windows or shell environment variable with the same name wins over `.env`. The setup script warns about this; remove the environment variable |
 | Port 8000 is in use | Start with `--port 8001` and open that port instead |
 | Garbled characters on Windows | Run `$env:PYTHONUTF8 = "1"` in the terminal before starting |

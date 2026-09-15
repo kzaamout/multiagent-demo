@@ -39,11 +39,23 @@ def no_credentials(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
 
 def test_model_config_loads_and_checks_temperature(tmp_path: Path) -> None:
     config = ModelConfig.load()
-    assert config.seat_spec("reviewer").provider == "google"
     assert config.seat_spec("pricing").model_id == "llama3.1:8b"
+    assert config.seat_spec("estimator").image_input, "the Estimator reads drawing pages as images"
+    writer, reviewer = config.seat_spec("writer"), config.seat_spec("reviewer")
+    assert writer.model_id.split(":")[0].rstrip("0123456789.") != reviewer.model_id.split(":")[0].rstrip(
+        "0123456789."
+    ), "the Reviewer is a different model family from the Writer"
+    for seat in config.seats:
+        if config.seat_spec(seat).provider == "ollama":
+            built = strands_model_for(config, seat).strands_model.get_config()
+            assert built["options"]["num_ctx"] >= 16384, (
+                "local model context set per request, not per machine"
+            )
     pricing = strands_model_for(config, "pricing").strands_model.get_config()
-    assert pricing["options"]["num_ctx"] >= 16384, "local model context set per request, not per machine"
     assert pricing["temperature"] == 0.1
+    estimator = strands_model_for(config, "estimator").strands_model.get_config()
+    if config.seat_spec("estimator").additional_args:
+        assert estimator["additional_args"] == config.seat_spec("estimator").additional_args
     bad = tmp_path / "models.yaml"
     bad.write_text(
         "providers: {bedrock: {region: ca-central-1}}\n"
@@ -69,7 +81,11 @@ def test_availability_is_booleans_and_reasons(no_credentials: None, monkeypatch:
     assert report["google"].available and report["bedrock"].available
     assert all(SECRET not in a.reason for a in report.values())
     problems = unavailable_seats(config, report)
-    assert problems == ["pricing needs llama3.1 8b, local: Ollama not reachable at http://127.0.0.1:9"]
+    local_seats = [seat for seat in config.seats if config.seat_spec(seat).provider == "ollama"]
+    assert problems == [
+        f"{seat} needs {config.seat_spec(seat).label}: Ollama not reachable at http://127.0.0.1:9"
+        for seat in local_seats
+    ]
 
 
 def curated_datasets(tmp_path: Path) -> Path:
@@ -116,10 +132,9 @@ async def test_live_run_refused_without_providers(
         refused = await client.post("/api/runs", json={"dataset_id": "clean-run"})
         assert refused.status_code == 409
         message = refused.json()["error"]
-        assert (
-            "orchestrator needs claude-sonnet-5 via Bedrock" in message
-            and "pricing needs llama3.1 8b, local" in message
-        )
+        for seat in ("orchestrator", "pricing"):
+            spec = config.seat_spec(seat)
+            assert f"{seat} needs {spec.label}" in message
         providers = await client.get("/api/providers")
         assert SECRET not in providers.text
         assert providers.json()["providers"]["google"] == {"available": True, "reason": "key present"}

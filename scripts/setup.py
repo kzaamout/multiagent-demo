@@ -70,7 +70,7 @@ def _set_env_value(name: str, value: str) -> None:
     ENV_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def ensure_env(args: argparse.Namespace) -> None:
+def ensure_env(args: argparse.Namespace, config: ModelConfig) -> None:
     print("\n1. Credentials in .env")
     if not ENV_PATH.exists():
         shutil.copyfile(EXAMPLE_PATH, ENV_PATH)
@@ -105,12 +105,18 @@ def ensure_env(args: argparse.Namespace) -> None:
         else:
             say(WARN, f"{name} skipped")
 
-    if present("AWS_PROFILE"):
+    in_use = {config.seat_spec(seat).provider for seat in config.seats}
+    if "bedrock" not in in_use:
+        say(OK, "no seat uses Bedrock, so AWS keys are not needed")
+    elif present("AWS_PROFILE"):
         say(OK, "AWS_PROFILE is set, so Bedrock uses that profile instead of access keys")
     else:
         fill("AWS_ACCESS_KEY_ID", "AWS access key ID for Bedrock", secret=False)
         fill("AWS_SECRET_ACCESS_KEY", "AWS secret access key", secret=True)
-    fill("GEMINI_API_KEY", "Google Gemini API key", secret=True)
+    if "google" in in_use:
+        fill("GEMINI_API_KEY", "Google Gemini API key", secret=True)
+    else:
+        say(OK, "no seat uses Gemini, so a Gemini key is not needed")
 
     for name in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_PROFILE", "GEMINI_API_KEY"):
         outside = os.environ.get(name)
@@ -393,9 +399,9 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     print("Sterling AI demo setup")
-    ensure_env(args)
-    load_dotenv(ENV_PATH, override=False)
     config = ModelConfig.load()
+    ensure_env(args, config)
+    load_dotenv(ENV_PATH, override=False)
     if not args.skip_ollama:
         ensure_ollama(config, args)
     ready = readiness(config)

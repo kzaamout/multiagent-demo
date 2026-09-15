@@ -59,6 +59,8 @@ Full table with prices: [research.md](research.md).
 
 `config/models.yaml` already held these defaults and now records them as confirmed.
 
+**Superseded the same day for live runs.** Before the first live run the owner moved every seat to local Ollama models so no run can bill a cloud account: Qwen 3.5 9B (Orchestrator, Intake, Estimator, Writer), Llama 3.1 8B (Pricing), Gemma 4 12B (Reviewer). The cloud choices above stay in `config/models.yaml` as comments for switching back. See roadmap decision 13.
+
 ## Project Structure
 
 ```text

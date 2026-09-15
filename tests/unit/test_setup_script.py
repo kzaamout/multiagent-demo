@@ -35,7 +35,18 @@ def test_env_values_fill_template_lines_and_are_never_printed(
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
     monkeypatch.setattr(setup.getpass, "getpass", lambda _prompt="": secret)
 
-    setup.ensure_env(argparse.Namespace(yes=True, no_prompt=False))
+    from app.live.providers import ModelConfig, SeatChoice
+
+    cloud = ModelConfig.load()
+    cloud = ModelConfig(
+        providers=cloud.providers,
+        models=cloud.models,
+        seats={
+            "orchestrator": SeatChoice(model="bedrock-sonnet-5"),
+            "reviewer": SeatChoice(model="gemini-2-5-pro"),
+        },
+    )
+    setup.ensure_env(argparse.Namespace(yes=True, no_prompt=False), cloud)
 
     text = env.read_text(encoding="utf-8")
     assert "AWS_ACCESS_KEY_ID=AKIA-test-id" in text
@@ -44,3 +55,22 @@ def test_env_values_fill_template_lines_and_are_never_printed(
     assert text.count("AWS_SECRET_ACCESS_KEY=") == 1 and "# AWS_PROFILE=" in text
     out = capsys.readouterr().out
     assert secret not in out and "AKIA-test-id" not in out
+
+
+def test_local_seats_ask_for_no_cloud_credentials(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    setup = load_setup()
+    from app.live.providers import ModelConfig, SeatChoice
+
+    env = tmp_path / ".env"
+    monkeypatch.setattr(setup, "ENV_PATH", env)
+    monkeypatch.setattr(setup, "EXAMPLE_PATH", ROOT / ".env.example")
+    monkeypatch.setattr("builtins.input", lambda _prompt="": pytest.fail("asked for input"))
+    base = ModelConfig.load()
+    local = ModelConfig(
+        providers=base.providers, models=base.models, seats={"pricing": SeatChoice(model="llama3-1-8b")}
+    )
+    setup.ensure_env(argparse.Namespace(yes=False, no_prompt=False), local)
+    out = capsys.readouterr().out
+    assert "AWS keys are not needed" in out and "Gemini key is not needed" in out
