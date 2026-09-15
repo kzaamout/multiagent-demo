@@ -27,3 +27,9 @@ Constitution XI requires every case where the export and the spec cannot both be
 ### Screenshot references
 
 `design/screenshots/` holds only five captures, at a smaller scale than 1920 by 1080. The comparison uses references recaptured from the export bundles at 1920 by 1080 by `scripts/capture_export.py`, stored in `tests/visual/reference/`. The recaptured Demo terminated, Login, Settings with the Estimator dropdown open, and Pre-flight all-pass states were checked by eye against `design/screenshots/` and match. Masks for deferred regions are listed with reasons in `tests/visual/masks.py`.
+
+## Slice S2 (2026-09-15)
+
+### Owner decisions
+
+1. **Settings page model labels are stale until S5.** Every seat now runs on a local Ollama model (roadmap decision 13), but the Settings page is still the static S1 preview and shows the export's cloud labels, such as "claude-sonnet via Bedrock". This conflicts with constitution V, which requires a seat's model to be displayed truthfully wherever the agent appears. The owner chose to leave the page unchanged until S5 wires it to the running configuration, rather than make the labels read-only truthful now. The Demo page is not affected: its agent cards take model labels from the run's events. Presenters should not show the Settings page before S5.

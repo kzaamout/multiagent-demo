@@ -24,7 +24,7 @@ You do not need to install Python, uv, or Ollama yourself. The setup script inst
 | Pricing | Llama 3.1 8B | Copies numbers from the price lookup tool |
 | Reviewer | Gemma 4 12B | A different model family from the Writer, reads images |
 
-The seats are set in `config/models.yaml`. The model selectors on the Settings page are a preview and start working in slice S5; until then, change a seat by editing its `model` in that file, run the setup script to pull the model, and restart the server.
+The seats are set in `config/models.yaml`. The Settings page is a preview until slice S5: its selectors do nothing and its model labels are the design's cloud examples, not the running seats. Until then, change a seat by editing its `model` in that file, run the setup script to pull the model, and restart the server. The Demo page always shows the models a run actually uses.
 
 ### Cloud models (optional)
 
