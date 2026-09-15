@@ -23,7 +23,7 @@ from strands.types.exceptions import MaxTokensReachedException
 
 from app.agents.base import MeterDelta
 from app.agents.source import AgentFailure
-from app.live.replies import ReplyError, extract_json
+from app.live.replies import ReplyError, extract_json, without_em_dashes
 from app.live.strands_tools import ToolLog
 from app.schema.bundles import PromptBundle
 from app.schema.events import Model
@@ -89,7 +89,9 @@ class _Observer(HookProvider):
                 for line in str(block.get("text", "")).splitlines():
                     line = line.strip()
                     if line:
-                        self.queue.put_nowait(CallItem("progress", text=line[:MAX_PROGRESS_CHARS]))
+                        self.queue.put_nowait(
+                            CallItem("progress", text=without_em_dashes(line)[:MAX_PROGRESS_CHARS])
+                        )
         self.queue.put_nowait(
             CallItem(
                 "usage",

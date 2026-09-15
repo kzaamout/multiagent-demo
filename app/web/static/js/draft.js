@@ -18,6 +18,24 @@
     return html;
   }
 
+  /* Table cells split on pipes outside provenance tags, whose own syntax contains a pipe. */
+  function splitCells(row) {
+    var inner = row.trim().replace(/^\|/, '').replace(/\|$/, '');
+    var parts = [];
+    var current = '';
+    var depth = 0;
+    for (var k = 0; k < inner.length; k += 1) {
+      var pair = inner.substr(k, 2);
+      if (pair === '{{') { depth += 1; current += pair; k += 1; continue; }
+      if (pair === '}}' && depth > 0) { depth -= 1; current += pair; k += 1; continue; }
+      var ch = inner.charAt(k);
+      if (ch === '|' && depth === 0) { parts.push(current.trim()); current = ''; continue; }
+      current += ch;
+    }
+    parts.push(current.trim());
+    return parts;
+  }
+
   function renderMarkdown(markdown) {
     var lines = String(markdown).replace(/\r\n/g, '\n').split('\n');
     var out = [];
@@ -44,7 +62,7 @@
       if (/^\s*\|/.test(line)) {
         var rows = [];
         while (i < lines.length && /^\s*\|/.test(lines[i])) { rows.push(lines[i]); i += 1; }
-        var cells = function (row) { return row.trim().replace(/^\||\|$/g, '').split('|').map(function (c) { return c.trim(); }); };
+        var cells = splitCells;
         var body = rows.filter(function (r) { return !/^\s*\|?\s*:?-{3,}/.test(r); });
         var head = body.shift();
         var table = '<table><thead><tr>' + cells(head).map(function (c) { return '<th>' + inline(c) + '</th>'; }).join('') + '</tr></thead><tbody>';

@@ -17,6 +17,7 @@ from strands import ToolContext, tool
 
 from app.live.documents import parse_pdf, render_page_png
 from app.live.materials import DatasetFiles
+from app.live.replies import without_em_dashes
 from app.tools.price_list import LookupRequest, PriceList, totals
 from app.tools.quantity import QuantityItem, calculate
 from app.tools.template import render
@@ -31,7 +32,10 @@ class ToolLog:
     summaries: dict[str, tuple[str, str]] = field(default_factory=dict)
 
     def record(self, context: ToolContext, args_summary: str, result_summary: str) -> None:
-        self.summaries[str(context.tool_use["toolUseId"])] = (args_summary[:200], result_summary[:200])
+        self.summaries[str(context.tool_use["toolUseId"])] = (
+            without_em_dashes(args_summary)[:200],
+            without_em_dashes(result_summary)[:200],
+        )
 
 
 def _dec(value: Any, name: str) -> Decimal:

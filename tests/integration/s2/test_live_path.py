@@ -282,3 +282,19 @@ async def test_writer_draft_without_provenance_gets_a_correction(tmp_path: Path)
     draft = of_type(orchestrator.events, "draft.committed")[0]
     assert len(draft.payload["provenance_tags"]) == 2
     assert orchestrator.events[-1].payload["exit"] == "reviewer_pass"
+
+
+async def test_progress_lines_never_carry_em_dashes(tmp_path: Path) -> None:
+    dash = chr(0x2014)
+    turns = h.full_turns()
+    estimator = h.estimator_turns()
+    estimator[0] = [
+        {"text": f"Reading E-001 {dash} the single-line."},
+        {"tool": "vision_read_drawing", "input": {"sheet": "E-001"}},
+    ]
+    turns["estimator"] = estimator
+    orchestrator = h.build(tmp_path, turns, "10000000-0000-4000-8000-000000000015")
+    await drive(orchestrator, SCRIPT)
+    progress = [e.payload["message"] for e in of_type(orchestrator.events, "task.progress")]
+    assert "Reading E-001, the single-line." in progress
+    assert all(dash not in e.to_line() for e in orchestrator.events)
