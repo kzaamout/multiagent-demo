@@ -56,14 +56,14 @@ def test_model_config_loads_and_checks_temperature(tmp_path: Path) -> None:
     for seat in config.seats:
         spec = config.seat_spec(seat)
         if spec.provider == "bedrock":
-            assert (
-                spec.max_tokens
-                and strands_model_for(config, seat).strands_model.get_config()["max_tokens"]
-                == spec.max_tokens
-            )
+            built = strands_model_for(config, seat).strands_model.get_config()
+            assert spec.max_tokens and built["max_tokens"] == spec.max_tokens
+            assert built.get("additional_request_fields") == spec.additional_args
     estimator = strands_model_for(config, "estimator").strands_model.get_config()
-    if config.seat_spec("estimator").additional_args:
-        assert estimator["additional_args"] == config.seat_spec("estimator").additional_args
+    spec = config.seat_spec("estimator")
+    if spec.additional_args:
+        key = "additional_request_fields" if spec.provider == "bedrock" else "additional_args"
+        assert estimator[key] == spec.additional_args
     bad = tmp_path / "models.yaml"
     bad.write_text(
         "providers: {bedrock: {region: ca-central-1}}\n"

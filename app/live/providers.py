@@ -169,6 +169,8 @@ def strands_model_for(config: ModelConfig, agent_id: str) -> SeatModel:
             kwargs["temperature"] = choice.temperature
         if spec.max_tokens:
             kwargs["max_tokens"] = spec.max_tokens
+        if spec.additional_args:
+            kwargs["additional_request_fields"] = dict(spec.additional_args)
         strands_model = BedrockModel(**kwargs)
     elif spec.provider == "ollama":
         from strands.models.ollama import OllamaModel

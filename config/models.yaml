@@ -1,4 +1,5 @@
 # Providers, models, and seat defaults for live runs.
+# additional_args are extra request fields: top-level request arguments for Ollama, additionalModelRequestFields for Bedrock.
 # Facts verified 2026-09-14 from official pages; see specs/002-live-team-clean-run/research.md.
 # Prices are USD per million tokens and are used for estimated cost on the meters only.
 # No credentials here: availability is detected from .env and the boto3 credential chain.
@@ -25,6 +26,7 @@ models:
     image_input: true
     temperature: false            # rejects any non-default temperature
     max_tokens: 16000             # a full bill of materials reply is long; the provider default cut it off
+    additional_args: {thinking: {type: disabled}}   # adaptive thinking is on by default and is not streamed; a long silent think dropped the connection
     price_in: 2.20
     price_out: 11.00
   bedrock-sonnet-4-6:
