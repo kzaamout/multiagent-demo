@@ -1,0 +1,23 @@
+# credentials
+.env
+.env.*
+!.env.example
+
+# run recordings (golden logs live under datasets/, not here)
+runs/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# tooling
+.specify/feature.json
+node_modules/
+*.log
+
+# screenshot comparison outputs
+tests/visual/output/
