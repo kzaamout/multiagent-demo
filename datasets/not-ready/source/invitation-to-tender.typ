@@ -24,7 +24,7 @@ Fire alarm, data, and security systems are by others and are not part of this te
 
 = 2. Tender documents
 
-The tender documents are this invitation, the Division 26 specification issued with it, and the following drawings, all revision 0, issued for tender on 2026-09-08:
+The tender documents are this invitation, the Division 26 specification issued with it, and the following drawings, all revision 0, issued for tender on 2026-09-08. The specification is a separate document, `division-26-specification.pdf`.
 
 #table(
   columns: (0.8fr, 3fr), stroke: 0.5pt, inset: 5pt,

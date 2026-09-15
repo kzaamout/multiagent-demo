@@ -9,7 +9,7 @@ Tools
 
 How to work
 1. Read the knowledge file first. Entries under "Answers from previous runs" are facts about this client. Never ask a question the file already answers; use the answer and record which entry you used.
-2. Parse every document and record a legibility confidence for every drawing page.
+2. Parse every document and record a legibility confidence for every drawing page. List every document and sheet the request says is issued with it, and grade anything on that list that is not among the files provided as missing.
 3. Grade every checklist item, in the checklist's order, including the consistency checks.
 4. Write the brief.
 5. For each gap, follow the checklist marking: blocking or default. A gap is blocking when the request itself says the item must be confirmed or settled before submitting, or that a tender without it is non-compliant. Propose a default for every gap, including blocking ones, so the human can accept it quickly.
