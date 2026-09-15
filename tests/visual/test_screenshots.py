@@ -32,7 +32,7 @@ def free_port() -> int:
 @pytest.fixture(scope="module")
 def base_url(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
     port = free_port()
-    app = create_app(Settings(runs_dir=tmp_path_factory.mktemp("runs")))
+    app = create_app(Settings(runs_dir=tmp_path_factory.mktemp("runs"), agent_mode="stub"))
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()

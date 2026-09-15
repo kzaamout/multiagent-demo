@@ -15,9 +15,11 @@ Each subfolder is one selectable scenario in the Demo composer dropdown. A datas
 - [ ] Source a small commercial electrical drawing set: legend, single-line, two or three panel schedules, two floor plans, a short Division 26 specification. Options: manufacturer or college training sets with permissive licences, or commission a drafting freelancer for a clean original set (preferred, and it allows planting defects cleanly).
 - [ ] Build `supplier-prices.csv` from public catalogue pricing. Around 150 items covering everything the drawings call for. Three fictional supplier names matching the knowledge seed.
 - [ ] Create the Clean run dataset first and verify a full pass live before deriving the others. A synthetic stand-in exists since 2026-09-15 (see `clean-run/README.md`); replace it with the curated set when available.
-- [ ] REMINDER, the trap: in Planted inconsistency, change the main breaker rating on one panel schedule to 200A while the single-line shows 225A for that panel. Document sheet numbers in that README. Also remove one required item (for example, exit signs) from the price fixture in Missing price. Never plant a defect without writing it in the README; anyone demoing must know where it is.
-- [ ] Missing sheet: delete the panel schedule for a panel that appears on the single-line.
-- [ ] Not ready: strip the deadline and the specification section from the request.
+- [x] REMINDER, the trap: in Planted inconsistency, change the main breaker rating on one panel schedule to 200A while the single-line shows 225A for that panel. Document sheet numbers in that README. Also remove one required item (for example, exit signs) from the price fixture in Missing price. Never plant a defect without writing it in the README; anyone demoing must know where it is. Done 2026-09-15 on the synthetic set: E-002 200 A against E-001 225 A; Missing price lacks `Exit sign, LED`.
+- [x] Missing sheet: delete the panel schedule for a panel that appears on the single-line. Done 2026-09-15 on the synthetic set: panel LP-2 with schedule E-003 absent.
+- [x] Not ready: strip the deadline and the specification section from the request. Done 2026-09-15 on the synthetic set.
 - [ ] Prospect own: leave empty apart from README and brand.yaml template. Populate per prospect, run Dry intake, record a clean run for Replay.
 - [ ] Record `golden-events.jsonl` for each scenario after a verified live run.
 - [ ] Fictional prospect brand for the five stock scenarios (name, simple logo).
+
+The four failure datasets were derived from the synthetic Clean run set on 2026-09-15 (S3). Each keeps its own copy of the Typst sources in `source/`, so a curated owner set can replace any one of them. The five stock scenarios share the prospect Fictional Prospect Ltd. and therefore one knowledge file: run Clean run first, and the failure scenarios will not pause on the bid security question.

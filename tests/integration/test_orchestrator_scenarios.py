@@ -153,7 +153,7 @@ async def test_review_fail_routed_to_assemble_uses_backward_arrow(settings: Sett
 
 
 async def test_cost_ceiling_terminates_before_further_dispatch(tmp_path: object) -> None:
-    settings = Settings(runs_dir=tmp_path / "runs", cost_ceiling=0.10)  # type: ignore[operator]
+    settings = Settings(runs_dir=tmp_path / "runs", cost_ceiling=0.10, agent_mode="stub")  # type: ignore[operator]
     events = await run_scenario(SCENARIOS["clean-run"], settings)
     assert events[-1].payload["exit"] == "cost_ceiling"
     breach = max(i for i, e in enumerate(events) if e.type == "meter.update")

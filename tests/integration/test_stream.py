@@ -31,7 +31,7 @@ def fake(seq: int, type_: str = "task.progress") -> dict[str, object]:
 
 
 async def test_stream_format_order_and_resume(tmp_path: Path) -> None:
-    app = create_app(Settings(runs_dir=tmp_path / "runs"))
+    app = create_app(Settings(runs_dir=tmp_path / "runs", agent_mode="stub"))
     bus: StreamBus = app.state.bus
     bus.open("s1")
     for seq in range(1, 5):

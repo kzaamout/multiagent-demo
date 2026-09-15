@@ -15,7 +15,7 @@ async def test_run_files_are_served_read_only_inside_the_run_folder(tmp_path: Pa
     draft.write_text("# Proposal\n\nTotal {{$10|src:e1}}.\n", encoding="utf-8")
     (tmp_path / "secret.md").write_text("outside", encoding="utf-8")
     (runs / "run-1" / "notes.txt").write_text("not served", encoding="utf-8")
-    app = create_app(Settings(runs_dir=runs))
+    app = create_app(Settings(runs_dir=runs, agent_mode="stub"))
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         ok = await client.get("/api/runs/run-1/files/drafts/draft-v1.md")
         assert ok.status_code == 200 and "{{$10|src:e1}}" in ok.text

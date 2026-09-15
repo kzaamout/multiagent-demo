@@ -1,0 +1,52 @@
+item_code,description,unit,price,supplier,lead_time_days
+LUM-TRF-2X4-40,2x4 LED troffer,each,142.00,Supplier C,10
+EM-EBU-2H,Emergency battery unit with heads,each,238.00,Supplier C,12
+WD-SW-SP15,Single-pole switch,each,12.90,Supplier B,3
+WD-REC-DUP15,"Duplex receptacle, 15A, incl. box and device",each,18.40,Supplier B,3
+BRK-1P20-BO,20A branch circuit breaker,each,26.75,Supplier A,5
+PNL-42-225-S,"42-circuit panelboard, 225A, surface",each,1890.00,Supplier A,21
+XFMR-DT-75,"Dry-type transformer, 75 kVA",each,6450.00,Supplier A,25
+FDR-3CG-100-EMT,"Feeder, 3C plus ground, 100A in EMT",metre,48.50,Supplier B,4
+EMT-21,EMT 21 mm,metre,4.85,Supplier B,2
+CU-12-THHN,Copper conductor #12 THHN,metre,0.92,Supplier B,2
+LUM-TRF-2X2-30,2x2 LED troffer,each,118.00,Supplier C,10
+LUM-TRF-1X4-30,1x4 LED troffer,each,109.00,Supplier C,10
+LUM-DL-6,"LED downlight, 6 inch",each,64.00,Supplier C,8
+LUM-STRIP-4,"LED strip light, 4 ft",each,58.00,Supplier C,6
+LUM-WP-40,"LED wall pack, 40 W",each,182.00,Supplier C,15
+EM-EXIT-LED-EBU,"Exit sign, LED, with battery backup",each,168.00,Supplier C,12
+EM-HEAD-RMT,"Remote emergency head, LED",each,44.00,Supplier C,12
+WD-SW-3W15,Three-way switch,each,16.80,Supplier B,3
+WD-SW-DIM,0-10V dimmer switch,each,54.00,Supplier B,9
+WD-OCC-CLG,"Occupancy sensor, ceiling",each,88.00,Supplier B,10
+WD-REC-DUP20,"Duplex receptacle, 20A, incl. box and device",each,24.60,Supplier B,3
+WD-REC-GFCI15,"GFCI receptacle, 15A, incl. box and device",each,41.20,Supplier B,5
+WD-REC-USB,"USB duplex receptacle, 15A, incl. box and device",each,46.50,Supplier B,7
+BRK-1P15-BO,15A branch circuit breaker,each,24.10,Supplier A,5
+BRK-2P20-BO,20A 2-pole breaker,each,68.00,Supplier A,7
+BRK-3P100-BO,100A 3-pole breaker,each,742.00,Supplier A,21
+BRK-GFCI-1P20,20A GFCI breaker,each,118.00,Supplier A,10
+PNL-30-100-S,"30-circuit panelboard, 100A, surface",each,940.00,Supplier A,21
+PNL-42-225-F,"42-circuit panelboard, 225A, flush",each,2040.00,Supplier A,24
+PNL-84-400-S,"84-circuit panelboard, 400A, surface",each,4380.00,Supplier A,42
+XFMR-DT-45,"Dry-type transformer, 45 kVA",each,4620.00,Supplier A,25
+XFMR-DT-112,"Dry-type transformer, 112.5 kVA",each,8990.00,Supplier A,49
+SWBD-600-MDP,"Main distribution switchboard, 600A",each,18400.00,Supplier A,70
+DISC-100-3P,"Fused disconnect, 100A, 3-pole",each,612.00,Supplier A,14
+FDR-4CG-100-EMT,"Feeder, 4C plus ground, 100A in EMT",metre,57.20,Supplier B,4
+FDR-4CG-225-EMT,"Feeder, 4C plus ground, 225A in EMT",metre,112.40,Supplier B,6
+FDR-3CG-60-EMT,"Feeder, 3C plus ground, 60A in EMT",metre,34.10,Supplier B,4
+EMT-16,EMT 16 mm,metre,3.95,Supplier B,2
+EMT-27,EMT 27 mm,metre,7.30,Supplier B,2
+EMT-35,EMT 35 mm,metre,11.60,Supplier B,3
+EMT-53,EMT 53 mm,metre,19.80,Supplier B,5
+PVC-RIG-27,Rigid PVC conduit 27 mm,metre,5.20,Supplier B,3
+CU-14-THHN,Copper conductor #14 THHN,metre,0.68,Supplier B,2
+CU-10-THHN,Copper conductor #10 THHN,metre,1.46,Supplier B,2
+CU-8-THHN,Copper conductor #8 THHN,metre,2.38,Supplier B,3
+CU-3-THHN,Copper conductor #3 THHN,metre,8.95,Supplier B,4
+AC90-12-2,AC90 cable 12/2,metre,2.15,Supplier B,3
+AC90-12-3,AC90 cable 12/3,metre,2.90,Supplier B,3
+BOX-4SQ,4 inch square box with cover,each,4.80,Supplier B,2
+FIRE-SEAL,"Firestop sealant, per penetration",each,38.00,Supplier B,6
+GND-BAR,Ground bar kit,each,42.00,Supplier A,5

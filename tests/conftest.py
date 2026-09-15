@@ -39,7 +39,7 @@ def _never_call_real_model_providers(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture
 def settings(tmp_path: Path) -> Iterator[Settings]:
-    yield Settings(runs_dir=tmp_path / "runs", stub_pace=1000.0)
+    yield Settings(runs_dir=tmp_path / "runs", stub_pace=1000.0, agent_mode="stub")
 
 
 def make_orchestrator(

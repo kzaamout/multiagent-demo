@@ -30,7 +30,7 @@ def free_port() -> int:
 def server(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[str, Path]]:
     runs = tmp_path_factory.mktemp("runs")
     port = free_port()
-    app = create_app(Settings(runs_dir=runs, stub_pace=120.0))
+    app = create_app(Settings(runs_dir=runs, stub_pace=120.0, agent_mode="stub"))
     srv = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
     thread = threading.Thread(target=srv.run, daemon=True)
     thread.start()

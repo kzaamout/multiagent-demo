@@ -14,7 +14,7 @@ from app.main import create_app
 
 @pytest.fixture
 async def client(tmp_path: Path) -> AsyncIterator[httpx.AsyncClient]:
-    app = create_app(Settings(runs_dir=tmp_path / "runs", stub_pace=5000.0))
+    app = create_app(Settings(runs_dir=tmp_path / "runs", stub_pace=5000.0, agent_mode="stub"))
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         c.app = app  # type: ignore[attr-defined]
