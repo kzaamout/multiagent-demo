@@ -15,7 +15,6 @@ Required by constitution XV. One entry per major dependency, stating the problem
 | ruff | 0.16.7 (2026-09-14) | Lint and format gate | No lint gate | S1 |
 | Playwright | 1.62.0 (2026-09-14) | Renders the export bundles for reference captures and the flattened pages for comparison at 1920 by 1080 | No screenshot acceptance, which constitution XIII requires | S1 |
 | Pillow | 12.3.0 (2026-09-14) | Pixel comparison of captures with masks | Hand-written PNG decoding | S1 |
-
 | Strands Agents (`strands-agents[litellm,ollama]`) | 1.55.1 (2026-09-14) | Model calls for every seat across Bedrock, Ollama, and LiteLLM providers, with tool calling, per-call usage, and hooks for tool calls; named in the stack (CLAUDE.md). Orchestration stays hand-written: Strands runs one seat's call, never the loop | A provider client per vendor plus hand-written tool-calling loops and usage accounting for each | S2 |
 | LiteLLM (via the Strands extra) | 1.96.0 (2026-09-14; latest is 1.101.0, but Strands 1.55.1 caps it at 1.96.0) | Gemini for the Reviewer and Grok, per the stack | A separate Google client and a second provider code path | S2 |
 | Ollama Python client (via the Strands extra) | 0.6.2 (2026-09-14) | The local model for Pricing | Hand-written HTTP calls to the Ollama API | S2 |
