@@ -130,6 +130,10 @@ def compose_prompt(task: str, context_text: str) -> str:
     return f"## Task\n{task.strip()}\n\n{context_text.strip()}\n"
 
 
+Requirement = Callable[[BaseModel, list[str]], str | None]
+"""Given a parsed reply and the tools used so far, a sentence saying what is missing, or None."""
+
+
 class SeatCall:
     def __init__(
         self,
@@ -142,6 +146,7 @@ class SeatCall:
         log: ToolLog,
         bundle: PromptBundle,
         parse: Callable[[str], BaseModel],
+        requirement: Requirement | None = None,
     ) -> None:
         self.agent_id = agent_id
         self.role = role
@@ -151,6 +156,17 @@ class SeatCall:
         self.log = log
         self.bundle = bundle
         self.parse = parse
+        self.requirement = requirement
+        self.tools_used: list[str] = []
+
+    def _accept(self, text: str) -> BaseModel:
+        """Parse the reply and apply the seat's requirement on how it was produced. Raises ReplyError."""
+        reply = self.parse(text)
+        if self.requirement is not None:
+            unmet = self.requirement(reply, self.tools_used)
+            if unmet:
+                raise ReplyError(unmet)
+        return reply
 
     def _agent(self, queue: asyncio.Queue[CallItem]) -> Agent:
         return Agent(
@@ -197,6 +213,8 @@ class SeatCall:
                     if isinstance(item, str):
                         text = item
                     else:
+                        if item.kind == "tool" and item.tool is not None:
+                            self.tools_used.append(item.tool.name)
                         yield item
             except AgentFailure:
                 raise
@@ -207,12 +225,12 @@ class SeatCall:
                     ) from None
                 continue
             try:
-                yield CallItem("reply", reply=self.parse(text))
+                yield CallItem("reply", reply=self._accept(text))
                 return
             except ReplyError as first_error:
                 correction = (
-                    "Your reply did not match the required JSON shape: "
-                    f"{first_error}. Reply again with only the corrected JSON object."
+                    "Your reply was not accepted: "
+                    f"{first_error}. Fix this, using your tools if needed, then reply again with only the corrected JSON object."
                 )
                 text = ""
                 try:
@@ -220,13 +238,15 @@ class SeatCall:
                         if isinstance(item, str):
                             text = item
                         else:
+                            if item.kind == "tool" and item.tool is not None:
+                                self.tools_used.append(item.tool.name)
                             yield item
                 except Exception:  # noqa: BLE001
                     raise AgentFailure(
                         f"The {self.role} on {label} failed while correcting its reply, so the run stops."
                     ) from None
                 try:
-                    yield CallItem("reply", reply=self.parse(text))
+                    yield CallItem("reply", reply=self._accept(text))
                     return
                 except ReplyError:
                     raise AgentFailure(

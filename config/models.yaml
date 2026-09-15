@@ -109,8 +109,8 @@ models:
 # The Reviewer is a different model family from the Writer. Qwen 3.5 and Gemma 4 read images, so the
 # Estimator can see drawing pages and the Reviewer can judge compiled pages from S4.
 seats:
-  orchestrator: {model: qwen3-5-9b}
-  intake: {model: qwen3-5-9b}
+  orchestrator: {model: qwen3-5-9b, temperature: 0.1}
+  intake: {model: qwen3-5-9b, temperature: 0.1}
   estimator: {model: qwen3-5-9b}
   pricing: {model: llama3-1-8b, temperature: 0.1}
   writer: {model: qwen3-5-9b}

@@ -221,3 +221,18 @@ async def test_unreadable_plan_twice_falls_back_to_standard_plan(tmp_path: Path)
     plan = of_type(orchestrator.events, "plan.created")[0]
     assert "could not be read" in (plan.reason or "")
     assert orchestrator.events[-1].payload["exit"] == "reviewer_pass"
+
+
+async def test_estimator_totals_must_come_from_the_calculator(tmp_path: Path) -> None:
+    turns = h.full_turns()
+    vision, calculate, final = h.estimator_turns()
+    turns["estimator"] = [vision, final, calculate, final]
+    orchestrator = h.build(tmp_path, turns, "10000000-0000-4000-8000-000000000011")
+    await drive(orchestrator, SCRIPT)
+    estimator_tools = [
+        e.payload["tool"]
+        for e in of_type(orchestrator.events, "tool.called")
+        if e.payload["agent_id"] == "estimator"
+    ]
+    assert estimator_tools == ["vision_read_drawing", "quantity_calculate"]
+    assert orchestrator.events[-1].payload["exit"] == "reviewer_pass"

@@ -38,7 +38,7 @@ from app.live.replies import (
     parse_reply,
     verdict_payload,
 )
-from app.live.seat_call import CallItem, SeatCall, SeatModel
+from app.live.seat_call import CallItem, Requirement, SeatCall, SeatModel
 from app.live.strands_tools import ToolLog, build_tools
 from app.orchestrator.knowledge_store import KnowledgeStore
 from app.schema.bundles import PromptBundle
@@ -103,6 +103,16 @@ class LiveContext:
     supplier_order: list[str]
     long_lead_days: int
     retry_budget: int
+
+
+def estimator_used_calculator(reply: BaseModel, tools_used: list[str]) -> str | None:
+    """A completed takeoff must take its totals from quantity_calculate, never from the model's own arithmetic."""
+    if isinstance(reply, EstimatorReply) and reply.blocker is None and "quantity_calculate" not in tools_used:
+        return (
+            "the bill of materials was not totalled with quantity_calculate. Call quantity_calculate with every "
+            "counted and measured line, then copy its quantities with waste and its labour hours into your reply"
+        )
+    return None
 
 
 class LiveAgentSource:
@@ -172,7 +182,11 @@ class LiveAgentSource:
         )
 
     def _call(
-        self, agent_id: str, bundle: PromptBundle, parse: Callable[[str], BaseModel]
+        self,
+        agent_id: str,
+        bundle: PromptBundle,
+        parse: Callable[[str], BaseModel],
+        requirement: Requirement | None = None,
     ) -> AsyncIterator[CallItem]:
         log = ToolLog()
         tools = build_tools(
@@ -193,17 +207,23 @@ class LiveAgentSource:
             log=log,
             bundle=bundle,
             parse=parse,
+            requirement=requirement,
         )
         return call.run()
 
     async def _stream(
-        self, agent_id: str, task_id: str, bundle: PromptBundle, parse: Callable[[str], BaseModel]
+        self,
+        agent_id: str,
+        task_id: str,
+        bundle: PromptBundle,
+        parse: Callable[[str], BaseModel],
+        requirement: Requirement | None = None,
     ) -> AsyncIterator[tuple[Emit | None, BaseModel | None, list[MeterDelta], list[str]]]:
         """Yield progress and tool emissions as they happen; the last item carries the reply,
         the usage not yet attached to an emission, and the tools that were used."""
         pending: list[MeterDelta] = []
         tools_used: list[str] = []
-        async for item in self._call(agent_id, bundle, parse):
+        async for item in self._call(agent_id, bundle, parse, requirement):
             if item.kind == "usage" and item.usage is not None:
                 pending.append(item.usage)
             elif item.kind == "progress":
@@ -326,8 +346,9 @@ class LiveAgentSource:
         agent_id = subtask.agent_id
         task = f"Sub-task {subtask.task_id}: {subtask.title}. {extra}".strip()
         bundle = self._bundle(agent_id, task, findings)
+        requirement = estimator_used_calculator if agent_id == "estimator" else None
         async for emit, reply, pending, tools_used in self._stream(
-            agent_id, subtask.task_id, bundle, lambda t: parse_reply(agent_id, t)
+            agent_id, subtask.task_id, bundle, lambda t: parse_reply(agent_id, t), requirement
         ):
             if emit is not None:
                 yield emit
