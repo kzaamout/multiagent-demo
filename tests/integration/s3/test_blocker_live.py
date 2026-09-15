@@ -7,6 +7,7 @@ from typing import Any
 
 from app.agents.base import HumanScript
 from app.orchestrator.driver import drive
+from app.orchestrator.knowledge_store import KnowledgeStore
 from app.runs.golden import read_golden, transitions
 from app.schema.events import Event
 from tests.integration.s2 import live_harness as h
@@ -61,7 +62,7 @@ async def test_answer_reaches_the_estimator_and_stays_run_local(tmp_path: Path) 
     pricing = [x for x in orchestrator.bundles.values() if "Pricing on an electrical" in x.system]
     assert any(answer in x.task for x in estimator), "the answer is in the blocked specialist's task"
     assert pricing and not any(answer in x.model_dump_json() for x in pricing), "Pricing never sees the brief"
-    assert answer not in h.KnowledgeStore(tmp_path / "knowledge").read(h.CLIENT)
+    assert answer not in KnowledgeStore(tmp_path / "knowledge").read(h.CLIENT)
     assert not of_type(events, "knowledge.appended")
 
 
