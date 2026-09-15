@@ -25,7 +25,7 @@ STEPS: list[tuple[str, list[str]]] = [
 
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+        sys.stdout.reconfigure(encoding="utf-8")
     env = dict(os.environ, PYTHONUTF8="1")
     for name, cmd in STEPS:
         print(f"==> {name}")

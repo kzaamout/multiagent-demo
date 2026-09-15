@@ -24,7 +24,8 @@ async def drive(orchestrator: Orchestrator, script: HumanScript) -> None:
             pending = orchestrator.pending()
             if pending["kind"] == "clarifications":
                 answers = [
-                    Answer(question_id=qid, answer=script.answers.get(qid, "")) for qid in pending["question_ids"]
+                    Answer(question_id=qid, answer=script.answers.get(qid, ""))
+                    for qid in pending["question_ids"]
                 ]
                 orchestrator.submit_answers(answers)
             elif pending["kind"] == "blocker":

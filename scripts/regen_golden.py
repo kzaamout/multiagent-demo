@@ -37,7 +37,7 @@ def stubs_dirty() -> bool:
 
 async def main(argv: list[str]) -> int:
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+        sys.stdout.reconfigure(encoding="utf-8")
     force = "--force" in argv
     wanted = [a for a in argv if not a.startswith("--")]
     if stubs_dirty() and not force:

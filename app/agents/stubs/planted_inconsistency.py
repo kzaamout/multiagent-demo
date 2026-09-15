@@ -149,7 +149,9 @@ INTAKE = [
                 ("Bid validity not stated", "assumed", "non-blocking, default proposed"),
                 ("Service voltage not on cover sheet", "assumed", "blocking, question raised"),
             ),
-            "legibility": legibility({"E-001": 0.97, "E-101": 0.82, "E-102": 0.93, "E-103": 0.95, "E-104": 0.94}),
+            "legibility": legibility(
+                {"E-001": 0.97, "E-101": 0.82, "E-102": 0.93, "E-103": 0.95, "E-104": 0.94}
+            ),
         },
         ANNA,
         meter(18400, 0.09, 41000),
@@ -224,8 +226,26 @@ ESTIMATOR = [
         meter(6300, 0.04, 7000),
         headline="Reading drawings, MDP 200 A vs 225 A flagged",
     ),
-    tool("estimator", "t1", m(1, 44), "vision.read_drawing", "E-102 to E-104", "42 branch circuits counted", 8400, ELENA),
-    tool("estimator", "t1", m(1, 53), "quantity.calculate", "circuits, fixtures, feeders", "47 BOM lines", 310, ELENA),
+    tool(
+        "estimator",
+        "t1",
+        m(1, 44),
+        "vision.read_drawing",
+        "E-102 to E-104",
+        "42 branch circuits counted",
+        8400,
+        ELENA,
+    ),
+    tool(
+        "estimator",
+        "t1",
+        m(1, 53),
+        "quantity.calculate",
+        "circuits, fixtures, feeders",
+        "47 BOM lines",
+        310,
+        ELENA,
+    ),
     completed(
         "estimator",
         "t1",
@@ -253,7 +273,9 @@ PRICING = [
         meter(4000, 0.0, 6000),
         headline="Pricing the BOM, 47 lines",
     ),
-    tool("pricing", "t2", m(2, 25), "price_list.lookup", "47 item codes", "46 found, 1 long-lead", 120, PAVEL),
+    tool(
+        "pricing", "t2", m(2, 25), "price_list.lookup", "47 item codes", "46 found, 1 long-lead", 120, PAVEL
+    ),
     completed(
         "pricing",
         "t2",
@@ -291,7 +313,9 @@ REWORK = [
 ]
 
 ASSEMBLE_1 = [draft(m(2, 41), 1, 31, "t1", "6 pages, 31 provenance tags", WILLA_1, meter(12000, 0.08, 3000))]
-ASSEMBLE_2 = [draft(m(3, 48), 2, 31, "t1-rework1", "section 3.2 corrected to 225 A", WILLA_2, meter(12700, 0.08, 16000))]
+ASSEMBLE_2 = [
+    draft(m(3, 48), 2, 31, "t1-rework1", "section 3.2 corrected to 225 A", WILLA_2, meter(12700, 0.08, 16000))
+]
 
 REVIEW_1 = [
     verdict(

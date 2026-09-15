@@ -54,9 +54,13 @@ SCENARIO = StubScenario(
     ),
     tasks={
         "t1": estimator_steps(B.estimator, m(0, 40), lines=38),
-        "t2": pricing_steps(B.pricing, m(1, 8), lines=38, exceptions=["exit signs not in the supplier fixture"]),
+        "t2": pricing_steps(
+            B.pricing, m(1, 8), lines=38, exceptions=["exit signs not in the supplier fixture"]
+        ),
     },
-    assemble=[writer_steps(B.writer, m(1, 36), "24 provenance tags, exit signs disclosed as an unpriced exclusion")],
+    assemble=[
+        writer_steps(B.writer, m(1, 36), "24 provenance tags, exit signs disclosed as an unpriced exclusion")
+    ],
     review=[
         reviewer_steps(
             B.reviewer,

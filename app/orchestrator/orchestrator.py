@@ -224,7 +224,9 @@ class Orchestrator:
                 await self._terminate("cost_ceiling", self._reason("cost_ceiling"))
         except Exception as error:  # noqa: BLE001
             if not self.state.terminated:
-                await self._terminate("stopped", f"The run stopped on an internal error: {type(error).__name__}.")
+                await self._terminate(
+                    "stopped", f"The run stopped on an internal error: {type(error).__name__}."
+                )
             raise
         finally:
             self.bus.close(self.run_id)
@@ -270,7 +272,9 @@ class Orchestrator:
             "target_reason": target_reason or reason,
         }
         self.state.enter(to)
-        await self._emit_orchestrator("stage.changed", stage=to, offset=self._mark(mark), reason=reason, payload=payload)
+        await self._emit_orchestrator(
+            "stage.changed", stage=to, offset=self._mark(mark), reason=reason, payload=payload
+        )
 
     async def _intake_stage(self) -> None:
         await self._change_stage("intake", self._reason("start"), mark="intake_enter")
@@ -339,7 +343,9 @@ class Orchestrator:
             )
             self.state.clarifications[answer.question_id] = answer.answer
             entries.append(
-                KnowledgeEntry(question_id=answer.question_id, answer=answer.answer, source_event_id=event.event_id)
+                KnowledgeEntry(
+                    question_id=answer.question_id, answer=answer.answer, source_event_id=event.event_id
+                )
             )
         for entry in entries:
             self.knowledge.append([entry], self.clock.ts(self._last_offset))
@@ -436,10 +442,7 @@ class Orchestrator:
             needs_human = True
         if not needs_human:
             continuation = self.scenario.blocker_answer_continuation.get(task_run.subtask.task_id, [])
-            for emit in continuation:
-                ev = await self._relay(emit, stage="work")
-                if ev.type == "task.completed":
-                    task_run.completed_event_id = ev.event_id
+            await self._run_task_steps(task_run, continuation)
             return
         blocker = {
             "blocker_id": payload["blocker_id"],
@@ -470,10 +473,7 @@ class Orchestrator:
             return
         _ = answered
         continuation = self.scenario.blocker_answer_continuation.get(task_run.subtask.task_id, [])
-        for emit in continuation:
-            ev = await self._relay(emit, stage="work")
-            if ev.type == "task.completed":
-                task_run.completed_event_id = ev.event_id
+        await self._run_task_steps(task_run, continuation)
 
     async def _route_back_to_intake(self, task_run: _TaskRun) -> None:
         await self._change_stage("intake", self._reason("route_back_intake"), mark="route_back_intake")
@@ -487,12 +487,11 @@ class Orchestrator:
             payload={"subtasks": [s.model_dump() for s in self.scenario.plan]},
         )
         await self._change_stage("work", self._reason("work_enter"))
-        await self._dispatch(task_run.subtask, mark=None, inputs="Re-dispatched after Intake completed the brief")
+        await self._dispatch(
+            task_run.subtask, mark=None, inputs="Re-dispatched after Intake completed the brief"
+        )
         continuation = self.scenario.blocker_answer_continuation.get(task_run.subtask.task_id, [])
-        for emit in continuation:
-            ev = await self._relay(emit, stage="work")
-            if ev.type == "task.completed":
-                task_run.completed_event_id = ev.event_id
+        await self._run_task_steps(task_run, continuation)
 
     async def _assemble_review_loop(self) -> None:
         version = 0
@@ -536,13 +535,17 @@ class Orchestrator:
                 await self._rework(agent_id, self.state.retries)
                 if self.state.terminated:
                     return
-                await self._change_stage("assemble", self._reason("assemble_enter"), mark="assemble_enter_rework")
+                await self._change_stage(
+                    "assemble", self._reason("assemble_enter"), mark="assemble_enter_rework"
+                )
             else:
                 await self._change_stage(
                     "assemble",
                     self._reason("route_back_assemble"),
                     mark="route_back",
-                    target_reason=self._target_reason("route_back_assemble", self._reason("route_back_assemble")),
+                    target_reason=self._target_reason(
+                        "route_back_assemble", self._reason("route_back_assemble")
+                    ),
                 )
 
     async def _rework(self, agent_id: str, count: int) -> None:
@@ -604,7 +607,9 @@ class Orchestrator:
             raise RuntimeError("the Reviewer produced no verdict")
         return verdict
 
-    async def _handoff(self, exit_value: Literal["reviewer_pass", "retry_exhausted"], verdict_event: Event) -> None:
+    async def _handoff(
+        self, exit_value: Literal["reviewer_pass", "retry_exhausted"], verdict_event: Event
+    ) -> None:
         reason = self._reason("handoff_enter" if exit_value == "reviewer_pass" else "handoff_exhausted")
         await self._change_stage("handoff", reason, mark="handoff_enter")
         package = {
@@ -757,10 +762,14 @@ class Orchestrator:
             await self._meter("orchestrator", delta, stage, self._last_offset)
         return event
 
-    async def _emit_system(self, type: str, *, stage: Stage | None, offset: int, payload: dict[str, Any]) -> Event:
+    async def _emit_system(
+        self, type: str, *, stage: Stage | None, offset: int, payload: dict[str, Any]
+    ) -> Event:
         return await self._emit(type=type, stage=stage, offset=offset, actor="system", payload=payload)
 
-    async def _emit_human(self, type: str, *, stage: Stage | None, payload: dict[str, Any], mark: str) -> Event:
+    async def _emit_human(
+        self, type: str, *, stage: Stage | None, payload: dict[str, Any], mark: str
+    ) -> Event:
         offset = max(self._mark(mark), self._last_offset, self.clock.elapsed_offset_ms())
         return await self._emit(type=type, stage=stage, offset=offset, actor="human", payload=payload)
 
@@ -786,7 +795,7 @@ class Orchestrator:
                 run_id=self.run_id,
                 seq=seq,
                 ts=self.clock.ts(offset),
-                type=type,  # type: ignore[arg-type]
+                type=type,
                 stage=stage,
                 actor=actor,
                 reason=reason,
@@ -805,7 +814,8 @@ class Orchestrator:
         summary = {
             "headline": self._headline(exit_value),
             "missing": [
-                {"item": item, "note": note, "source_event_id": source} for item, note, source in self.state.missing
+                {"item": item, "note": note, "source_event_id": source}
+                for item, note, source in self.state.missing
             ],
             "unresolved_findings": list(self.state.unresolved_findings),
             "retries": {"count": self.state.retries, "budget": self.state.retry_budget},
@@ -832,7 +842,11 @@ class Orchestrator:
 
     def _headline(self, exit_value: Exit) -> str:
         if exit_value == "reviewer_pass":
-            return self.scenario.headline_pass_first if self.state.retries == 0 else self.scenario.headline_pass_rework
+            return (
+                self.scenario.headline_pass_first
+                if self.state.retries == 0
+                else self.scenario.headline_pass_rework
+            )
         if exit_value == "retry_exhausted":
             return "The retry budget ran out with findings unresolved."
         if exit_value == "blocker_escalated":

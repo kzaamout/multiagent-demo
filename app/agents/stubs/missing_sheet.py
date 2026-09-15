@@ -47,14 +47,22 @@ INTAKE = [
 
 ESTIMATOR = [
     progress(
-        "estimator", "t1", m(0, 44),
+        "estimator",
+        "t1",
+        m(0, 44),
         "Reading single-line E-001. Panels MDP, LP-1 and LP-2 shown.",
-        B.estimator, meter(8000, 0.05, 9000), headline="Reading drawings",
+        B.estimator,
+        meter(8000, 0.05, 9000),
+        headline="Reading drawings",
     ),
     progress(
-        "estimator", "t1", m(0, 55),
+        "estimator",
+        "t1",
+        m(0, 55),
         "No panel schedule for LP-2 in the set. E-101 covers MDP and LP-1 only.",
-        B.estimator, meter(5000, 0.03, 7000), headline="Panel schedule for LP-2 not found",
+        B.estimator,
+        meter(5000, 0.03, 7000),
+        headline="Panel schedule for LP-2 not found",
     ),
     Emit(
         "estimator",
@@ -74,17 +82,24 @@ ESTIMATOR = [
 
 ANSWER_CONTINUATION = [
     progress(
-        "estimator", "t1", m(1, 30),
+        "estimator",
+        "t1",
+        m(1, 30),
         "Proceeding with LP-2 sized from the answer provided.",
-        B.estimator, meter(6000, 0.04, 6000), headline="Resuming takeoff with the answer",
+        B.estimator,
+        meter(6000, 0.04, 6000),
+        headline="Resuming takeoff with the answer",
     ),
     completed(
-        "estimator", "t1", m(1, 48),
+        "estimator",
+        "t1",
+        m(1, 48),
         "Takeoff complete, 41 BOM lines",
         "Done. BOM 41 lines. LP-2 lines are based on the answer given at the blocker.",
         {"bom_lines": 41, "labour_hours": 256, "flags": ["LP-2 from presenter answer"]},
         [{"tool": "vision.read_drawing", "source": "E-001 single-line", "confidence": 0.9}],
-        B.estimator, meter(14000, 0.1, 18000),
+        B.estimator,
+        meter(14000, 0.1, 18000),
     ),
 ]
 
@@ -101,7 +116,9 @@ SCENARIO = StubScenario(
     assemble=[writer_steps(B.writer, m(2, 20), "22 provenance tags")],
     review=[reviewer_steps(B.reviewer, m(2, 40), [], "Verdict on v1: pass.")],
     blocker_answer_continuation={"t1": ANSWER_CONTINUATION},
-    human_script=HumanScript(blocker_action="escalate", blocker_answer="A missing sheet cannot be supplied live."),
+    human_script=HumanScript(
+        blocker_action="escalate", blocker_answer="A missing sheet cannot be supplied live."
+    ),
     marks=Marks(
         {
             "intake_enter": 0,

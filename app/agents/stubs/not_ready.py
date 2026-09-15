@@ -21,7 +21,11 @@ INTAKE = [
         checklist(
             ("Scope of work", "pass", "references Division 26 specifications"),
             ("Drawing set E-001 to E-012", "pass", ""),
-            ("Division 26 specification", "fail", "The scope references specifications that are not attached."),
+            (
+                "Division 26 specification",
+                "fail",
+                "The scope references specifications that are not attached.",
+            ),
             ("Submission deadline", "fail", "No deadline appears anywhere in the request."),
             ("Site conditions", "pass", ""),
             ("Contract form", "pass", ""),

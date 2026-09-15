@@ -279,7 +279,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not bus.exists(stream_id):
             raise HTTPException(404, f"unknown stream {stream_id}")
         last_event_id = request.headers.get("last-event-id")
-        start = since if since is not None else int(last_event_id) if last_event_id and last_event_id.isdigit() else 0
+        start = (
+            since
+            if since is not None
+            else int(last_event_id)
+            if last_event_id and last_event_id.isdigit()
+            else 0
+        )
 
         async def generate() -> AsyncIterator[str]:
             iterator = bus.subscribe(stream_id, since_seq=start).__aiter__()

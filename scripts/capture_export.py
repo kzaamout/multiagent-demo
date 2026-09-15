@@ -13,6 +13,7 @@ import json
 import re
 import sys
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -36,7 +37,9 @@ class Capture:
 CAPTURES = [
     Capture("demo-idle", "Demo", {"state": "idle"}),
     Capture("demo-paused", "Demo", {"state": "paused"}),
-    Capture("demo-running", "Demo", {"state": "running"}, click=['[data-card="c7"] [data-part="card-header"]']),
+    Capture(
+        "demo-running", "Demo", {"state": "running"}, click=['[data-card="c7"] [data-part="card-header"]']
+    ),
     Capture("demo-terminated", "Demo", {"state": "terminated"}),
     Capture("demo-terminated-chat", "Demo", {"state": "terminated", "chatOpen": True}),
     Capture("login", "Login"),
@@ -48,6 +51,13 @@ CAPTURES = [
 ]
 
 
+def _replacer(encoded: str) -> Callable[[re.Match[str]], str]:
+    def replace(match: re.Match[str]) -> str:
+        return match.group(1) + encoded
+
+    return replace
+
+
 def rewrite_defaults(bundle_text: str, props: dict[str, object]) -> str:
     match = re.search(r'(<script type="__bundler/template">)(.*?)(</script>)', bundle_text, re.S)
     if not match:
@@ -55,8 +65,10 @@ def rewrite_defaults(bundle_text: str, props: dict[str, object]) -> str:
     template: str = json.loads(match.group(2))
     for key, value in props.items():
         encoded = json.dumps(value).replace('"', "&quot;")
-        pattern = re.compile(r"(&quot;" + re.escape(key) + r"&quot;:\{&quot;editor&quot;:[^}]*?&quot;default&quot;:)([^,}]+)")
-        template, count = pattern.subn(lambda m: m.group(1) + encoded, template, count=1)
+        pattern = re.compile(
+            r"(&quot;" + re.escape(key) + r"&quot;:\{&quot;editor&quot;:[^}]*?&quot;default&quot;:)([^,}]+)"
+        )
+        template, count = pattern.subn(_replacer(encoded), template, count=1)
         if count != 1:
             raise SystemExit(f"switch {key} not found in the bundle")
     rebuilt = json.dumps(template)
@@ -72,7 +84,7 @@ def settle(page: Page) -> None:
 
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+        sys.stdout.reconfigure(encoding="utf-8")
     OUT.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp, sync_playwright() as p:
         browser = p.chromium.launch()

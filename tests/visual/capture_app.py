@@ -29,7 +29,11 @@ def golden_seq(kind: str) -> int:
     import json
 
     root = Path(__file__).resolve().parents[2]
-    lines = (root / "datasets" / "planted-inconsistency" / "golden-events.jsonl").read_text(encoding="utf-8").splitlines()
+    lines = (
+        (root / "datasets" / "planted-inconsistency" / "golden-events.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    )
     events = [json.loads(line) for line in lines if line.strip()]
 
     def after(predicate: object) -> int:
@@ -44,7 +48,12 @@ def golden_seq(kind: str) -> int:
     if kind == "paused":
         return after(lambda e: e["type"] == "clarification.asked")
     if kind == "running":
-        return after(lambda e: e["type"] == "task.progress" and e["payload"]["message"].startswith("Counting branch circuits"))
+        return after(
+            lambda e: (
+                e["type"] == "task.progress"
+                and e["payload"]["message"].startswith("Counting branch circuits")
+            )
+        )
     if kind == "terminated":
         return after(lambda e: e["type"] == "handoff.ready")
     raise LookupError(kind)
@@ -75,7 +84,9 @@ def capture(browser: Browser, base_url: str, out: Path = OUT) -> dict[str, Path]
         page.add_style_tag(content=FREEZE)
         page.wait_for_timeout(500)
         if state.name == "demo-terminated":
-            page.evaluate("() => { const f = document.getElementById('feed'); f.scrollTop = f.scrollHeight; }")
+            page.evaluate(
+                "() => { const f = document.getElementById('feed'); f.scrollTop = f.scrollHeight; }"
+            )
         path = out / f"{state.name}.png"
         page.screenshot(path=str(path))
         results[state.name] = path

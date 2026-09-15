@@ -50,14 +50,24 @@ def legibility(pages: dict[str, float]) -> list[dict[str, Any]]:
     return [{"page": page, "confidence": conf} for page, conf in pages.items()]
 
 
-def rfp_plan(
-    estimator_scope: list[str], pricing_scope: list[str], writer_scope: list[str]
-) -> list[Subtask]:
+def rfp_plan(estimator_scope: list[str], pricing_scope: list[str], writer_scope: list[str]) -> list[Subtask]:
     return [
-        Subtask(task_id="t1", title="Takeoff from drawings", agent_id="estimator", depends_on=[], scope=estimator_scope),
-        Subtask(task_id="t2", title="Price the BOM", agent_id="pricing", depends_on=["t1"], scope=pricing_scope),
         Subtask(
-            task_id="t3", title="Assemble proposal", agent_id="writer", depends_on=["t1", "t2"], scope=writer_scope
+            task_id="t1",
+            title="Takeoff from drawings",
+            agent_id="estimator",
+            depends_on=[],
+            scope=estimator_scope,
+        ),
+        Subtask(
+            task_id="t2", title="Price the BOM", agent_id="pricing", depends_on=["t1"], scope=pricing_scope
+        ),
+        Subtask(
+            task_id="t3",
+            title="Assemble proposal",
+            agent_id="writer",
+            depends_on=["t1", "t2"],
+            scope=writer_scope,
         ),
     ]
 
@@ -135,7 +145,10 @@ def draft(
         {
             "version": version,
             "markdown_path": f"drafts/draft-v{version}.md",
-            "provenance_tags": [{"tag_id": f"e{i:02d}", "source_event_id": f"$event:{source_task}"} for i in range(1, tags + 1)],
+            "provenance_tags": [
+                {"tag_id": f"e{i:02d}", "source_event_id": f"$event:{source_task}"}
+                for i in range(1, tags + 1)
+            ],
             "note": note,
         },
         b,

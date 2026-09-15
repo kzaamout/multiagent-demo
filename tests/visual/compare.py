@@ -42,8 +42,9 @@ def compare(name: str, reference: Path, actual: Path, out_dir: Path) -> Result:
     over = [band.point(lambda v: 255 if v > CHANNEL_TOLERANCE else 0) for band in (r, g, b)]
     changed = ImageChops.lighter(ImageChops.lighter(over[0], over[1]), over[2])
     changed = ImageChops.multiply(changed, mask)
-    diff_pixels = sum(1 for v in changed.getdata() if v)
-    compared = sum(1 for v in mask.getdata() if v)
+    total = ref.size[0] * ref.size[1]
+    diff_pixels = total - changed.histogram()[0]
+    compared = total - mask.histogram()[0]
     ratio = diff_pixels / compared if compared else 0.0
     passed = ratio <= MAX_DIFF_RATIO
 

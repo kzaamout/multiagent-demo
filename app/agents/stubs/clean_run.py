@@ -67,7 +67,11 @@ SCENARIO = StubScenario(
     ),
     tasks={"t1": estimator_steps(B.estimator, m(0, 40)), "t2": pricing_steps(B.pricing, m(1, 8))},
     assemble=[writer_steps(B.writer, m(1, 36), "24 provenance tags")],
-    review=[reviewer_steps(B.reviewer, m(1, 58), [], "Verdict on v1: pass. Figures match the takeoff and the priced BOM.")],
+    review=[
+        reviewer_steps(
+            B.reviewer, m(1, 58), [], "Verdict on v1: pass. Figures match the takeoff and the priced BOM."
+        )
+    ],
     human_script=HumanScript(decision="approve"),
     marks=Marks(
         {

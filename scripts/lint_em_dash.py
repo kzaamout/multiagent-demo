@@ -20,7 +20,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-EM_DASH = "—"
+EM_DASH = chr(0x2014)
 BINARY_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".woff2", ".woff", ".ttf", ".pdf", ".ico", ".zip"}
 VENDOR_PREFIXES = (".claude/skills/", ".specify/")
 VENDOR_KEEP = (".specify/memory/",)
@@ -35,7 +35,9 @@ def tracked_files(root: Path) -> list[str]:
     try:
         out = subprocess.run(["git", "ls-files", "-z"], cwd=root, capture_output=True, check=True).stdout
     except (subprocess.CalledProcessError, FileNotFoundError):
-        return [p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file() and ".git" not in p.parts]
+        return [
+            p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file() and ".git" not in p.parts
+        ]
     return [name for name in out.decode("utf-8").split("\0") if name]
 
 
@@ -99,7 +101,7 @@ def run(root: Path, extra: list[str]) -> tuple[list[tuple[str, int, str]], int, 
 
 def main(argv: list[str]) -> int:
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+        sys.stdout.reconfigure(encoding="utf-8")
     hits, scanned, skipped = run(repo_root(), argv)
     if hits:
         for label, lineno, snippet in hits:

@@ -52,7 +52,7 @@ def font_faces(template: str) -> list[tuple[str, str, str, str]]:
 
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+        sys.stdout.reconfigure(encoding="utf-8")
     fonts_dir = STATIC / "fonts"
     img_dir = STATIC / "img"
     fonts_dir.mkdir(parents=True, exist_ok=True)

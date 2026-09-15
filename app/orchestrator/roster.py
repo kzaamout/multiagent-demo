@@ -26,12 +26,28 @@ OLLAMA_LLAMA = Model(provider="ollama", model_id="llama3.1:8b", label="llama3.1 
 GOOGLE_GEMINI = Model(provider="google", model_id="gemini-2.5-pro", label="gemini-2.5-pro via Google")
 
 SEATS: tuple[Seat, ...] = (
-    Seat("orchestrator", "Orchestrator", ("Oscar", "Olivia"), "#17171c", BEDROCK_SONNET, ("electrical_rfp", "appraisal")),
-    Seat("intake", "Intake Analyst", ("Anna", "Arjun"), "#003c33", BEDROCK_SONNET, ("electrical_rfp", "appraisal")),
+    Seat(
+        "orchestrator",
+        "Orchestrator",
+        ("Oscar", "Olivia"),
+        "#17171c",
+        BEDROCK_SONNET,
+        ("electrical_rfp", "appraisal"),
+    ),
+    Seat(
+        "intake",
+        "Intake Analyst",
+        ("Anna", "Arjun"),
+        "#003c33",
+        BEDROCK_SONNET,
+        ("electrical_rfp", "appraisal"),
+    ),
     Seat("estimator", "Estimator", ("Elias", "Elena"), "#b45309", BEDROCK_SONNET_VISION, ("electrical_rfp",)),
     Seat("pricing", "Pricing", ("Pavel", "Priya"), "#1863dc", OLLAMA_LLAMA, ("electrical_rfp",)),
     Seat("writer", "Writer", ("Wesley", "Willa"), "#071829", BEDROCK_SONNET, ("electrical_rfp", "appraisal")),
-    Seat("reviewer", "Reviewer", ("Rafael", "Rosa"), "#b30000", GOOGLE_GEMINI, ("electrical_rfp", "appraisal")),
+    Seat(
+        "reviewer", "Reviewer", ("Rafael", "Rosa"), "#b30000", GOOGLE_GEMINI, ("electrical_rfp", "appraisal")
+    ),
     Seat("case", "Case Manager", ("Carlos", "Clara"), "#2f6b5e", BEDROCK_SONNET, ("appraisal",)),
     Seat("market", "Market Analyst", ("Marcus", "Maya"), "#4a4a8a", OLLAMA_LLAMA, ("appraisal",)),
 )
