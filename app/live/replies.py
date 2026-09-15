@@ -166,14 +166,19 @@ class Clarification(BaseModel):
 ESTIMATOR_CONCERN_WORDS = ("panel schedule", "rating")
 
 
-def checklist_items(path: Path) -> list[str]:
-    """The gradable items: bullets under the request, drawing set, and consistency headings, without their markings."""
+GRADED_SECTIONS = ("request document", "drawing set", "consistency checks")
+REQUIRED_SECTIONS = ("request document", "drawing set")
+
+
+def checklist_items(path: Path, sections: tuple[str, ...] = GRADED_SECTIONS) -> list[str]:
+    """The gradable items under the given headings, without their markings. Intake must grade the request and
+    drawing set items; the consistency checks only feed Estimator concerns and may be omitted."""
     items: list[str] = []
     graded = False
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.startswith("## "):
             heading = line[3:].strip().lower()
-            graded = heading in {"request document", "drawing set", "consistency checks"}
+            graded = heading in sections
         elif graded and line.startswith("- "):
             items.append(line[2:].split(" (")[0].strip())
     return items
@@ -208,6 +213,11 @@ class IntakeReply(BaseModel):
         return data
 
     def check(self, expected_items: list[str] | None = None) -> None:
+        # A missing panel schedule or a rating disagreement is a concern for the Estimator, never a blocker at
+        # Intake (readiness checklist, decision 2026-09-14); a fail on such an item counts as assumed.
+        for grade in self.readiness.checklist:
+            if grade.status == "fail" and any(word in grade.item.lower() for word in ESTIMATOR_CONCERN_WORDS):
+                grade.status = "assumed"
         failing = [c for c in self.readiness.checklist if c.status == "fail"]
         assumed = [c for c in self.readiness.checklist if c.status == "assumed"]
         expected = "not_ready" if failing else "ready_with_assumptions" if assumed else "ready"

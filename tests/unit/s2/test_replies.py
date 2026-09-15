@@ -232,3 +232,29 @@ def test_not_ready_needs_grades_not_a_question_per_gap() -> None:
     )
     reply = parse_reply("intake", text, expected_items=items)
     assert isinstance(reply, IntakeReply) and reply.clarifications[0].proposed_default == ""
+
+
+def test_estimator_concerns_never_fail_intake_and_consistency_checks_are_optional() -> None:
+    from app.config import ROOT
+    from app.live.replies import REQUIRED_SECTIONS, checklist_items
+
+    path = ROOT / "config" / "electrical-rfp" / "readiness-checklist.md"
+    required = checklist_items(path, REQUIRED_SECTIONS)
+    assert len(required) == 17 and len(checklist_items(path)) == 21
+    grades = [{"item": item, "status": "pass", "note": ""} for item in required]
+    schedule = next(
+        i for i, item in enumerate(required) if item.startswith("Panel schedules for every panel")
+    )
+    grades[schedule] = {"item": required[schedule], "status": "fail", "note": "LP-2 has no schedule E-003"}
+    text = json.dumps(
+        {
+            "brief": {},
+            "readiness": {"verdict": "ready_with_assumptions", "checklist": grades},
+            "clarifications": [],
+        }
+    )
+    reply = parse_reply("intake", text, expected_items=required)
+    assert isinstance(reply, IntakeReply)
+    assert reply.readiness.checklist[schedule].status == "assumed", (
+        "a missing schedule is the Estimator's concern"
+    )
