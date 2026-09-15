@@ -32,6 +32,7 @@ from app.live.replies import (
     WriterReply,
     blocker_payload,
     checklist_items,
+    checklist_markings,
     completed_payload,
     draft_payload,
     intake_payloads,
@@ -328,9 +329,14 @@ class LiveAgentSource:
             "intake",
             "Grade the request in the inputs folder against every item of the readiness checklist, including the drawing set and consistency checks. Raise one clarification for each item that is not pass. Return the brief, readiness, and clarifications as the JSON your instructions describe.",
         )
-        expected_items = checklist_items(CONFIG_DIR / "readiness-checklist.md", REQUIRED_SECTIONS)
+        checklist = CONFIG_DIR / "readiness-checklist.md"
+        expected_items = checklist_items(checklist, REQUIRED_SECTIONS)
+        markings = checklist_markings(checklist)
         async for emit, reply, pending, _ in self._stream(
-            "intake", "intake", bundle, lambda t: parse_reply("intake", t, expected_items=expected_items)
+            "intake",
+            "intake",
+            bundle,
+            lambda t: parse_reply("intake", t, expected_items=expected_items, markings=markings),
         ):
             if emit is not None:
                 yield emit

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -188,6 +189,47 @@ def checklist_item_count(path: Path) -> int:
     return len(checklist_items(path))
 
 
+def checklist_markings(path: Path, sections: tuple[str, ...] = GRADED_SECTIONS) -> dict[str, str]:
+    """Each gradable item with the marking the checklist writes after it, such as "blocking" or "default: none"."""
+    markings: dict[str, str] = {}
+    graded = False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## "):
+            graded = line[3:].strip().lower() in sections
+        elif graded and line.startswith("- "):
+            item, _, marking = line[2:].partition(" (")
+            markings[item.strip().lower()] = marking.strip().rstrip(")").lower()
+    return markings
+
+
+def _marking(item: str, markings: Mapping[str, str]) -> str | None:
+    """The checklist marking for a graded item, allowing for a seat that shortened or extended its wording."""
+    name = item.strip().lower()
+    if name in markings:
+        return markings[name]
+    for known, marking in markings.items():
+        if known.startswith(name) or name.startswith(known):
+            return marking
+    return None
+
+
+def blocking_at_intake(item: str, markings: Mapping[str, str]) -> bool:
+    """Only an item the checklist marks blocking can make a run Not ready. Items carrying a default or a concern
+    for the Estimator are graded and carried, never a stop (readiness checklist, verdict rules)."""
+    marking = _marking(item, markings)
+    if marking is None:
+        return not any(word in item.lower() for word in ESTIMATOR_CONCERN_WORDS)
+    return "blocking" in marking
+
+
+def estimator_concern(item: str, markings: Mapping[str, str]) -> bool:
+    """An item the checklist hands to the Estimator needs no clarification from the human."""
+    marking = _marking(item, markings)
+    if marking is None:
+        return any(word in item.lower() for word in ESTIMATOR_CONCERN_WORDS)
+    return "concern" in marking
+
+
 BRIEF_FIELDS = (
     "project", "client", "site_address", "scope", "deliverables", "bid_format", "deadline", "drawing_set",
     "drawing_pages", "specification", "alternates", "bonding", "unreliable_pages", "knowledge_used",
@@ -212,11 +254,15 @@ class IntakeReply(BaseModel):
             data["brief"] = brief
         return data
 
-    def check(self, expected_items: list[str] | None = None) -> None:
-        # A missing panel schedule or a rating disagreement is a concern for the Estimator, never a blocker at
-        # Intake (readiness checklist, decision 2026-09-14); a fail on such an item counts as assumed.
+    def check(
+        self, expected_items: list[str] | None = None, markings: Mapping[str, str] | None = None
+    ) -> None:
+        # Only the items the checklist marks blocking stop a run. A fail on any other item, such as a missing
+        # panel schedule or an index that lists a sheet not provided, counts as assumed and is carried forward
+        # (readiness checklist verdict rules, decision 2026-09-14).
+        marks = markings or {}
         for grade in self.readiness.checklist:
-            if grade.status == "fail" and any(word in grade.item.lower() for word in ESTIMATOR_CONCERN_WORDS):
+            if grade.status == "fail" and not blocking_at_intake(grade.item, marks):
                 grade.status = "assumed"
         failing = [c for c in self.readiness.checklist if c.status == "fail"]
         assumed = [c for c in self.readiness.checklist if c.status == "assumed"]
@@ -230,11 +276,7 @@ class IntakeReply(BaseModel):
                 f"readiness.checklist grades {len(self.readiness.checklist)} items but the readiness checklist has "
                 f"{len(expected_items)}. Grade each of these, in order: " + "; ".join(expected_items)
             )
-        gaps = [
-            c
-            for c in failing + assumed
-            if not any(word in c.item.lower() for word in ESTIMATOR_CONCERN_WORDS)
-        ]
+        gaps = [c for c in failing + assumed if not estimator_concern(c.item, marks)]
         # A not_ready run ends before any question is asked, so its gaps need grades, not questions.
         if expected != "not_ready" and len(self.clarifications) < len(gaps):
             names = "; ".join(c.item for c in gaps)
