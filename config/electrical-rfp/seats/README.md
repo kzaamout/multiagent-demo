@@ -8,7 +8,7 @@ Drafted 2026-09-14 and accepted by the owner the same day, together with the dec
 
 | File | Seat | Default model (spec 4.3) |
 |---|---|---|
-| `orchestrator.md` | Orchestrator | Claude via Bedrock, low temperature |
+| `orchestrator.md` | Orchestrator | Claude via Bedrock, default temperature |
 | `intake.md` | Intake Analyst | Claude via Bedrock |
 | `estimator.md` | Estimator | Claude via Bedrock, vision |
 | `pricing.md` | Pricing | local model via Ollama |

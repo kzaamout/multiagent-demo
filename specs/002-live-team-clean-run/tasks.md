@@ -56,7 +56,7 @@
 
 - [ ] T028 Owner: curate `datasets/clean-run/` inputs, fixtures, and knowledge seed per `datasets/README.md`
 - [ ] T029 Owner: credentials in `.env` for Bedrock and Gemini; Ollama with the chosen local model pulled
-- [ ] T030 Owner: confirm the four model questions in the plan
+- [x] T030 Owner: confirm the four model questions in the plan (answered 2026-09-15)
 - [ ] T031 Live Clean run from the Demo page; record it; replay compare against the golden stage sequence and exit
 - [ ] T032 Second live run for the same client; no repeated clarification; `knowledge.appended` present in the first
 - [ ] T033 Screenshot comparison and all S1 gates green; update `docs/roadmap.md` S2 status

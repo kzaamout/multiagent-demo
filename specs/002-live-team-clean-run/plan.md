@@ -50,12 +50,14 @@ Full table with prices: [research.md](research.md).
 | XIX Approval | Model defaults below need the owner's confirmation before Part B | Open |
 | Non-goals | Memory beyond one knowledge file: not built. Providers from the UI: not built. | Pass |
 
-## Open questions for the owner (block Part B defaults, not Part A)
+## Owner decisions on the model questions (2026-09-15)
 
-1. The Orchestrator's "low temperature" (spec 4.3) cannot be set on Claude Sonnet 5. Options: Sonnet 5 at default temperature for every Claude seat; Sonnet 4.6 for the Orchestrator at low temperature; Haiku 4.5 for the Orchestrator at low temperature.
-2. Reviewer model: `gemini-2.5-pro` (stable, the export's label), `gemini-3.8-flash` (stable, newest, cheaper), or `gemini-3.1-pro-preview`.
-3. Local Pricing model: `llama3.1:8b` (the export's label) or a newer tool-calling model such as `granite4.1:8b` or `qwen3:8b`.
-4. Bedrock routing: `us.` profile from ca-central-1 (data stays in US and Canada, 10 percent dearer) or `global.` profile.
+1. **Claude seats.** Sonnet 5 at its default temperature for every Claude seat, the Orchestrator included. Spec input 4.3 no longer asks for a low temperature. The Orchestrator's proposals stay bounded by the run engine's validation.
+2. **Reviewer.** `gemini-2.5-pro`, the export's label.
+3. **Local Pricing model.** `llama3.1:8b`, the export's label, at temperature 0.1.
+4. **Bedrock routing.** The `us.` geo profile from ca-central-1, so data stays in US and Canada regions.
+
+`config/models.yaml` already held these defaults and now records them as confirmed.
 
 ## Project Structure
 

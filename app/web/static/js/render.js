@@ -409,7 +409,7 @@
       count = h.seq;
     }
     var main = [
-      el('div', { class: 'term-eyebrow', text: 'Run ended · ' + F.fmtClock(eyebrowMs) }),
+      el('div', { class: 'term-eyebrow', text: (term ? 'Run ended · ' : 'Ready for approval · ') + F.fmtClock(eyebrowMs) }),
       el('div', { class: 'term-headline', text: headline }),
       el('div', { class: 'term-reason' }, [el('span', { class: 'term-reason-k', text: 'Orchestrator reason:' }), ' ' + reason])
     ];

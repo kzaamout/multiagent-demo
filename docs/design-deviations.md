@@ -4,10 +4,10 @@ Constitution XI requires every case where the export and the spec cannot both be
 
 ## Slice S1 (2026-09-14)
 
-### Needs an owner decision
+### Owner decisions (2026-09-15)
 
-1. **Termination card eyebrow at Handoff.** Spec 2.2 renders the termination card from `handoff.ready`, with Approve available, before the run ends. The export's card at that moment reads "Run ended · 04:12". S1 keeps the export's copy for fidelity. The run has not ended until `run.terminated` follows the human decision. Options: keep the copy, or read "Ready for approval · 04:12" until `run.terminated` arrives. The second option adds a text difference to the terminated screenshot comparison.
-2. **Em-dash lint scope.** Constitution XVI says the lint fails on any em dash anywhere in the repository. Two sets of tracked files contain em dashes the project must not edit. Spec Kit's installed tooling (`.claude/skills/`, `.specify/` except `memory/`) is vendor code. The Claude Design bundle loader script inside `design/*.html` is also vendor code. The lint excludes the Spec Kit tooling and lints the decoded page template of each design bundle instead of its loader. Every exclusion is listed in `scripts/lint_em_dash.py`. Project content, prompts, recordings, and generated output are all covered.
+1. **Termination card eyebrow at Handoff.** Spec 2.2 renders the termination card from `handoff.ready`, with Approve available, before the run ends. The export's card at that moment reads "Run ended · 04:12". The owner chose behaviour over the export's copy: the eyebrow reads "Ready for approval · 04:12" until `run.terminated` arrives, then "Run ended". The terminated screenshot comparison masks that one line, listed in `tests/visual/masks.py`.
+2. **Em-dash lint scope.** Constitution XVI says the lint fails on any em dash anywhere in the repository. Two sets of tracked files contain em dashes the project must not edit. Spec Kit's installed tooling (`.claude/skills/`, `.specify/` except `memory/`) is vendor code. The Claude Design bundle loader script inside `design/*.html` is also vendor code. The owner accepted the scope: the lint excludes the Spec Kit tooling and lints the decoded page template of each design bundle instead of its loader. Every exclusion is listed in `scripts/lint_em_dash.py`. Project content, prompts, recordings, and generated output are all covered.
 
 ### Decided in S1 (appearance kept, behaviour per spec)
 

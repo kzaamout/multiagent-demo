@@ -6,7 +6,7 @@
 providers:
   bedrock:
     label: Amazon Bedrock
-    region: ca-central-1          # pending owner question 4: us. geo profile from ca-central-1
+    region: ca-central-1          # owner decision 2026-09-15: us. geo profile, data stays in US and Canada
   google:
     label: Google Gemini
     env_key: GEMINI_API_KEY
@@ -83,7 +83,8 @@ models:
     price_in: 0
     price_out: 0
 
-# Seat defaults. Pending owner questions 1 to 3 in specs/002-live-team-clean-run/plan.md.
+# Seat defaults, confirmed by the owner on 2026-09-15 (specs/002-live-team-clean-run/plan.md).
+# Claude seats run Sonnet 5 at its default temperature, which it does not let callers change.
 seats:
   orchestrator: {model: bedrock-sonnet-5}
   intake: {model: bedrock-sonnet-5}

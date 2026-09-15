@@ -91,6 +91,7 @@ def test_planted_inconsistency_through_the_page(page: Any, server: tuple[str, Pa
     page.wait_for_selector("#btn-approve:not([disabled])", timeout=30000)
     card = page.locator('article[data-kind="termination"]')
     assert "exit: reviewer_pass" in card.inner_text()
+    assert card.locator(".term-eyebrow").inner_text().lower().startswith("ready for approval")
     page.click("#btn-approve")
     page.wait_for_function(
         "() => window.__s1 && window.__s1.events.length && window.__s1.events[window.__s1.events.length - 1].type === 'run.terminated'",
@@ -98,6 +99,7 @@ def test_planted_inconsistency_through_the_page(page: Any, server: tuple[str, Pa
     )
     page.wait_for_selector("article[data-kind='termination']:has-text('Your decision')")
     assert last_event_type(page) == "run.terminated"
+    assert card.locator(".term-eyebrow").inner_text().lower().startswith("run ended")
 
     answered = page.locator("article[data-kind='human-answer']").first.inner_text()
     assert "208Y/120 V, base bid only" in answered
