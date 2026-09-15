@@ -14,7 +14,7 @@ Each subfolder is one selectable scenario in the Demo composer dropdown. A datas
 - [ ] Choose a public electrical tender from Alberta Purchasing Connection or MERX as the base request text. Rewrite it into a fictional project so nothing is traceable to a real bidder. Keep the structure and language realistic.
 - [ ] Source a small commercial electrical drawing set: legend, single-line, two or three panel schedules, two floor plans, a short Division 26 specification. Options: manufacturer or college training sets with permissive licences, or commission a drafting freelancer for a clean original set (preferred, and it allows planting defects cleanly).
 - [ ] Build `supplier-prices.csv` from public catalogue pricing. Around 150 items covering everything the drawings call for. Three fictional supplier names matching the knowledge seed.
-- [ ] Create the Clean run dataset first and verify a full pass live before deriving the others.
+- [ ] Create the Clean run dataset first and verify a full pass live before deriving the others. A synthetic stand-in exists since 2026-09-15 (see `clean-run/README.md`); replace it with the curated set when available.
 - [ ] REMINDER, the trap: in Planted inconsistency, change the main breaker rating on one panel schedule to 200A while the single-line shows 225A for that panel. Document sheet numbers in that README. Also remove one required item (for example, exit signs) from the price fixture in Missing price. Never plant a defect without writing it in the README; anyone demoing must know where it is.
 - [ ] Missing sheet: delete the panel schedule for a panel that appears on the single-line.
 - [ ] Not ready: strip the deadline and the specification section from the request.

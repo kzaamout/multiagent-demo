@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from app.config import Settings
-from app.live.providers import ModelConfig, check_availability, unavailable_seats
+from app.live.providers import ModelConfig, check_availability, strands_model_for, unavailable_seats
 from app.live.seat_call import SeatModel
 from app.main import create_app
 from app.schema.events import Model
@@ -41,6 +41,9 @@ def test_model_config_loads_and_checks_temperature(tmp_path: Path) -> None:
     config = ModelConfig.load()
     assert config.seat_spec("reviewer").provider == "google"
     assert config.seat_spec("pricing").model_id == "llama3.1:8b"
+    pricing = strands_model_for(config, "pricing").strands_model.get_config()
+    assert pricing["options"]["num_ctx"] >= 16384, "local model context set per request, not per machine"
+    assert pricing["temperature"] == 0.1
     bad = tmp_path / "models.yaml"
     bad.write_text(
         "providers: {bedrock: {region: ca-central-1}}\n"

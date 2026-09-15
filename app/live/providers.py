@@ -33,6 +33,7 @@ class ModelSpec:
     temperature: bool
     price_in: float
     price_out: float
+    options: dict[str, Any] | None = None
 
     def model_object(self) -> Model:
         return Model(provider=self.provider, model_id=self.model_id, label=self.label)
@@ -70,6 +71,7 @@ class ModelConfig:
                 temperature=bool(value.get("temperature", True)),
                 price_in=float(value.get("price_in", 0)),
                 price_out=float(value.get("price_out", 0)),
+                options=dict(value["options"]) if value.get("options") else None,
             )
             for key, value in data["models"].items()
         }
@@ -168,6 +170,8 @@ def strands_model_for(config: ModelConfig, agent_id: str) -> SeatModel:
         kwargs = {"model_id": spec.model_id}
         if choice.temperature is not None:
             kwargs["temperature"] = choice.temperature
+        if spec.options:
+            kwargs["options"] = dict(spec.options)
         strands_model = OllamaModel(str(provider.get("host", "http://localhost:11434")), **kwargs)
     elif spec.provider in ("google", "xai"):
         from strands.models.litellm import LiteLLMModel

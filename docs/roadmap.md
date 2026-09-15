@@ -24,6 +24,8 @@ Compared with `docs/spec-input.md` section 9: the Reviewer joins in the first li
 8. **Seat models** (2026-09-15). Sonnet 5 at its default temperature on every Claude seat, the Orchestrator included; Gemini 2.5 Pro for the Reviewer; Llama 3.1 8B on Ollama for Pricing; the Bedrock `us.` geo profile from ca-central-1.
 9. **Handoff card eyebrow** (2026-09-15). The card reads "Ready for approval" while it waits for the human decision and "Run ended" once `run.terminated` arrives. The terminated screenshot comparison masks that one line.
 10. **Em-dash lint scope** (2026-09-15). The lint excludes Spec Kit's installed tooling and lints the decoded page template of each design bundle instead of its loader script. Every exclusion is listed in `scripts/lint_em_dash.py`.
+11. **Synthetic Clean run dataset** (2026-09-15). The owner asked for a stand-in until a curated set is found. `datasets/clean-run/` holds a fictional library fit-out with a request, a Division 26 specification, five drawing sheets, and a price fixture, authored in Typst. Bid security is left open in the request so Intake raises one blocking clarification, which the S2 evidence needs for `knowledge.appended`. The owner's set replaces it when available.
+12. **One-command setup** (2026-09-15). The owner asked for installation to be automated for others. `scripts/setup.ps1` and `scripts/setup.sh` install uv and dependencies, then `scripts/setup.py` creates `.env` with hidden-input prompts, installs Ollama with consent, pulls the seat models, and checks every provider without calling a model. It is a command-line tool for presenters, not a UI for credentials, which stays a non-goal.
 
 ## Adjustments after constitution 1.1.0
 
@@ -60,7 +62,7 @@ Compared with `docs/spec-input.md` section 9: the Reviewer joins in the first li
 - **Design.** `Demo.html` running and paused states. `Demo.png`.
 - **Datasets.** clean-run.
 - **Evidence.** A live Clean run replays against its golden stage sequence and exit. The second run shows no repeated clarification and a `knowledge.appended` event in the first. Criteria 5 for clarifications and 7.
-- **Status.** Part A built 2026-09-14 on branch `002-live-team-clean-run`: live seat path on Strands, provider registry and refusal, knowledge store with ask once, draft text view. Proven with scripted models against the Clean run golden stage sequence and exit, in the test suite and in the browser. Part B waits on owner inputs: the curated Clean run dataset, credentials in `.env`, and Ollama with the local model pulled. The model questions were answered on 2026-09-15. No live run has been made.
+- **Status.** Part A built 2026-09-14 on branch `002-live-team-clean-run`: live seat path on Strands, provider registry and refusal, knowledge store with ask once, draft text view. Proven with scripted models against the Clean run golden stage sequence and exit, in the test suite and in the browser. On 2026-09-15 a synthetic Clean run dataset and one-command setup were added at the owner's request (decisions 11 and 12). Part B waits on AWS credentials in `.env` and a go-ahead for the first live run. No live run has been made.
 - **Constitution risks.** Non-goal "memory beyond the knowledge file": one file, appended by the Orchestrator only. Principle IV: the banner is the only door. Principle V: the Reviewer bundle provably excludes specialist reasoning and sources.
 
 ### S3. Failure paths and presenter controls

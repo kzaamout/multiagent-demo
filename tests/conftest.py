@@ -24,6 +24,19 @@ from app.schema.events import Event  # noqa: E402
 START = dt.datetime(2026, 9, 14, 9, 12, 0, tzinfo=dt.UTC)
 
 
+@pytest.fixture(autouse=True)
+def _never_call_real_model_providers(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Importing the app loads the real .env, and a curated dataset runs live. A test that reaches the
+    registry's real model factory would spend money, so it fails instead; live tests inject a scripted factory."""
+
+    def refuse(*_: object, **__: object) -> None:
+        raise AssertionError(
+            "a test tried to build a real provider model; inject a scripted seat_model_factory"
+        )
+
+    monkeypatch.setattr("app.runs.registry.strands_model_for", refuse)
+
+
 @pytest.fixture
 def settings(tmp_path: Path) -> Iterator[Settings]:
     yield Settings(runs_dir=tmp_path / "runs", stub_pace=1000.0)

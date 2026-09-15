@@ -72,6 +72,7 @@ models:
     label: llama3.1 8b, local
     image_input: false
     temperature: true
+    options: {num_ctx: 16384}     # Ollama defaults to 4K on GPUs under 24 GB and drops overflow silently
     price_in: 0
     price_out: 0
   granite4-1-8b:
@@ -80,6 +81,7 @@ models:
     label: granite4.1 8b, local
     image_input: false
     temperature: true
+    options: {num_ctx: 16384}
     price_in: 0
     price_out: 0
 
