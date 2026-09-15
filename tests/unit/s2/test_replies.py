@@ -124,7 +124,7 @@ def test_nested_reply_object_is_accepted() -> None:
         parse_as(PlanProposal, json.dumps({"plan": {"steps": []}}))
 
 
-def _intake(checklist: list[dict[str, str]], clarifications: list[dict[str, Any]]) -> str:
+def _intake(checklist: list[dict[str, Any]], clarifications: list[dict[str, Any]]) -> str:
     verdict = "ready_with_assumptions" if any(c["status"] == "assumed" for c in checklist) else "ready"
     return json.dumps(
         {
