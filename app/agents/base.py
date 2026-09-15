@@ -32,6 +32,10 @@ class Emit:
     payload: dict[str, Any]
     bundle: PromptBundle | None = None
     meter: MeterDelta | None = None
+    meters: tuple[MeterDelta, ...] = ()
+
+    def all_meters(self) -> tuple[MeterDelta, ...]:
+        return ((self.meter,) if self.meter is not None else ()) + self.meters
 
     def __post_init__(self) -> None:
         if self.type not in AGENT_MESSAGE_TYPES:

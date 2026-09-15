@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from app.agents.base import Emit, MeterDelta, StubScenario
-from app.agents.source import AgentSource, as_source
+from app.agents.source import AgentFailure, AgentSource, as_source
 from app.orchestrator.clock import Clock
 from app.orchestrator.knowledge import KnowledgeFile
 from app.orchestrator.knowledge_store import KnowledgeStore
@@ -232,6 +232,9 @@ class Orchestrator:
         except CostCeilingBreached:
             if not self.state.terminated:
                 await self._terminate("cost_ceiling", self._reason("cost_ceiling"))
+        except AgentFailure as failure:
+            if not self.state.terminated:
+                await self._terminate("stopped", failure.reason)
         except Exception as error:  # noqa: BLE001
             if not self.state.terminated:
                 await self._terminate(
@@ -755,8 +758,8 @@ class Orchestrator:
         )
         if emit.type == "task.completed":
             self._task_event_ids[str(payload.get("task_id"))] = event.event_id
-        if emit.meter is not None:
-            await self._meter(emit.seat, emit.meter, stage, offset)
+        for delta in emit.all_meters():
+            await self._meter(emit.seat, delta, stage, offset)
         return event
 
     def _resolve(self, value: Any) -> Any:

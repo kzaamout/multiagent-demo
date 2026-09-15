@@ -75,6 +75,7 @@
 
   function defaultOpen(card, view, ui) {
     if (card.kind === 'specialist-thread') { return card.status === 'active' || card.status === 'blocked'; }
+    if (card.kind === 'agent-message' && card.role === 'intake') { return !card.readiness && (card.replies || []).length > 0 && !view.terminated; }
     if (card.kind === 'blocker') { return !card.answer && !view.terminated; }
     return false;
   }
@@ -160,7 +161,8 @@
   function intakeCard(card, view, ui) {
     var open = isOpen(card, view, ui);
     var readiness = card.readiness;
-    var summary = 'Reading the request';
+    var intakeProgress = (card.replies || []).filter(function (r) { return r.type === 'task.progress'; });
+    var summary = intakeProgress.length ? intakeProgress[intakeProgress.length - 1].payload.message : 'Reading the request';
     var t = clock(view, card.event);
     var body = [];
     if (readiness) {
@@ -182,6 +184,7 @@
         return el('li', { title: c.note || null }, [el('span', { class: 'ck-' + c.status, text: glyph }), ' ' + c.item]);
       })));
     }
+    if (card.replies && card.replies.length) { body.push(repliesBlock(view, card.replies, !readiness && !view.terminated)); }
     var children = [header(card, agentCard(card.agent), summary, 'Intake', t, open, ui)];
     if (open) { children = children.concat(body, promptRow(card, ui, card.promptRef)); }
     return children;
@@ -238,6 +241,27 @@
     return children;
   }
 
+  function repliesBlock(view, replies, live) {
+    var lastIndex = replies.length - 1;
+    return el('div', { class: 'replies', 'data-part': 'replies' }, replies.map(function (r, i) {
+      var p = r.payload;
+      var text;
+      if (r.type === 'task.progress') {
+        var isLive = live && i === lastIndex;
+        text = el('p', { class: 'reply-text' + (isLive ? ' is-live' : '') }, isLive
+          ? [p.message + ' ', el('span', { class: 'dots' }, [el('span', { class: 'dot' }), el('span', { class: 'dot' }), el('span', { class: 'dot' })])]
+          : [p.message]);
+      } else if (r.type === 'tool.called') {
+        text = el('p', { class: 'reply-text' }, [el('span', { class: 'tool-chip', text: p.tool }), p.args_summary + ' · ' + p.result_summary + ' · ' + F.fmtSeconds(p.duration_ms)]);
+      } else if (r.type === 'task.completed') {
+        text = el('p', { class: 'reply-text' }, [el('span', { class: 'tick', text: '✓' }), ' ' + (p.result.summary || p.result.headline || 'Complete')]);
+      } else {
+        text = el('p', { class: 'reply-text is-blocker', text: 'Blocker: ' + p.description });
+      }
+      return el('div', { class: 'reply' }, [el('span', { class: 'reply-time', text: clock(view, r) }), text]);
+    }));
+  }
+
   function threadSummary(card, view) {
     if (card.status === 'complete') { return card.completed.payload.result.headline || 'Complete'; }
     if (card.status === 'blocked') { return 'Blocked: ' + card.blocker.payload.description; }
@@ -263,24 +287,7 @@
       children.push(para('○ ' + card.subtask.title + ' · waiting for ' + roleOf(view, (view.threads[card.waitingOn[0]] || {}).agentId || ''), 'is-muted'));
     }
     if (card.replies.length) {
-      var lastIndex = card.replies.length - 1;
-      children.push(el('div', { class: 'replies', 'data-part': 'replies' }, card.replies.map(function (r, i) {
-        var p = r.payload;
-        var text;
-        if (r.type === 'task.progress') {
-          var live = card.status === 'active' && i === lastIndex;
-          text = el('p', { class: 'reply-text' + (live ? ' is-live' : '') }, live
-            ? [p.message + ' ', el('span', { class: 'dots' }, [el('span', { class: 'dot' }), el('span', { class: 'dot' }), el('span', { class: 'dot' })])]
-            : [p.message]);
-        } else if (r.type === 'tool.called') {
-          text = el('p', { class: 'reply-text' }, [el('span', { class: 'tool-chip', text: p.tool }), p.args_summary + ' · ' + p.result_summary + ' · ' + F.fmtSeconds(p.duration_ms)]);
-        } else if (r.type === 'task.completed') {
-          text = el('p', { class: 'reply-text' }, [el('span', { class: 'tick', text: '✓' }), ' ' + (p.result.summary || p.result.headline || 'Complete')]);
-        } else {
-          text = el('p', { class: 'reply-text is-blocker', text: 'Blocker: ' + p.description });
-        }
-        return el('div', { class: 'reply' }, [el('span', { class: 'reply-time', text: clock(view, r) }), text]);
-      })));
+      children.push(repliesBlock(view, card.replies, card.status === 'active'));
     }
     return children.concat(promptRow(card, ui, card.promptRef));
   }
@@ -293,7 +300,9 @@
     var summary = 'Draft v' + p.version + ' committed' + (p.note ? ', ' + p.note : '');
     var children = [header(card, agentCard(typeof e.actor === 'object' ? e.actor : HUMAN), summary, F.STAGE_LABEL[e.stage] || 'Assemble', t, open, ui)];
     if (open) {
-      children = children.concat([eventLabel(t + ' · draft.committed'), para('Draft committed · v' + p.version + (p.note ? ' · ' + p.note : ''))], promptRow(card, ui, e.prompt_ref));
+      children = children.concat([eventLabel(t + ' · draft.committed'), para('Draft committed · v' + p.version + (p.note ? ' · ' + p.note : ''))]);
+      if (card.replies && card.replies.length) { children.push(repliesBlock(view, card.replies, false)); }
+      children = children.concat(promptRow(card, ui, e.prompt_ref));
     }
     return children;
   }

@@ -40,3 +40,31 @@ async def test_env_values_never_reach_events_or_bundles(
         assert MARKER not in json.dumps(bundle.model_dump())
     monkeypatch.delenv("LEAK_MARKER", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+
+async def test_env_values_never_reach_live_bundles_or_recordings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Live mode: provider keys in the environment never appear in bundles, events, or run files."""
+    from app.agents.base import HumanScript
+    from app.orchestrator.driver import drive
+    from tests.integration.s2 import live_harness
+
+    for key in ("GEMINI_API_KEY", "XAI_API_KEY", "AWS_SECRET_ACCESS_KEY", "ANTHROPIC_API_KEY"):
+        monkeypatch.setenv(key, MARKER)
+    orchestrator = live_harness.build(
+        tmp_path, live_harness.full_turns(), "30000000-0000-4000-8000-000000000001"
+    )
+    await drive(orchestrator, HumanScript(answers={"q_service_voltage": "120/208 V"}, decision="approve"))
+    assert orchestrator.events[-1].payload["exit"] == "reviewer_pass"
+    for event in orchestrator.events:
+        assert MARKER not in event.to_line()
+    for bundle in orchestrator.bundles.values():
+        assert MARKER not in bundle.model_dump_json()
+    assert_no_marker_in_files(tmp_path)
+
+
+def assert_no_marker_in_files(root: Path) -> None:
+    for path in root.rglob("*"):
+        if path.is_file() and path.suffix in {".md", ".json", ".jsonl"}:
+            assert MARKER not in path.read_text(encoding="utf-8"), path

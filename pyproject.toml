@@ -57,6 +57,10 @@ plugins = ["pydantic.mypy"]
 module = ["app.schema.*", "app.orchestrator.*"]
 strict = true
 
+[[tool.mypy.overrides]]
+module = ["pypdfium2", "pypdfium2.*", "litellm", "litellm.*", "ollama", "ollama.*", "boto3", "boto3.*", "botocore", "botocore.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

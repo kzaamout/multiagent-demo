@@ -5,6 +5,7 @@ server-sent event stream. Contract: specs/001-event-spine-stubbed-loop/contracts
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -18,12 +19,13 @@ from pydantic import BaseModel
 from app.agents.stubs import bundle_for
 from app.buildinfo import build_info
 from app.config import Settings, load_settings
+from app.live.providers import ModelConfig, SeatModelFactory
 from app.orchestrator.orchestrator import Answer
 from app.orchestrator.roster import EXPORT_NAMES as EXPORT_NAMES_FOR_IDLE
 from app.orchestrator.roster import build_roster
 from app.runs.bus import StreamBus
 from app.runs.recorder import read_events
-from app.runs.registry import Registry
+from app.runs.registry import LiveUnavailable, Registry
 from app.runs.replay import ReplaySession
 from app.schema.bundles import PromptBundle
 
@@ -57,10 +59,14 @@ class ReplayRequest(BaseModel):
     speed: Literal[1, 4] = 1
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    seat_model_factory: SeatModelFactory | None = None,
+    model_config: ModelConfig | None = None,
+) -> FastAPI:
     cfg = settings or load_settings()
     bus = StreamBus()
-    registry = Registry(cfg, bus)
+    registry = Registry(cfg, bus, seat_model_factory=seat_model_factory, model_config=model_config)
     replays: dict[str, ReplaySession] = {}
 
     @asynccontextmanager
@@ -126,6 +132,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             },
         }
 
+    @app.get("/api/providers")
+    async def providers() -> dict[str, Any]:
+        """Availability as booleans and reasons only; never a credential value."""
+        return registry.provider_report()
+
     @app.get("/api/datasets")
     async def datasets() -> list[dict[str, Any]]:
         return registry.dataset_listing()
@@ -155,6 +166,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(409, "a run is already in progress")
         try:
             orchestrator = registry.start_run(body.dataset_id, names=body.names)
+        except LiveUnavailable as unavailable:
+            raise HTTPException(409, "Live run unavailable: " + "; ".join(unavailable.problems)) from None
         except ValueError as error:
             raise HTTPException(400, str(error)) from error
         return {
@@ -320,8 +333,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     if event["type"] == "run.terminated":
                         return
             finally:
+                # A client that disconnects leaves a read in flight; let it finish cancelling
+                # before closing the subscription, or the close races the running generator.
                 if pending is not None:
                     pending.cancel()
+                    with contextlib.suppress(asyncio.CancelledError, StopAsyncIteration):
+                        await pending
                 await iterator.aclose()  # type: ignore[attr-defined]
 
         return StreamingResponse(

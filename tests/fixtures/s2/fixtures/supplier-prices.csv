@@ -1,0 +1,7 @@
+item_code,description,unit,price,supplier,lead_time_days
+LED-2X4,2x4 LED troffer,each,142.00,Supplier C,10
+REC-DUP15,Duplex receptacle 15A with box and device,each,18.40,Supplier B,3
+BRK-20A,20A branch circuit breaker,each,26.75,Supplier A,5
+PNL-225-42,42-circuit panelboard 225A surface,each,2450.00,Supplier A,42
+WIRE-12,Copper conductor #12 THHN,metre,1.15,Supplier B,3
+EMT-21,EMT 21 mm,metre,4.80,Supplier B,4

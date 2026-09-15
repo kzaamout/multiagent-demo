@@ -63,6 +63,19 @@
     var threads = {};          /* task_id -> thread card */
     var drafts = {};
     var intakeCards = {};      /* prompt_ref -> card */
+    var committedVersions = {};
+    var draftReplies = {};     /* version -> progress and tool events from the Writer's call */
+    events.forEach(function (e) { if (e.type === 'draft.committed') { committedVersions[e.payload.version] = true; } });
+
+    function intakeCardFor(event, agent) {
+      var ref = event.prompt_ref || event.event_id;
+      var card = intakeCards[ref];
+      if (!card) {
+        card = addCard({ id: 'intake:' + ref, kind: 'agent-message', role: 'intake', agent: agent, events: [], replies: [], brief: null, readiness: null, event: event });
+        intakeCards[ref] = card;
+      }
+      return card;
+    }
 
     events.forEach(function (event) {
       byId[event.event_id] = event;
@@ -93,12 +106,7 @@
         case 'intake.brief':
         case 'intake.readiness':
         case 'clarification.needed': {
-          var ref = event.prompt_ref || event.event_id;
-          var card = intakeCards[ref];
-          if (!card) {
-            card = addCard({ id: 'intake:' + ref, kind: 'agent-message', role: 'intake', agent: agent, events: [], brief: null, readiness: null, event: event });
-            intakeCards[ref] = card;
-          }
+          var card = intakeCardFor(event, agent);
           card.events.push(event);
           if (event.type === 'intake.brief') { card.brief = p.brief; }
           if (event.type === 'intake.readiness') { card.readiness = event; card.event = event; }
@@ -155,6 +163,17 @@
         case 'tool.called':
         case 'task.completed':
         case 'blocker.raised': {
+          if (p.task_id === 'intake') {
+            var ic = intakeCardFor(event, agent);
+            ic.replies.push(event);
+            ic.promptRef = event.prompt_ref || ic.promptRef;
+            break;
+          }
+          var assembleMatch = /^assemble-v(\d+)$/.exec(p.task_id);
+          if (assembleMatch && committedVersions[Number(assembleMatch[1])]) {
+            (draftReplies[Number(assembleMatch[1])] = draftReplies[Number(assembleMatch[1])] || []).push(event);
+            break;
+          }
           var th = threads[p.task_id];
           if (!th) {
             th = addCard({ id: 'thread:' + p.task_id, kind: 'specialist-thread', taskId: p.task_id, agentId: p.agent_id, dispatch: null, replies: [], completed: null, blocker: null, event: event, promptRef: null });
@@ -168,7 +187,7 @@
           break;
         }
         case 'draft.committed':
-          drafts[p.version] = addCard({ id: 'draft:' + p.version + ':' + event.event_id, kind: 'draft-committed', event: event });
+          drafts[p.version] = addCard({ id: 'draft:' + p.version + ':' + event.event_id, kind: 'draft-committed', event: event, replies: draftReplies[p.version] || [] });
           view.latestDraft = { version: p.version, path: p.markdown_path, runId: event.run_id, eventId: event.event_id };
           break;
         case 'review.verdict':

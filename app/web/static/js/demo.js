@@ -100,7 +100,10 @@
       ctx.costCeiling = data.cost_ceiling;
       openStream(data.stream_url, 0);
       schedule();
-    }).catch(function (error) { window.alertless(error); });
+    }).catch(function (error) {
+      window.alertless(error);
+      if (!events.length) { document.getElementById('feed-empty').textContent = String(error && error.message ? error.message : error); }
+    });
   }
 
   function startReplay() {

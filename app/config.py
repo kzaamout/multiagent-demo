@@ -33,6 +33,7 @@ def _int(name: str, default: int) -> int:
 class Settings:
     root: Path = ROOT
     runs_dir: Path = field(default_factory=lambda: ROOT / "runs")
+    knowledge_dir: Path = field(default_factory=lambda: ROOT / "knowledge")
     datasets_dir: Path = field(default_factory=lambda: ROOT / "datasets")
     pages_dir: Path = field(default_factory=lambda: ROOT / "app" / "web" / "pages")
     static_dir: Path = field(default_factory=lambda: ROOT / "app" / "web" / "static")
@@ -41,6 +42,8 @@ class Settings:
     stub_pace: float = 4.0
     workflow: str = "electrical_rfp"
     schema_version: str = "1.0.0"
+    long_lead_days: int = 28
+    agent_mode: str = "auto"  # auto: live when a dataset's inputs are curated, else stub; stub: always stub
 
 
 def load_settings(env_file: Path | None = None) -> Settings:
@@ -48,8 +51,15 @@ def load_settings(env_file: Path | None = None) -> Settings:
     load_dotenv(env_file or ROOT / ".env", override=False)
     runs = os.environ.get("RUNS_DIR")
     datasets = os.environ.get("DATASETS_DIR")
+    knowledge = os.environ.get("KNOWLEDGE_DIR")
+    mode = os.environ.get("AGENT_MODE", "auto")
+    if mode not in ("auto", "stub"):
+        raise ValueError("AGENT_MODE must be auto or stub")
     return Settings(
         runs_dir=Path(runs) if runs else ROOT / "runs",
+        knowledge_dir=Path(knowledge) if knowledge else ROOT / "knowledge",
+        long_lead_days=_int("LONG_LEAD_DAYS", 28),
+        agent_mode=mode,
         datasets_dir=Path(datasets) if datasets else ROOT / "datasets",
         retry_budget=_int("RETRY_BUDGET", 2),
         cost_ceiling=_float("COST_CEILING", 5.00),

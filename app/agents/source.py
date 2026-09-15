@@ -20,6 +20,15 @@ if TYPE_CHECKING:
 Timing = Literal["fixture", "wall"]
 
 
+class AgentFailure(Exception):
+    """An agent could not produce a usable reply. The reason is one sentence fit for the
+    termination card and never contains provider error text."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
 @dataclass(frozen=True)
 class PlanResult:
     subtasks: list[Subtask]
