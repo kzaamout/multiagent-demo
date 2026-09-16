@@ -157,6 +157,7 @@ def test_provenance_check_names_every_problem() -> None:
     )
     assert any("made-up" in p for p in problems) and any("$6,362.94" in p for p in problems)
     assert not any("$1" in p.split(": ", 1)[-1].split(", ") for p in problems), "the appendix is not checked"
-    assert provenance_problems("No figures at all.", context)[0].startswith(
-        "the draft has no provenance tags"
-    )
+    untagged = provenance_problems("No figures at all.", context)[0]
+    assert untagged.startswith("the draft has no usable provenance tags")
+    assert "est-1, price-1" in untagged, "the seat is told which source ids it may cite"
+    assert "<" not in untagged, "no placeholder for a seat to copy literally"

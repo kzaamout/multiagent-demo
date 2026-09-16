@@ -28,7 +28,7 @@ def test_instructions_load_with_placeholders_filled(agent_id: str) -> None:
 
 def test_writer_tag_syntax_and_json_braces_survive() -> None:
     writer = load_instructions("writer", name="Willa", retry_budget=2, long_lead_days=28)
-    assert "{{value|src:<source_id>}}" in writer
+    assert "{{value|src:ID}}" in writer and "{{225 A|src:8f2a10c4}}" in writer
     pricing = load_instructions("pricing", name="Pavel", retry_budget=2, long_lead_days=28)
     assert "over 28 days" in pricing
     assert '{"headline"' in pricing
