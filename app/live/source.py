@@ -280,6 +280,13 @@ class LiveAgentSource:
                 error=without_em_dashes(error),
             ),
         )
+        # Every reply is kept, so a recorded run can be read back without the provider (spec section 6).
+        responses = folder / "responses"
+        responses.mkdir(parents=True, exist_ok=True)
+        head = "Accepted" if accepted else f"Rejected: {error}"
+        (responses / f"{bundle.prompt_ref}-{attempt}.txt").write_text(
+            without_em_dashes(f"{head}\n\n{text}\n"), encoding="utf-8", newline="\n"
+        )
         if accepted:
             return
         target = folder / "rejected"

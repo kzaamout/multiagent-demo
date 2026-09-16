@@ -10,15 +10,17 @@ before the attempt log existed fall back to the rejected reply files, which carr
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from app.schema.events import Event
+from app.schema.events import SCHEMA_VERSION, Event
 
 ATTEMPTS_FILE = "seat-calls.jsonl"
 METRICS_FILE = "metrics.json"
+MANIFEST_FILE = "run.json"
 
 # Why a reply was sent back, grouped so that a pattern is visible across runs. First match wins.
 CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -247,6 +249,45 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
         "events": len(events),
         "seats": [asdict(seat) for seat in rows.values()],
     }
+
+
+def dataset_digest(folder: Path) -> str:
+    """A digest of a dataset's inputs, so a recorded run names the files it was given."""
+    if not folder.exists():
+        return ""
+    digest = hashlib.sha256()
+    for path in sorted(p for p in folder.rglob("*") if p.is_file()):
+        digest.update(path.relative_to(folder).as_posix().encode("utf-8"))
+        digest.update(path.read_bytes())
+    return digest.hexdigest()[:16]
+
+
+def write_manifest(folder: Path, events: list[Event], extra: dict[str, Any]) -> Path:
+    """The run manifest: what was run, on what, with which settings, and what the folder holds."""
+    started = next((e for e in events if e.type == "run.started"), None)
+    last = events[-1] if events else None
+    payload = (started.payload if started else {}) or {}
+    manifest = {
+        "run_id": folder.name,
+        "schema_version": SCHEMA_VERSION,
+        "workflow": payload.get("workflow", ""),
+        "dataset_id": payload.get("dataset_id", ""),
+        "mode": payload.get("mode", ""),
+        "roster": payload.get("roster", []),
+        "started_at": events[0].ts if events else "",
+        "ended_at": last.ts if last is not None else "",
+        "exit": str((last.payload or {}).get("exit", "")) if last is not None else "",
+        "events": len(events),
+        "files": sorted(
+            p.relative_to(folder).as_posix()
+            for p in folder.rglob("*")
+            if p.is_file() and p.name != MANIFEST_FILE
+        ),
+        **extra,
+    }
+    path = folder / MANIFEST_FILE
+    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+    return path
 
 
 def write_metrics(folder: Path, events: list[Event]) -> Path:

@@ -43,11 +43,13 @@ class Recorder:
         self.write_metrics()
 
     def write_metrics(self) -> None:
-        """Per-seat model performance, captured for every run (app/runs/metrics.py)."""
-        from app.runs.metrics import write_metrics
+        """Per-seat model performance and the run manifest, written for every run (app/runs/metrics.py)."""
+        from app.runs.metrics import write_manifest, write_metrics
 
         try:
-            write_metrics(self.folder, read_events(self.events_path))
+            events = read_events(self.events_path)
+            write_metrics(self.folder, events)
+            write_manifest(self.folder, events, {"config": self._meta})
         except (OSError, ValueError):
             pass  # a recording detail never stops a run
 

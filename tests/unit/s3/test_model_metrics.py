@@ -9,6 +9,7 @@ from pathlib import Path
 from types import ModuleType
 
 from app.runs.metrics import (
+    ATTEMPTS_FILE,
     METRICS_FILE,
     SeatAttempt,
     append_attempt,
@@ -197,3 +198,26 @@ def test_reasons_are_grouped_so_a_pattern_shows() -> None:
         categorise("verdict ready_with_assumptions contradicts the checklist grades") == "checklist_grading"
     )
     assert categorise("something new") == "other"
+
+
+def test_a_run_folder_says_what_it_is(tmp_path: Path) -> None:
+    from app.runs.metrics import MANIFEST_FILE, dataset_digest, write_manifest
+
+    folder = tmp_path / "runs" / "r3"
+    events = write_run(folder)
+    append_attempt(folder, SeatAttempt("pb-1", "writer", "qwen3.5 9b, local", "ollama", 1, True, ""))
+    path = write_manifest(folder, events, {"config": {"cost_ceiling": 1.0}})
+    assert path.name == MANIFEST_FILE
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    assert manifest["dataset_id"] == "clean-run" and manifest["exit"] == "reviewer_pass"
+    assert manifest["roster"][0]["agent_id"] == "writer"
+    assert manifest["config"]["cost_ceiling"] == 1.0
+    assert "events.jsonl" in manifest["files"] and ATTEMPTS_FILE in manifest["files"]
+
+    inputs = tmp_path / "inputs"
+    (inputs / "drawings").mkdir(parents=True)
+    (inputs / "drawings" / "E-001.pdf").write_bytes(b"one")
+    first = dataset_digest(inputs)
+    assert first and first == dataset_digest(inputs), "the same inputs give the same digest"
+    (inputs / "drawings" / "E-001.pdf").write_bytes(b"two")
+    assert dataset_digest(inputs) != first, "changed inputs give a different digest"
