@@ -189,6 +189,7 @@ class LiveAgentSource:
         self._orchestrator: Orchestrator | None = None
         self._counter = 0
         self._blockers = 0
+        self._sources: dict[str, str] = {}
 
     # Wiring
 
@@ -212,6 +213,7 @@ class LiveAgentSource:
             findings=findings,
         )
         context = build_context(agent_id, materials)
+        self._sources = context.source_events()
         return PromptBundle(
             prompt_ref=f"pb-{self.o.run_id[:8]}-{self._counter:02d}",
             system=load_instructions(
@@ -483,7 +485,8 @@ class LiveAgentSource:
             writer = cast(WriterReply, reply)
             folder = self.o.run_folder or self.o.knowledge.path.parent
             path = commit_draft(folder, version, writer.markdown)
-            tags = [(t.tag_id, t.source_id) for t in find_tags(writer.markdown)]
+            sources = self._sources
+            tags = [(t.tag_id, sources.get(t.source_id, t.source_id)) for t in find_tags(writer.markdown)]
             note = writer.note or f"{len(tags)} provenance tags"
             yield Emit(
                 "writer",

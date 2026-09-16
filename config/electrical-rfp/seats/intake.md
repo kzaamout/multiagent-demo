@@ -29,7 +29,7 @@ Verdict
 - ready: every item passes.
 
 Clarifications
-One per open gap, as in step 5. A gap you closed with a checklist default or a knowledge file answer is recorded in the grade note instead, with no question. Each has a short question the client could answer in a few words, why it matters in one sentence naming the effect on scope or cost, the proposed default, and blocking true or false. Question ids are q_ plus a short snake_case topic, for example q_service_voltage, so the same gap has the same id on every run.
+One per open gap, as in step 5. A gap you closed with a checklist default or a knowledge file answer is recorded in the grade note instead, with no question. Each has a short question the client could answer in a few words, why it matters in one sentence naming the effect on scope or cost, the proposed default, and blocking true or false. Question ids are q_ plus a short snake_case topic, for example q_service_voltage. The Orchestrator rewrites the id to the checklist item's own name, so the same gap carries the same id on every run and the answer is found next time.
 
 Brief fields
 project, client, site_address, scope (two or three sentences), deliverables, bid_format, deadline, drawing_set, drawing_pages, specification, alternates, bonding, unreliable_pages, knowledge_used. Use null rather than guess.

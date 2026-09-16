@@ -23,6 +23,9 @@ CONFIG_DIR = ROOT / "config" / "electrical-rfp"
 TEMPLATE_PATH = ROOT / "templates" / "rfp-response.md"
 ROLE_LABEL = {"estimator": "Estimator", "pricing": "Pricing", "writer": "Writer", "intake": "Intake Analyst"}
 
+SHORT_SOURCE = {"estimator": "takeoff", "pricing": "pricing"}
+"""The short name a seat writes in a provenance tag for each specialist's output (roadmap decision 17)."""
+
 
 @dataclass(frozen=True)
 class DatasetFiles:
@@ -135,7 +138,7 @@ def build_materials(
             "answers": answers,
             "assumptions": assumptions,
         }
-        materials.append(Material(d.BRIEF, "Brief", _json(body), brief.event_id))
+        materials.append(Material(d.BRIEF, "Brief", _json(body), "brief", brief.event_id))
 
     sheet_lines = [f"- {p.stem} ({_pages(p)})" for p in files.drawing_files()]
     if sheet_lines:
@@ -158,7 +161,11 @@ def build_materials(
     if estimator is not None:
         materials.append(
             Material(
-                d.ESTIMATOR_OUTPUT, "Estimator output", _json(estimator.payload["result"]), estimator.event_id
+                d.ESTIMATOR_OUTPUT,
+                "Estimator output",
+                _json(estimator.payload["result"]),
+                "takeoff",
+                estimator.event_id,
             )
         )
 
@@ -170,6 +177,7 @@ def build_materials(
                     d.SPECIALIST_OUTPUTS,
                     f"{ROLE_LABEL[agent_id]} output",
                     _json(output.payload["result"]),
+                    SHORT_SOURCE[agent_id],
                     output.event_id,
                 )
             )
@@ -185,6 +193,7 @@ def build_materials(
                     d.DRAFT,
                     f"Draft v{draft.payload['version']}",
                     path.read_text(encoding="utf-8"),
+                    f"draft-v{draft.payload['version']}",
                     draft.event_id,
                 )
             )

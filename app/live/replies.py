@@ -233,6 +233,44 @@ def blocking_at_intake(item: str, markings: Mapping[str, str]) -> bool:
     return "blocking" in marking
 
 
+# Words that carry no meaning in a checklist item or a question, for matching one to the other.
+COMMON_WORDS = frozenset(
+    """a an and are as at be been before by confirm confirmed for from has have in is it its list of on or
+    present provided required requirement requirements stated the this to was were whether will with""".split()
+)
+
+
+def _words(text: str) -> list[str]:
+    return [w for w in re.findall(r"[a-z0-9]+", text.lower()) if w not in COMMON_WORDS and len(w) > 2]
+
+
+def canonical_question_id(item: str) -> str:
+    """The id a gap on this checklist item always carries, so a stored answer is found on the next run."""
+    words = _words(item)
+    picked: list[str] = []
+    for word in words:
+        if picked and word.startswith(picked[-1][:6]):
+            continue  # specifications after specification adds nothing
+        picked.append(word)
+        if len(picked) == 2:
+            break
+    return "q_" + "_".join(picked) if picked else "q_gap"
+
+
+def pin_question_ids(clarifications: list[Clarification], items: list[str]) -> None:
+    """Give each clarification the id of the checklist item it is about. Models invent a new id for the same
+    gap on every run, which defeats ask once: the stored answer is never found (roadmap decision 17)."""
+    for clarification in clarifications:
+        asked = set(_words(f"{clarification.question} {clarification.why_it_matters}"))
+        best, score = "", 0
+        for item in items:
+            shared = len(asked & set(_words(item)))
+            if shared > score:
+                best, score = item, shared
+        if score >= 2:
+            clarification.question_id = canonical_question_id(best)
+
+
 def needs_a_question(item: str, markings: Mapping[str, str]) -> bool:
     """A gap needs a clarification only when the checklist leaves it open. An item the checklist hands to the
     Estimator, or closes with a default of its own, is graded and carried instead."""
@@ -299,6 +337,8 @@ class IntakeReply(BaseModel):
                         f"files are: {', '.join(request_files)}. Grade it fail when the request references a "
                         "specification, and say in the note which file the request names"
                     )
+        if expected_items:
+            pin_question_ids(self.clarifications, expected_items)
         gaps = [c for c in failing + assumed if needs_a_question(c.item, marks)]
         # A not_ready run ends before any question is asked, so its gaps need grades, not questions.
         if expected != "not_ready" and len(self.clarifications) < len(gaps):

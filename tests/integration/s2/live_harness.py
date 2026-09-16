@@ -221,7 +221,9 @@ def pricing_turns() -> list[Turn]:
 
 
 def _source_ids(prompt: str) -> dict[str, str]:
-    found = dict(re.findall(r"## (Estimator output|Pricing output) \(source id: ([0-9a-f-]+)\)", prompt))
+    found = dict(
+        re.findall(r"## (Estimator output|Pricing output) \(source id: ([A-Za-z0-9_.:-]+)\)", prompt)
+    )
     return found
 
 
