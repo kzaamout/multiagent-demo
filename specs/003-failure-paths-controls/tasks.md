@@ -145,8 +145,8 @@ description: "Task list for slice S3, failure paths and presenter controls"
 - [x] T032 Family-consistency review: capture the blocker card from the Missing sheet golden log, the paused composer, and the Dry intake toggle switched on at 1920 by 1080; review against the export's card and composer families; record findings and fixes in `docs/design-deviations.md`; update the Dry intake mask reason in `tests/visual/masks.py`
 - [x] T033 [P] Update `README.md` scenario notes and the quickstart if live runs changed anything
 - [x] T034 Update `docs/roadmap.md` S3 status with run ids, matches, and estimated spend; mark tasks done in this file
-- [ ] T035 Run `uv run python scripts/check.py` and `uv run pytest -m visual`; commit
-- [ ] T036 Show the slice in the browser: leave the verified runs viewable with `/demo?run=<id>` and report them to the owner
+- [x] T035 Run `uv run python scripts/check.py` and `uv run pytest -m visual`; commit
+- [x] T036 Show the slice in the browser: leave the verified runs viewable with `/demo?run=<id>` and report them to the owner
 
 ---
 
