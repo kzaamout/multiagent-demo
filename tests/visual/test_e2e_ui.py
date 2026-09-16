@@ -117,6 +117,24 @@ def test_planted_inconsistency_through_the_page(page: Any, server: tuple[str, Pa
     assert page.errors == []
 
 
+def test_prompt_toggle_shows_bundle(page: Any) -> None:
+    thread = page.locator("article[data-kind='agent-message']").first
+    thread.locator(".card-hd").click()
+    thread.locator("button[data-action='prompt']").click()
+    panel = thread.locator(".prompt-panel")
+    panel.wait_for()
+    page.wait_for_selector(
+        "article[data-kind='agent-message'] .prompt-sec-label:has-text('System instructions')"
+    )
+    text = panel.inner_text()
+    for label in ["SYSTEM INSTRUCTIONS", "CONTEXT PROVIDED", "TASK", "TOOLS AVAILABLE", "MODEL"]:
+        assert label in text.upper()
+    note = page.locator("article[data-card='start']")
+    note.locator(".card-hd").click()
+    page.wait_for_selector("article[data-card='start'] .why")
+    assert "Why" in page.inner_text("article[data-card='start']")
+
+
 def test_threads_start_collapsed_with_a_live_indicator(page: Any, server: tuple[str, Path]) -> None:
     """Spec 0.7, 2.2: threads render collapsed, the live state and unread count follow events only."""
     base, _ = server
@@ -152,24 +170,6 @@ def test_threads_start_collapsed_with_a_live_indicator(page: Any, server: tuple[
     assert page.errors == []
     page.goto(base + "/demo")
     page.wait_for_selector("#dataset-value:has-text('02')")
-
-
-def test_prompt_toggle_shows_bundle(page: Any) -> None:
-    thread = page.locator("article[data-kind='agent-message']").first
-    thread.locator(".card-hd").click()
-    thread.locator("button[data-action='prompt']").click()
-    panel = thread.locator(".prompt-panel")
-    panel.wait_for()
-    page.wait_for_selector(
-        "article[data-kind='agent-message'] .prompt-sec-label:has-text('System instructions')"
-    )
-    text = panel.inner_text()
-    for label in ["SYSTEM INSTRUCTIONS", "CONTEXT PROVIDED", "TASK", "TOOLS AVAILABLE", "MODEL"]:
-        assert label in text.upper()
-    note = page.locator("article[data-card='start']")
-    note.locator(".card-hd").click()
-    page.wait_for_selector("article[data-card='start'] .why")
-    assert "Why" in page.inner_text("article[data-card='start']")
 
 
 def test_missing_sheet_escalate_through_the_page(page: Any) -> None:
