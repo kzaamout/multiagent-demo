@@ -22,7 +22,20 @@ class Rect:
 
 
 HEADER_NAV = Rect(
-    1340, 8, 1910, 48, "build stamp added to every header and pre-flight dot pending (decision)", "S7"
+    1300,
+    8,
+    1910,
+    48,
+    "nav order Pre-flight, Introduction, Demo, Settings (spec 0.7, S3b); build stamp added to every header; pre-flight dot pending",
+    "S7",
+)
+LOOP_REASON = Rect(
+    1380,
+    166,
+    1900,
+    202,
+    "stage label under the loop strip with the Orchestrator's reason (spec 0.7, S3b); the export has no such line",
+    "kept",
 )
 DRY_INTAKE = Rect(
     536,
@@ -62,10 +75,11 @@ HANDOFF_EYEBROW = Rect(
 
 MASKS: dict[str, list[Rect]] = {
     "demo-idle": [HEADER_NAV, DRY_INTAKE, ARTIFACT_BODY],
-    "demo-paused": [HEADER_NAV, DRY_INTAKE_UNDER_BANNER, ARTIFACT_BODY_UNDER_BANNER],
-    "demo-running": [HEADER_NAV, DRY_INTAKE, ARTIFACT_BODY],
+    "demo-paused": [HEADER_NAV, LOOP_REASON, DRY_INTAKE_UNDER_BANNER, ARTIFACT_BODY_UNDER_BANNER],
+    "demo-running": [HEADER_NAV, LOOP_REASON, DRY_INTAKE, ARTIFACT_BODY],
     "demo-terminated": [
         HEADER_NAV,
+        LOOP_REASON,
         DRY_INTAKE,
         ARTIFACT_BODY,
         COMPARE_STRIP,
@@ -73,8 +87,24 @@ MASKS: dict[str, list[Rect]] = {
         HANDOFF_EYEBROW,
     ],
     "login": [],
-    "settings": [Rect(1480, 8, 1910, 48, "pre-flight dot added to the Settings header (decision)", "S7")],
+    "settings": [
+        Rect(
+            1300,
+            8,
+            1910,
+            48,
+            "nav order (spec 0.7, S3b) and pre-flight dot added to the Settings header (decision)",
+            "S7",
+        )
+    ],
     "preflight-pending": [
-        Rect(1340, 8, 1910, 48, "build stamp and pre-flight dot added to the header (decision)", "S7")
+        Rect(
+            1300,
+            8,
+            1910,
+            48,
+            "nav order (spec 0.7, S3b), build stamp and pre-flight dot added to the header (decision)",
+            "S7",
+        )
     ],
 }

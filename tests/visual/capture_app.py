@@ -83,6 +83,11 @@ def capture(browser: Browser, base_url: str, out: Path = OUT) -> dict[str, Path]
         page.wait_for_function("() => document.fonts && document.fonts.status === 'loaded'")
         page.add_style_tag(content=FREEZE)
         page.wait_for_timeout(500)
+        if state.name == "demo-running":
+            # Threads start collapsed (spec 0.7); the export's running state shows the Estimator
+            # thread open, which the export reference itself reached by clicking it.
+            page.click("article[data-kind='specialist-thread'][data-agent='estimator'] .card-hd")
+            page.wait_for_timeout(200)
         if state.name == "demo-terminated":
             page.evaluate(
                 "() => { const f = document.getElementById('feed'); f.scrollTop = f.scrollHeight; }"

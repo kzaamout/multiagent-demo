@@ -10,7 +10,7 @@
   var stream = null;
   var runId = null;
   var ui = {
-    open: {}, promptOpen: {}, prompts: {}, mode: 'idle', speed: 1, submitting: false,
+    open: {}, seen: {}, promptOpen: {}, prompts: {}, mode: 'idle', speed: 1, submitting: false,
     meterOpen: null, rawOpen: false, compareOpen: false, animatedArrows: {}, animate: params.get('animate') !== '0',
     autoScroll: true, bannerAskId: null, drafts: {}, loadDraft: null, dryIntake: false, following: false
   };
@@ -75,6 +75,7 @@
   function resetView(mode) {
     events = [];
     ui.open = {};
+    ui.seen = {};
     ui.promptOpen = {};
     ui.animatedArrows = {};
     ui.bannerAskId = null;

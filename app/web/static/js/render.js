@@ -28,10 +28,16 @@
   }
 
   function header(card, left, summary, phase, time, open, ui) {
+    /* Unread count: replies added since the presenter last had the thread open, shown while the task is live. */
+    var replyCount = (card.replies || []).length;
+    if (open) { ui.seen[card.id] = replyCount; }
+    var unread = open ? 0 : replyCount - (ui.seen[card.id] || 0);
+    var chip = card.live && unread > 0 ? el('span', { class: 'unread-chip', 'data-part': 'unread', text: unread + ' new' }) : null;
     return el('div', { class: 'card-hd', 'data-part': 'card-header' }, [
       left,
       el('span', { class: 'summary', 'data-part': 'summary', text: summary }),
       el('div', { class: 'card-meta' }, [
+        chip,
         el('span', { class: 'phase', 'data-part': 'phase', text: phase }),
         el('span', { class: 'time', 'data-part': 'time', text: time }),
         el('span', { class: 'chev-sm', text: open ? '▾' : '▸' })
@@ -74,8 +80,8 @@
   }
 
   function defaultOpen(card, view, ui) {
-    if (card.kind === 'specialist-thread') { return card.status === 'active' || card.status === 'blocked'; }
-    if (card.kind === 'agent-message' && card.role === 'intake') { return !card.readiness && (card.replies || []).length > 0 && !view.terminated; }
+    /* Threads start collapsed and stay collapsed until clicked (spec 0.7, 2.2). The blocker card is the
+       human's door and stays open while it waits. */
     if (card.kind === 'blocker') { return !card.answer && !view.terminated; }
     return false;
   }
@@ -445,13 +451,17 @@
     var children;
     switch (card.kind) {
       case 'orchestrator-note': children = noteCard(card, view, ui, ctx); break;
-      case 'agent-message': children = intakeCard(card, view, ui); break;
+      case 'agent-message':
+        if (card.role === 'intake') { attrs['data-live'] = String(!!card.live); }
+        children = intakeCard(card, view, ui);
+        break;
       case 'assumption': children = assumptionCard(card, view, ui); break;
       case 'question': children = questionCard(card, view, ui); break;
       case 'human-answer': children = answerCard(card, view, ui); break;
       case 'specialist-thread':
         attrs['data-agent'] = card.agentId;
         attrs['data-status'] = card.status;
+        attrs['data-live'] = String(!!card.live);
         children = threadCard(card, view, ui);
         break;
       case 'draft-committed': children = draftCard(card, view, ui); break;
@@ -504,7 +514,7 @@
     if (appended && ui.autoScroll) { feed.scrollTop = feed.scrollHeight; }
   }
 
-  var GLYPH = { idle: '○', active: '●', complete: '✓', paused: '!' };
+  var GLYPH = { idle: '○', active: '●', complete: '✓', paused: '!', bypassed: '○' };
 
   function renderLoop(view, ui) {
     document.querySelectorAll('.node[data-stage]').forEach(function (node) {
@@ -516,6 +526,35 @@
     });
     var badge = document.querySelector('.retry-badge');
     if (badge.textContent !== view.retryText) { badge.textContent = view.retryText; }
+    /* Forward connectors fill once crossed and pulse once per transition, keyed to the event id so a
+       replay fires them exactly as the live run did. A jump over several nodes pulses them in sequence. */
+    var order = [];
+    document.querySelectorAll('.fwd[data-link]').forEach(function (span) {
+      var link = span.getAttribute('data-link');
+      var eventId = view.forwardFired[link] || null;
+      span.setAttribute('data-filled', String(!!eventId));
+      if (eventId && ui.animatedArrows['fwd:' + link] !== eventId) {
+        ui.animatedArrows['fwd:' + link] = eventId;
+        var delay = order.filter(function (id) { return id === eventId; }).length * 150;
+        order.push(eventId);
+        span.classList.remove('is-firing');
+        void span.getBoundingClientRect();
+        if (ui.animate) { span.style.animationDelay = delay + 'ms'; span.classList.add('is-firing'); }
+      }
+      if (!eventId) { span.classList.remove('is-firing'); delete ui.animatedArrows['fwd:' + link]; }
+    });
+    var reason = document.getElementById('loop-reason');
+    var stageName = view.currentStage ? F.STAGE_LABEL[view.currentStage] : (view.terminated ? 'Run ended' : '');
+    var reasonText = view.stageReason || '';
+    reason.hidden = !reasonText;
+    var reasonHtml = stageName + ' · ' + reasonText;
+    if (reason.__text !== reasonHtml) {
+      reason.__text = reasonHtml;
+      reason.textContent = '';
+      reason.appendChild(el('span', { class: 'loop-reason-k', text: stageName }));
+      reason.appendChild(document.createTextNode(' · ' + reasonText));
+      reason.title = reasonText;
+    }
     ['review-work', 'review-assemble', 'work-intake'].forEach(function (key) {
       var fired = !!view.fired[key];
       var path = document.querySelector('path[data-arrow="' + key + '"]');

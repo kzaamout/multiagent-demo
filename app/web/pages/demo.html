@@ -15,9 +15,9 @@
       <div class="select is-disabled" data-part="workflow-select" title="The Appraisal workflow arrives in slice S8"><span class="select-label">Workflow</span><span>Electrical RFP</span><span class="select-chev">▾</span></div>
     </div>
     <nav class="nav">
-      <span class="nav-current">Demo</span>
-      <a aria-disabled="true" title="The Introduction tab arrives in slice S6">Introduction</a>
       <a href="/preflight" class="nav-pf" data-part="preflight-link">Pre-flight<span class="pf-dot" data-part="preflight-indicator" data-status="pending" title="Pre-flight: not run yet">○</span></a>
+      <a aria-disabled="true" title="The Introduction tab arrives in slice S6">Introduction</a>
+      <span class="nav-current">Demo</span>
       <a href="/settings">Settings</a>
       <span class="build-stamp" data-part="build-stamp">{{BUILD_STAMP}}</span>
     </nav>
@@ -25,11 +25,11 @@
 
   <section class="loop" data-part="loop-strip">
     <div class="loop-grid" id="loop-grid">
-      <div class="loop-cell"><div class="node" data-part="loop-node" data-stage="intake" data-state="idle"><span class="node-glyph">○</span><span>Intake</span><img class="node-human" src="/static/img/person.svg" alt="a person may be needed here" title="A person may be needed here"></div><span class="fwd">→</span></div>
-      <div class="loop-cell"><div class="node" data-part="loop-node" data-stage="plan" data-state="idle"><span class="node-glyph">○</span><span>Plan</span></div><span class="fwd">→</span></div>
-      <div class="loop-cell"><div class="node" data-part="loop-node" data-stage="work" data-state="idle"><span class="node-glyph">○</span><span>Work</span><img class="node-human" src="/static/img/person.svg" alt="a person may be needed here" title="A person may be needed here"></div><span class="fwd">→</span></div>
-      <div class="loop-cell"><div class="node" data-part="loop-node" data-stage="assemble" data-state="idle"><span class="node-glyph">○</span><span>Assemble</span></div><span class="fwd">→</span></div>
-      <div class="loop-cell"><div class="node" data-part="loop-node" data-stage="review" data-state="idle"><span class="node-glyph">○</span><span>Review</span><span class="retry-badge" data-part="retry-badge">retry 0 of 2</span></div><span class="fwd">→</span></div>
+      <div class="loop-cell"><div class="node" data-part="loop-node" data-stage="intake" data-state="idle"><span class="node-glyph">○</span><span>Intake</span><img class="node-human" src="/static/img/person.svg" alt="a person may be needed here" title="A person may be needed here"></div><span class="fwd" data-part="forward-arrow" data-link="intake-plan" data-filled="false">→</span></div>
+      <div class="loop-cell"><div class="node" data-part="loop-node" data-stage="plan" data-state="idle"><span class="node-glyph">○</span><span>Plan</span></div><span class="fwd" data-part="forward-arrow" data-link="plan-work" data-filled="false">→</span></div>
+      <div class="loop-cell"><div class="node" data-part="loop-node" data-stage="work" data-state="idle"><span class="node-glyph">○</span><span>Work</span><img class="node-human" src="/static/img/person.svg" alt="a person may be needed here" title="A person may be needed here"></div><span class="fwd" data-part="forward-arrow" data-link="work-assemble" data-filled="false">→</span></div>
+      <div class="loop-cell"><div class="node" data-part="loop-node" data-stage="assemble" data-state="idle"><span class="node-glyph">○</span><span>Assemble</span></div><span class="fwd" data-part="forward-arrow" data-link="assemble-review" data-filled="false">→</span></div>
+      <div class="loop-cell"><div class="node" data-part="loop-node" data-stage="review" data-state="idle"><span class="node-glyph">○</span><span>Review</span><span class="retry-badge" data-part="retry-badge">retry 0 of 2</span></div><span class="fwd" data-part="forward-arrow" data-link="review-handoff" data-filled="false">→</span></div>
       <div class="loop-cell"><div class="node" data-part="loop-node" data-stage="handoff" data-state="idle"><span class="node-glyph">○</span><span>Handoff</span><img class="node-human" src="/static/img/person.svg" alt="a person may be needed here" title="A person may be needed here"></div></div>
     </div>
     <svg class="arrows" data-part="backward-arrows" viewBox="0 0 1872 66" width="1872" height="66" aria-label="Backward arrows: Review to Work, Review to Assemble, Work to Intake">
@@ -44,6 +44,7 @@
       <text data-arrow="review-assemble" data-fired="false" x="1248" y="37" text-anchor="middle">Review → Assemble · writing rework</text>
       <text data-arrow="work-intake" data-fired="false" x="468" y="54" text-anchor="middle">Work → Intake · brief incomplete</text>
     </svg>
+    <p class="loop-reason" data-part="loop-reason" id="loop-reason" hidden></p>
   </section>
 
   <section class="banner" data-part="waiting-banner" id="banner" hidden>

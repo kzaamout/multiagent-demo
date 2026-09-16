@@ -110,7 +110,48 @@ def test_planted_inconsistency_through_the_page(page: Any, server: tuple[str, Pa
     raw = page.inner_text("#raw-label")
     assert raw.startswith("Raw turns · 65")
     assert list(runs.glob("*/events.jsonl")), "the run was recorded"
+    # Tracker: every forward connector was crossed, nothing is live, and the label carries the headline.
+    assert page.locator(".fwd[data-filled='true']").count() == 5
+    assert page.locator("article[data-live='true']").count() == 0
+    assert "Run ended" in page.inner_text("#loop-reason")
     assert page.errors == []
+
+
+def test_threads_start_collapsed_with_a_live_indicator(page: Any, server: tuple[str, Path]) -> None:
+    """Spec 0.7, 2.2: threads render collapsed, the live state and unread count follow events only."""
+    base, _ = server
+    from tests.visual.capture_app import golden_seq
+
+    page.goto(base + f"/demo?golden=planted-inconsistency&upto={golden_seq('running')}")
+    page.wait_for_selector("article[data-kind='specialist-thread'][data-agent='estimator']")
+    estimator = page.locator("article[data-kind='specialist-thread'][data-agent='estimator']")
+    assert estimator.locator(".chev-sm").inner_text() == "▸", "threads start collapsed"
+    assert estimator.get_attribute("data-live") == "true"
+    assert estimator.locator(".unread-chip").inner_text() == "3 new"
+    pricing = page.locator("article[data-kind='specialist-thread'][data-agent='pricing']")
+    assert pricing.get_attribute("data-live") == "true" and pricing.locator(".unread-chip").count() == 0
+    assert page.get_attribute(".node[data-stage='work']", "data-state") == "active"
+    assert page.get_attribute(".fwd[data-link='plan-work']", "data-filled") == "true"
+    assert page.get_attribute(".fwd[data-link='work-assemble']", "data-filled") == "false"
+    label = page.inner_text("#loop-reason")
+    assert label.startswith("Work ·") and len(label) > 8
+    estimator.locator(".card-hd").click()
+    page.wait_for_selector("article[data-agent='estimator'] .replies")
+    assert estimator.locator(".unread-chip").count() == 0, "opening the thread marks its replies seen"
+    estimator.locator(".card-hd").click()
+    page.wait_for_function(
+        "() => document.querySelector(\"article[data-agent='estimator'] .chev-sm\").textContent === '▸'"
+    )
+    assert estimator.locator(".unread-chip").count() == 0, "nothing new since the collapse"
+    # After termination the same page shows completed nodes and no live card.
+    page.goto(base + f"/demo?golden=planted-inconsistency&upto={golden_seq('terminated')}")
+    page.wait_for_selector("article[data-kind='termination']")
+    assert page.locator("article[data-live='true']").count() == 0
+    assert page.locator("path[data-arrow='review-work'][data-fired='true']").count() == 1
+    assert page.inner_text("#loop-reason").startswith("Handoff ·")
+    assert page.errors == []
+    page.goto(base + "/demo")
+    page.wait_for_selector("#dataset-value:has-text('02')")
 
 
 def test_prompt_toggle_shows_bundle(page: Any) -> None:
@@ -200,6 +241,23 @@ def test_replay_matches_recorded_display(page: Any, server: tuple[str, Path]) ->
         page.inner_text("#agent-meters") + page.inner_text("#run-total") + page.inner_text("#elapsed")
         == replay_meters
     )
+    assert page.errors == []
+
+
+def test_replay_fires_every_arrow_pulse(page: Any, server: tuple[str, Path]) -> None:
+    """Spec 0.7, 2.2: forward and backward arrows pulse once per stage.changed, in replay as in a live run."""
+    base, _ = server
+    page.goto(base + "/demo")
+    choose_dataset(page, "02 · Planted inconsistency")
+    page.click("#speed-4")
+    page.click("#btn-replay")
+    page.wait_for_function(
+        "() => window.__s1 && window.__s1.events.length && window.__s1.events[window.__s1.events.length - 1].type === 'run.terminated'",
+        timeout=180000,
+    )
+    assert page.locator(".fwd.is-firing").count() == 5
+    assert page.locator("path.is-firing").count() == 1
+    assert page.locator(".node[data-state='complete']").count() == 6
     assert page.errors == []
 
 

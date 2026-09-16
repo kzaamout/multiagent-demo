@@ -25,6 +25,9 @@
       nodes: {},
       fired: {},
       firedEventIds: {},
+      forwardFired: {},
+      stageReason: '',
+      currentStage: null,
       retryText: 'retry 0 of ' + budget,
       banner: null,
       blockerPending: null,
@@ -51,6 +54,8 @@
     function addCard(card) { cardsById[card.id] = card; cards.push(card); return card; }
 
     var entered = {};
+    var bypassed = {};
+    var live = {};             /* task_id -> dispatched and not yet completed or blocked */
     var current = null;
     var pausedByHuman = false;
     var handoffReady = false;
@@ -97,6 +102,16 @@
           if (current) { entered[current] = true; }
           current = p.to;
           entered[p.to] = true;
+          view.stageReason = p.target_reason;
+          if (p.direction === 'forward' && p.from) {
+            /* Every connector the transition crosses fills and pulses; a stage it skips is bypassed. */
+            var fromIndex = F.STAGES.indexOf(p.from);
+            var toIndex = F.STAGES.indexOf(p.to);
+            for (var li = fromIndex; li < toIndex; li += 1) {
+              view.forwardFired[F.STAGES[li] + '-' + F.STAGES[li + 1]] = event.event_id;
+              if (li > fromIndex && !entered[F.STAGES[li]]) { bypassed[F.STAGES[li]] = true; }
+            }
+          }
           if (p.direction === 'backward') {
             var key = p.from + '-' + p.to;
             view.fired[key] = true;
@@ -152,6 +167,7 @@
           addCard({ id: 'plan:' + event.event_id, kind: 'orchestrator-note', role: 'plan', event: event, subtasks: p.subtasks });
           break;
         case 'task.dispatched': {
+          live[p.task_id] = true;
           if (p.agent_id === 'writer') { break; }
           var thread = addCard({
             id: 'thread:' + p.task_id, kind: 'specialist-thread', taskId: p.task_id, agentId: p.agent_id,
@@ -164,6 +180,7 @@
         case 'tool.called':
         case 'task.completed':
         case 'blocker.raised': {
+          if (event.type === 'task.completed' || event.type === 'blocker.raised') { live[p.task_id] = false; }
           if (p.task_id === 'intake') {
             var ic = intakeCardFor(event, agent);
             ic.replies.push(event);
@@ -226,6 +243,7 @@
         }
         case 'run.terminated':
           terminated = event;
+          view.stageReason = p.summary ? p.summary.headline : '';
           var term = cardsById.term;
           if (term) { term.terminated = event; term.event = event; }
           else { addCard({ id: 'term', kind: 'termination', event: event, handoff: null, terminated: event, retry: { count: retry.count, budget: retry.budget } }); }
@@ -268,14 +286,16 @@
     var pausedStage = (humanPending || pausedByHuman) && !terminated;
     F.STAGES.forEach(function (s) {
       var state = 'idle';
-      if (terminated) { state = entered[s] ? 'complete' : 'idle'; }
+      if (terminated) { state = entered[s] ? 'complete' : bypassed[s] ? 'bypassed' : 'idle'; }
       else if (s === current) {
         if (pausedStage) { state = 'paused'; }
         else if (s === 'handoff' && handoffReady) { state = 'complete'; }
         else { state = 'active'; }
       } else if (entered[s]) { state = 'complete'; }
+      else if (bypassed[s]) { state = 'bypassed'; }
       view.nodes[s] = state;
     });
+    view.currentStage = terminated ? null : current;
 
     /* Thread status and plan glyphs. */
     Object.keys(threads).forEach(function (taskId) {
@@ -288,6 +308,12 @@
       else if (t.blocker) { t.status = 'blocked'; }
       else if (t.replies.length === 0 && waitingOn.length) { t.status = 'waiting'; t.waitingOn = waitingOn; }
       else { t.status = terminated ? 'stopped' : 'active'; }
+      t.live = !!live[taskId] && !terminated;
+    });
+    /* Intake has no dispatch event of its own: it is live from entering Intake until its readiness verdict. */
+    Object.keys(intakeCards).forEach(function (ref) {
+      var c = intakeCards[ref];
+      c.live = !c.readiness && current === 'intake' && !terminated;
     });
     view.threads = threads;
     view.plan = plan;
