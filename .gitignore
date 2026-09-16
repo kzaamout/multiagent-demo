@@ -3,11 +3,11 @@
 .env.*
 !.env.example
 
-# run recordings (golden logs live under datasets/, not here)
-runs/
+# run recordings (golden logs live under datasets/, not here). Anchored, so app/runs/ stays tracked.
+/runs/
 
 # client knowledge files written by live runs, seeded from datasets
-knowledge/
+/knowledge/
 
 # python
 .venv/
