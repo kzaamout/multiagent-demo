@@ -77,8 +77,8 @@ description: "Task list for slice S3, failure paths and presenter controls"
 
 **Independent Test**: live run from the Demo page matches the golden log; card lists deadline and specification.
 
-- [ ] T017 [US3] Live run of Not ready from the Demo page; `uv run python scripts/compare_run.py <run_id>`; confirm the card lists the submission deadline and the Division 26 specification and that no specialist was dispatched; on a mismatch, diagnose from the recording and fix within the documented rules, then rerun
-- [ ] T018 [P] [US3] Confirm the existing browser test for the not_ready card still passes in `tests/visual/test_e2e_ui.py`
+- [x] T017 [US3] Live run of Not ready from the Demo page; `uv run python scripts/compare_run.py <run_id>`; confirm the card lists the submission deadline and the Division 26 specification and that no specialist was dispatched; on a mismatch, diagnose from the recording and fix within the documented rules, then rerun
+- [x] T018 [P] [US3] Confirm the existing browser test for the not_ready card still passes in `tests/visual/test_e2e_ui.py`
 
 ---
 
@@ -89,8 +89,8 @@ description: "Task list for slice S3, failure paths and presenter controls"
 **Independent Test**: live Escalate run matches the golden log; live Answer run resumes Work.
 
 - [x] T019 [US2] Scripted tests in `tests/integration/s3/test_blocker_live.py`: an Estimator blocker needing a human pauses with the blocker attached; Answer reaches the Estimator's task, stays run-local in the brief, and is not appended to the knowledge store; Escalate ends `blocker_escalated` with the description in the summary's missing list; a first route back to Intake reruns Intake and a second becomes a blocker
-- [ ] T020 [US2] Live run of Missing sheet from the Demo page, press Escalate; `scripts/compare_run.py`; confirm the card names the LP-2 schedule; fix and rerun on a mismatch
-- [ ] T021 [US2] Live run of Missing sheet, answer the blocker instead; confirm the run resumes at Work, record its exit, and confirm the knowledge file gained no entry
+- [x] T020 [US2] Live run of Missing sheet from the Demo page, press Escalate; `scripts/compare_run.py`; confirm the card names the LP-2 schedule; fix and rerun on a mismatch
+- [x] T021 [US2] Live run of Missing sheet, answer the blocker instead; confirm the run resumes at Work, record its exit, and confirm the knowledge file gained no entry
 
 ---
 
@@ -101,7 +101,7 @@ description: "Task list for slice S3, failure paths and presenter controls"
 **Independent Test**: live run matches the golden log with one backward Review to Work change and retry count 1.
 
 - [x] T022 [US1] Scripted tests in `tests/integration/s3/test_review_routing_live.py`: a fail routed to the Estimator dispatches only the Estimator with the findings in its bundle, then the Writer, then a passing review, matching the Planted inconsistency golden transitions; a fail routed to Assemble dispatches only the Writer; three fails end `retry_exhausted` with the unresolved findings
-- [ ] T023 [US1] Live run of Planted inconsistency from the Demo page; `scripts/compare_run.py`; on a mismatch diagnose from the recording (Estimator concern, draft text, Reviewer finding and route) and adjust within documented rules; up to three runs, reporting how many matched
+- [x] T023 [US1] Live run of Planted inconsistency from the Demo page; `scripts/compare_run.py`; on a mismatch diagnose from the recording (Estimator concern, draft text, Reviewer finding and route) and adjust within documented rules; up to three runs, reporting how many matched
 
 ---
 
@@ -111,7 +111,7 @@ description: "Task list for slice S3, failure paths and presenter controls"
 
 **Independent Test**: live run matches the golden log; draft lists the exclusion.
 
-- [ ] T024 [US4] Live run of Missing price from the Demo page; `scripts/compare_run.py`; confirm Pricing's unpriced exception for `Exit sign, LED`, the draft's exclusion, and any minor finding on the card
+- [x] T024 [US4] Live run of Missing price from the Demo page; `scripts/compare_run.py`; confirm Pricing's unpriced exception for `Exit sign, LED`, the draft's exclusion, and any minor finding on the card
 
 ---
 
@@ -123,7 +123,7 @@ description: "Task list for slice S3, failure paths and presenter controls"
 
 - [x] T025 [US6] Add `dry_intake: bool = False` to `RunRequest` in `app/main.py`; `Registry.start_run(dataset_id, names, dry_intake)` sets the agent source's `dry_intake` for live and stub runs in `app/runs/registry.py`; tests in `tests/integration/s3/test_dry_intake.py` for a stub and a scripted live run ending `dry_intake` with the readiness verdict in the summary
 - [x] T026 [US6] Enable the Dry intake toggle while idle and lock it while a run is live; send `dry_intake` with Run; in `app/web/pages/demo.html`, `app/web/static/js/demo.js`, `app/web/static/js/render.js`; browser test in `tests/visual/test_e2e_controls.py`
-- [ ] T027 [US6] Live Dry intake run on Clean run from the Demo page; confirm exit `dry_intake` and the verdict on the card
+- [x] T027 [US6] Live Dry intake run on Clean run from the Demo page; confirm exit `dry_intake` and the verdict on the card
 
 ---
 
@@ -135,16 +135,16 @@ description: "Task list for slice S3, failure paths and presenter controls"
 
 - [x] T028 [US7] Termination card for `cost_ceiling` shows "Estimated spend" against the ceiling from `/api/meta` in `app/web/static/js/render.js`; browser test with a stub run at a low ceiling in `tests/visual/test_e2e_controls.py`
 - [x] T029 [P] [US7] Scripted live test in `tests/integration/s3/test_cost_ceiling_live.py`: priced scripted seat usage passes the ceiling after the first Estimator call; exit `cost_ceiling`; no `task.dispatched` after the breach
-- [ ] T030 [US7] Live check: restart the server with `COST_CEILING=0.02`, run Clean run from the Demo page, confirm exit `cost_ceiling` and the spend line; restart with `COST_CEILING=1.00`
+- [x] T030 [US7] Live check: restart the server with `COST_CEILING=0.02`, run Clean run from the Demo page, confirm exit `cost_ceiling` and the spend line; restart with `COST_CEILING=1.00`
 
 ---
 
 ## Phase 11: Polish and records
 
-- [ ] T031 Live Pause, Resume, and Stop on Clean run from the Demo page: pause during Work, confirm no new thread while paused, resume, stop; confirm exit `stopped` within 5 s
-- [ ] T032 Family-consistency review: capture the blocker card from the Missing sheet golden log, the paused composer, and the Dry intake toggle switched on at 1920 by 1080; review against the export's card and composer families; record findings and fixes in `docs/design-deviations.md`; update the Dry intake mask reason in `tests/visual/masks.py`
-- [ ] T033 [P] Update `README.md` scenario notes and the quickstart if live runs changed anything
-- [ ] T034 Update `docs/roadmap.md` S3 status with run ids, matches, and estimated spend; mark tasks done in this file
+- [x] T031 Live Pause, Resume, and Stop on Clean run from the Demo page: pause during Work, confirm no new thread while paused, resume, stop; confirm exit `stopped` within 5 s
+- [x] T032 Family-consistency review: capture the blocker card from the Missing sheet golden log, the paused composer, and the Dry intake toggle switched on at 1920 by 1080; review against the export's card and composer families; record findings and fixes in `docs/design-deviations.md`; update the Dry intake mask reason in `tests/visual/masks.py`
+- [x] T033 [P] Update `README.md` scenario notes and the quickstart if live runs changed anything
+- [x] T034 Update `docs/roadmap.md` S3 status with run ids, matches, and estimated spend; mark tasks done in this file
 - [ ] T035 Run `uv run python scripts/check.py` and `uv run pytest -m visual`; commit
 - [ ] T036 Show the slice in the browser: leave the verified runs viewable with `/demo?run=<id>` and report them to the owner
 

@@ -2,7 +2,7 @@
 
 A sales demo in which several AI agents, under an Orchestrator, take a business request from intake to a reviewed deliverable that a human approves. Read `CLAUDE.md` first.
 
-Slice S1, the event spine and stubbed loop, is built. Slice S2, the live team on Clean run, is built and waiting for its first live run. Datasets with curated inputs run on real models; the rest run on stubbed agents. The page renders only from the event stream.
+Slice S1, the event spine and stubbed loop, is built. Slice S2, the live team on Clean run, is built and verified live. Slice S3, the failure paths and the presenter controls, is built and verified live on all five datasets. The page renders only from the event stream.
 
 ## Set it up
 
@@ -104,7 +104,23 @@ Open http://localhost:8000/demo. The server reads `.env` when it starts, so rest
 
 Run Clean run a second time and Intake does not ask again, because the answer is stored in `knowledge/fictional-prospect-ltd.md`. Delete that file to hear the question again.
 
-The other datasets have no curated inputs yet and run on stubbed agents at no cost. To run every dataset on stubs, add `AGENT_MODE=stub` to `.env` and restart the server.
+### The five scenarios
+
+All five datasets have curated inputs and run on real models. Each one is derived from Clean run with a single planted defect, described in its own README under `datasets/`.
+
+| Dataset | What it shows | Where it ends | Typical spend |
+|---|---|---|---|
+| 01 Clean run | The whole loop, one question at Intake, one approval | `reviewer_pass` | about $0.30 |
+| 02 Planted inconsistency | A rating that disagrees between two sheets: the Estimator proceeds on the single-line and flags it, the Reviewer fails v1 and routes the rework | `reviewer_pass` after one rework | about $0.50 |
+| 03 Missing sheet | A panel with no schedule: the Estimator raises a blocker and the run pauses on the blocker card. Escalate ends the run, Answer resumes it | `blocker_escalated`, or `reviewer_pass` when answered | $0.13 escalated, about $0.42 answered |
+| 04 Missing price | An item with no supplier price: Pricing reports an unpriced exception and the draft excludes it | `reviewer_pass` | about $0.30 |
+| 05 Not ready | A request with no closing date and no specification: Intake stops the run before any specialist is paid | `not_ready` | none, Intake is local |
+
+Presenter controls in the composer: **Pause** holds the run before the next step and reads Resume, **Stop** ends it at once, and **Dry intake** runs Intake alone and stops with the readiness verdict, which costs nothing.
+
+`COST_CEILING` in `.env` stops a run once its estimated spend passes the ceiling, and the termination card names the spend and the ceiling.
+
+To run every dataset on stubbed agents at no cost, add `AGENT_MODE=stub` to `.env` and restart the server.
 
 ### If something goes wrong
 

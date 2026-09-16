@@ -33,3 +33,17 @@ Constitution XI requires every case where the export and the spec cannot both be
 ### Owner decisions
 
 1. **Settings page model labels are stale until S5.** Every seat now runs on a local Ollama model (roadmap decision 13), but the Settings page is still the static S1 preview and shows the export's cloud labels, such as "claude-sonnet via Bedrock". This conflicts with constitution V, which requires a seat's model to be displayed truthfully wherever the agent appears. The owner chose to leave the page unchanged until S5 wires it to the running configuration, rather than make the labels read-only truthful now. The Demo page is not affected: its agent cards take model labels from the run's events. Presenters should not show the Settings page before S5.
+
+## Slice S3 (2026-09-15)
+
+### Family-consistency review
+
+Three states the export does not show were captured at 1920 by 1080 (`tests/visual/output/s3/`) and reviewed against the export's card, button, and switch families.
+
+- **Blocker card** (Missing sheet golden log). Matches the export's clarification card: Orchestrator agent card, 4px red left rule, `clarification.asked` eyebrow with the run clock, the description as body text, a Why line, the answer field, Answer as the dark pill and Escalate as the outlined pill. The pair reads as one choice, as the export's Approve and Edit pair does. No change needed.
+- **Paused composer.** Pause takes the export's outlined button treatment and reads Resume while paused; Run is disabled at opacity 0.45 because a paused run is still live; Stop stays a ghost button. The export has no paused state, so the treatment is new: the outlined pill marks the one control that moves the run on, and the ghost keeps Stop quieter than Resume. The thread carries an Orchestrator card reading "Run paused by the presenter", which is how every other control event appears.
+- **Dry intake toggle switched on.** The same two-segment switch as Team and Single model, dark active segment, same height and radius, sitting to their right. While a run is live or in replay the label and both segments take the export's disabled treatment, as the Single model segment does.
+
+### Notes
+
+- The Dry intake masks in `tests/visual/masks.py` now say the toggle is wired in S3 and is a permanent addition to the export, rather than a deferred region. The region stays masked because the export has no such control.

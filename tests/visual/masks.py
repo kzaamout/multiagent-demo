@@ -24,12 +24,24 @@ class Rect:
 HEADER_NAV = Rect(
     1340, 8, 1910, 48, "build stamp added to every header and pre-flight dot pending (decision)", "S7"
 )
-DRY_INTAKE = Rect(536, 208, 760, 256, "Dry intake toggle added to the composer (pre-S1 decision 2)", "S3")
+DRY_INTAKE = Rect(
+    536,
+    208,
+    760,
+    256,
+    "Dry intake toggle added to the composer and wired in S3 (pre-S1 decision 2); the export has no such control",
+    "kept",
+)
 ARTIFACT_BODY = Rect(
     1280, 316, 1896, 940, "artifact panel placeholder; compiled pages and Edit and Reject arrive in S4", "S4"
 )
 DRY_INTAKE_UNDER_BANNER = Rect(
-    536, 440, 760, 488, "Dry intake toggle added to the composer (pre-S1 decision 2)", "S3"
+    536,
+    440,
+    760,
+    488,
+    "Dry intake toggle added to the composer and wired in S3 (pre-S1 decision 2); the export has no such control",
+    "kept",
 )
 ARTIFACT_BODY_UNDER_BANNER = Rect(
     1280, 548, 1896, 940, "artifact panel placeholder; compiled pages arrive in S4", "S4"
