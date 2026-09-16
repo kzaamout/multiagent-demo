@@ -44,6 +44,7 @@ from app.live.replies import (
 from app.live.seat_call import CallItem, Requirement, SeatCall, SeatModel
 from app.live.strands_tools import ToolLog, build_tools
 from app.orchestrator.knowledge_store import KnowledgeStore
+from app.runs.metrics import SeatAttempt, append_attempt
 from app.schema.bundles import PromptBundle
 from app.schema.events import Event, Subtask
 from app.seats.definitions import SEAT_DEFINITIONS, load_instructions
@@ -252,21 +253,37 @@ class LiveAgentSource:
             bundle=bundle,
             parse=parse,
             requirement=requirement,
-            on_rejected=lambda attempt, text, error: self._record_rejected(
-                bundle.prompt_ref, attempt, text, error
+            on_attempt=lambda attempt, accepted, text, error: self._record_attempt(
+                agent_id, bundle, attempt, accepted, text, error
             ),
         )
         return call.run()
 
-    def _record_rejected(self, prompt_ref: str, attempt: int, text: str, error: str) -> None:
-        """Keep each rejected reply beside the recording, so a stopped live run can be diagnosed."""
+    def _record_attempt(
+        self, agent_id: str, bundle: PromptBundle, attempt: int, accepted: bool, text: str, error: str
+    ) -> None:
+        """Record how a seat's attempt went, and keep a rejected reply beside the recording for diagnosis."""
         folder = self.o.run_folder
         if folder is None:
+            return
+        append_attempt(
+            folder,
+            SeatAttempt(
+                prompt_ref=bundle.prompt_ref,
+                agent_id=agent_id,
+                model=bundle.model.label,
+                provider=bundle.model.provider,
+                attempt=attempt,
+                accepted=accepted,
+                error=without_em_dashes(error),
+            ),
+        )
+        if accepted:
             return
         target = folder / "rejected"
         target.mkdir(parents=True, exist_ok=True)
         body = f"Rejected: {error}\n\n{text}\n"
-        (target / f"{prompt_ref}-{attempt}.txt").write_text(without_em_dashes(body), encoding="utf-8")
+        (target / f"{bundle.prompt_ref}-{attempt}.txt").write_text(without_em_dashes(body), encoding="utf-8")
 
     async def _stream(
         self,

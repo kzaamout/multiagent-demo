@@ -15,6 +15,7 @@ A sales demo that shows several AI agents, under an orchestrator, taking a busin
 7. Build in the milestone order in `docs/spec-input.md` section 9. Do not start with the UI.
 8. Every scenario dataset ships with a golden event log. Tests replay a live run and compare stage sequence and termination exit.
 9. Deliver as text or diffs in the session unless asked to produce a file or artifact.
+10. Every run records how each seat's model performed, in `runs/<id>/metrics.json` and `runs/<id>/seat-calls.jsonl`. Model choices are made from that data, not from impressions. Refresh `docs/model-performance.md` after a batch of live runs.
 
 ## Pointers
 - Principles and non-goals: `.specify/memory/constitution.md`
@@ -29,6 +30,7 @@ A sales demo that shows several AI agents, under an orchestrator, taking a busin
 - Frozen event schema: `docs/schema/events-v1.0.0.md` (typed models in `app/schema/`)
 - Dependency rationale record: `docs/dependencies.md`
 - Deviations found while building (design/ is never edited): `docs/design-deviations.md`
+- Model performance per seat, captured on every run: `docs/model-performance.md`, refreshed with `uv run python scripts/model_report.py --write`
 - Quality gates: `uv run python scripts/check.py`; screenshots and browser tests: `uv run pytest -m visual`
 
 ## Stack (verify current versions before pinning)

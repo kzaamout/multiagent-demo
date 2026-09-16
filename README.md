@@ -150,6 +150,7 @@ uv run pytest -m visual             # screenshot comparison and browser end-to-e
 - Behaviour: `docs/spec-input.md`, `specs/001-event-spine-stubbed-loop/`, `specs/002-live-team-clean-run/`
 - Setup: `scripts/setup.py`, with `scripts/setup.ps1` and `scripts/setup.sh` as bootstraps; models and seats in `config/models.yaml`
 - Datasets: `datasets/`, with the Clean run inputs described in `datasets/clean-run/README.md`
+- Model performance per seat, from every run: `docs/model-performance.md` (`uv run python scripts/model_report.py --write`)
 - Appearance: `design/` (never edited), deviations in `docs/design-deviations.md`
 - Slices and decisions: `docs/roadmap.md`
 - Event schema: `docs/schema/events-v1.0.0.md`
