@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from app.agents.base import HumanScript
 from app.config import load_settings
 from app.orchestrator.driver import drive
@@ -12,6 +14,8 @@ from app.runs.registry import discover_datasets
 from app.schema.events import Event, validate_run
 from tests.integration.s2 import live_harness as h
 from tests.support.scripted_model import ScriptedModel, reply
+
+pytestmark = pytest.mark.dataset
 
 SCRIPT = HumanScript(answers={"q_service_voltage": "120/208 V"}, decision="approve")
 

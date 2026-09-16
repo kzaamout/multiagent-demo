@@ -16,7 +16,7 @@ from app.config import Settings
 from app.main import create_app
 from tests.integration.s2.test_providers_and_api import curated_datasets, scripted_factory
 
-pytestmark = pytest.mark.visual
+pytestmark = [pytest.mark.visual, pytest.mark.dataset]
 
 
 def free_port() -> int:

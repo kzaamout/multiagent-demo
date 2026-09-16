@@ -14,6 +14,8 @@ import pytest
 from app.config import Settings
 from app.main import create_app
 
+pytestmark = pytest.mark.dataset
+
 
 @pytest.fixture
 async def client(tmp_path: Path) -> AsyncIterator[httpx.AsyncClient]:

@@ -6,12 +6,16 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from app.agents.base import HumanScript
 from app.orchestrator.driver import drive
 from app.runs.golden import read_golden, transitions
 from app.schema.events import Event
 from tests.integration.s2 import live_harness as h
 from tests.support.scripted_model import Turn, reply
+
+pytestmark = pytest.mark.dataset
 
 GOLDEN = Path(__file__).resolve().parents[3] / "datasets" / "planted-inconsistency" / "golden-events.jsonl"
 FINDING = "Section 3 states a 200 A main breaker for LP-1; the bill of materials and E-001 show 225 A."

@@ -16,6 +16,8 @@ from app.schema.events import Model
 from tests.integration.s2 import live_harness as h
 from tests.support.scripted_model import ScriptedModel
 
+pytestmark = pytest.mark.dataset
+
 SECRET = "zq9-provider-secret-5b1d"
 
 

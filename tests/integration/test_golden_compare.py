@@ -13,6 +13,8 @@ from app.runs.golden import compare, deterministic_run, read_golden, terminal_ex
 from app.runs.registry import discover_datasets
 from app.schema.events import validate_run
 
+pytestmark = pytest.mark.dataset
+
 DATASETS = [d.id for d in discover_datasets(load_settings().datasets_dir)]
 
 

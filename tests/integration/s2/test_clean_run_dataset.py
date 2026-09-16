@@ -7,11 +7,15 @@ import re
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
 from app.config import ROOT
 from app.live.documents import parse_pdf
 from app.live.materials import DatasetFiles
 from app.runs.registry import discover_datasets
 from app.tools.price_list import LookupRequest, PriceList
+
+pytestmark = pytest.mark.dataset
 
 FOLDER = ROOT / "datasets" / "clean-run"
 SCHEDULED = {

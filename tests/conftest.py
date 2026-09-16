@@ -24,6 +24,24 @@ from app.schema.events import Event  # noqa: E402
 START = dt.datetime(2026, 9, 14, 9, 12, 0, tzinfo=dt.UTC)
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers", "dataset: needs the scenario datasets, which are local assets and not published"
+    )
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Datasets are not committed (see .gitignore). Without them these tests cannot run, so they skip
+    rather than fail, and a checkout with the datasets in place runs everything as before."""
+    folder = ROOT / "datasets"
+    if folder.is_dir() and any(p.is_dir() for p in folder.iterdir()):
+        return
+    skip = pytest.mark.skip(reason="no datasets in this checkout; see datasets/README.md")
+    for item in items:
+        if "dataset" in item.keywords:
+            item.add_marker(skip)
+
+
 @pytest.fixture(autouse=True)
 def _never_call_real_model_providers(monkeypatch: pytest.MonkeyPatch) -> None:
     """Importing the app loads the real .env, and a curated dataset runs live. A test that reaches the

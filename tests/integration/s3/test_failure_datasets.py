@@ -11,6 +11,8 @@ from app.config import ROOT
 from app.live.documents import parse_pdf
 from app.live.materials import DatasetFiles
 
+pytestmark = pytest.mark.dataset
+
 DATASETS = ROOT / "datasets"
 CLEAN = DATASETS / "clean-run"
 FAILURES = ("planted-inconsistency", "missing-sheet", "missing-price", "not-ready")

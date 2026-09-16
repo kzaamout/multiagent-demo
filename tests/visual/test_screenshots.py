@@ -20,7 +20,7 @@ HERE = Path(__file__).resolve().parent
 REFERENCE = HERE / "reference"
 OUTPUT = HERE / "output"
 
-pytestmark = pytest.mark.visual
+pytestmark = [pytest.mark.visual, pytest.mark.dataset]
 
 
 def free_port() -> int:

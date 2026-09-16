@@ -25,11 +25,10 @@ node_modules/
 # screenshot comparison outputs
 tests/visual/output/
 
-# Client documents are never committed. A prospect's files stay out of git until they are
-# redacted and cleared, and even then they are dropped in locally, not pushed.
-datasets/Northpointe - 1/
-datasets/prospect-own/inputs/
-datasets/opa-woodbend/inputs/
-datasets/fyi-kerrisdale/inputs/
-datasets/mobile-snap-sunridge/inputs/
-!datasets/*/inputs/.gitkeep
+# Datasets are not published by default. A prospect's files must never be committed, and even a
+# synthetic set is released only when we decide to. To release one, add an allow line beside the
+# README line below, for example:
+#   !datasets/clean-run/
+# Everything else under datasets/ stays local. Run recordings and knowledge files are ignored above.
+datasets/*
+!datasets/README.md

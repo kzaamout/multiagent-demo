@@ -10,6 +10,20 @@ Each subfolder is one selectable scenario in the Demo composer dropdown. A datas
 - Live mode: a dataset runs live when it has at least one request file in `inputs/`, at least one PDF in `inputs/drawings/`, and `fixtures/supplier-prices.csv`. Otherwise it runs on the S1 stubs. `AGENT_MODE=stub` in `.env` forces stubs for every dataset.
 - `golden-events.jsonl`: the recorded event log of a verified live run, used by the replay-and-compare tests. Compare stage sequence and termination exit; do not compare model text.
 
+## What is in this folder
+
+Datasets are local assets. `.gitignore` keeps everything under `datasets/` out of git except this file, so a
+prospect's documents can never be committed by accident and a synthetic set is published only when we decide
+to release it. To release one, add an allow line to `.gitignore` beside the README line:
+
+```
+!datasets/clean-run/
+```
+
+A checkout without datasets still passes the gates: the tests that need them carry `pytest.mark.dataset` and
+skip when the folder holds no dataset. The demo itself cannot run without at least one, so keep them on the
+machine that presents.
+
 ## Curation checklist (owner tasks)
 - [ ] Choose a public electrical tender from Alberta Purchasing Connection or MERX as the base request text. Rewrite it into a fictional project so nothing is traceable to a real bidder. Keep the structure and language realistic.
 - [ ] Source a small commercial electrical drawing set: legend, single-line, two or three panel schedules, two floor plans, a short Division 26 specification. Options: manufacturer or college training sets with permissive licences, or commission a drafting freelancer for a clean original set (preferred, and it allows planting defects cleanly).

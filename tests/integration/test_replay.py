@@ -4,6 +4,8 @@ import asyncio
 import time
 from pathlib import Path
 
+import pytest
+
 from app.agents.stubs import SCENARIOS
 from app.config import Settings
 from app.runs.bus import StreamBus
@@ -12,6 +14,8 @@ from app.runs.registry import Registry
 from app.runs.replay import ReplaySession
 from app.schema.events import Event
 from tests.conftest import run_scenario
+
+pytestmark = pytest.mark.dataset
 
 
 async def collect(bus: StreamBus, stream_id: str) -> list[dict[str, object]]:

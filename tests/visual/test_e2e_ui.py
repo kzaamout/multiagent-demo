@@ -17,7 +17,7 @@ import uvicorn
 from app.config import Settings
 from app.main import create_app
 
-pytestmark = pytest.mark.visual
+pytestmark = [pytest.mark.visual, pytest.mark.dataset]
 
 
 def free_port() -> int:

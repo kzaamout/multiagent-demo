@@ -11,6 +11,8 @@ import pytest
 from app.config import Settings, load_settings
 from app.runs.golden import deterministic_run
 
+pytestmark = pytest.mark.dataset
+
 ROOT = Path(__file__).resolve().parents[3]
 
 

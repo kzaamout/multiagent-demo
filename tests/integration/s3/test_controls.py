@@ -7,6 +7,8 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 
+import pytest
+
 from app.agents.base import HumanScript
 from app.config import Settings
 from app.orchestrator.driver import drive
@@ -16,6 +18,8 @@ from app.runs.registry import Registry
 from app.schema.events import Event
 from tests.integration.s2 import live_harness as h
 from tests.support.scripted_model import HANG, WaitFor
+
+pytestmark = pytest.mark.dataset
 
 SCRIPT = HumanScript(answers={"q_service_voltage": "120/208 V"}, decision="approve")
 
