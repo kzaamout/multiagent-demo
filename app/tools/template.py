@@ -56,8 +56,9 @@ def provenance_problems(markdown: str, offered_context: str) -> list[str]:
         known = sorted(offered)
         example = known[0] if known else "8f2a10c4"
         problems.append(
-            "the draft has no usable provenance tags. Tag every figure with the source id of the output it came "
-            f"from, for example {{{{225 A|src:{example}}}}}. Your source ids are: " + ", ".join(known)
+            "the draft body has no usable provenance tags. Tag every figure in the body, in every section, with "
+            f"the source id of the output it came from, for example {{{{225 A|src:{example}}}}}. Tags in the "
+            "provenance appendix do not count. Your source ids are: " + ", ".join(known)
         )
     unknown = sorted({tag.source_id for tag in tags if tag.source_id not in offered})
     if unknown:
