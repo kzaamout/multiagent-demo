@@ -336,7 +336,13 @@ class LiveAgentSource:
             "intake",
             "intake",
             bundle,
-            lambda t: parse_reply("intake", t, expected_items=expected_items, markings=markings),
+            lambda t: parse_reply(
+                "intake",
+                t,
+                expected_items=expected_items,
+                markings=markings,
+                request_files=[p.name for p in self.ctx.files.request_files()],
+            ),
         ):
             if emit is not None:
                 yield emit

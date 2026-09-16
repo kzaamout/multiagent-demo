@@ -5,10 +5,13 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import pytest
+
 from app.config import ROOT
 from app.live.replies import (
     REQUIRED_SECTIONS,
     IntakeReply,
+    ReplyError,
     checklist_items,
     checklist_markings,
     parse_reply,
@@ -82,3 +85,24 @@ def test_a_gap_the_checklist_closes_needs_no_question() -> None:
     )
     assert [g.status for g in reply.readiness.checklist].count("assumed") == 3
     assert reply.clarifications == [], "defaults and Estimator concerns are graded, not asked"
+
+
+def test_a_specification_that_was_never_provided_cannot_be_graded_pass() -> None:
+    items = checklist_items(CHECKLIST, REQUIRED_SECTIONS)
+    grades = [{"item": item, "status": "pass", "note": ""} for item in items]
+    text = json.dumps(
+        {
+            "brief": {**BRIEF, "specification": "Division 26 specification issued separately"},
+            "readiness": {"verdict": "ready", "checklist": grades},
+            "clarifications": [],
+        }
+    )
+    with pytest.raises(ReplyError, match="no specification was provided"):
+        parse_reply("intake", text, expected_items=items, request_files=["invitation-to-tender.pdf"])
+    reply = parse_reply(
+        "intake",
+        text,
+        expected_items=items,
+        request_files=["invitation-to-tender.pdf", "division-26-specification.pdf"],
+    )
+    assert isinstance(reply, IntakeReply), "the item passes when the file is there"

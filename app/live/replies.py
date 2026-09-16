@@ -174,6 +174,10 @@ class Clarification(BaseModel):
 ESTIMATOR_CONCERN_WORDS = ("panel schedule", "rating")
 
 
+# Datasets name their specification file after it, for example division-26-specification.pdf.
+SPECIFICATION_IN_NAME = "spec"
+SPECIFICATION_ITEM = "specifications or a specification section list"
+
 GRADED_SECTIONS = ("request document", "drawing set", "consistency checks")
 REQUIRED_SECTIONS = ("request document", "drawing set")
 
@@ -263,7 +267,10 @@ class IntakeReply(BaseModel):
         return data
 
     def check(
-        self, expected_items: list[str] | None = None, markings: Mapping[str, str] | None = None
+        self,
+        expected_items: list[str] | None = None,
+        markings: Mapping[str, str] | None = None,
+        request_files: list[str] | None = None,
     ) -> None:
         # Only the items the checklist marks blocking stop a run. A fail on any other item, such as a missing
         # panel schedule or an index that lists a sheet not provided, counts as assumed and is carried forward
@@ -284,6 +291,14 @@ class IntakeReply(BaseModel):
                 f"readiness.checklist grades {len(self.readiness.checklist)} items but the readiness checklist has "
                 f"{len(expected_items)}. Grade each of these, in order: " + "; ".join(expected_items)
             )
+        if request_files is not None and not any(SPECIFICATION_IN_NAME in f.lower() for f in request_files):
+            for grade in self.readiness.checklist:
+                if grade.item.lower().startswith(SPECIFICATION_ITEM) and grade.status == "pass":
+                    raise ReplyError(
+                        "the specification item is graded pass but no specification was provided. The request "
+                        f"files are: {', '.join(request_files)}. Grade it fail when the request references a "
+                        "specification, and say in the note which file the request names"
+                    )
         gaps = [c for c in failing + assumed if needs_a_question(c.item, marks)]
         # A not_ready run ends before any question is asked, so its gaps need grades, not questions.
         if expected != "not_ready" and len(self.clarifications) < len(gaps):
