@@ -1,8 +1,8 @@
-# Event schema, version 1.0.0
+# Event schema, version 1.1.0
 
-Superseded by `events-v1.1.0.md` on 2026-09-15. Kept for the recordings made under it, which still validate against 1.1.0.
+Status: frozen on 2026-09-15 under constitution II and XII, amending 1.0.0 under constitution XIX per the owner's change request of 2026-09-15 (slice S3b in `docs/roadmap.md`). Source: `docs/spec-input.md` 0.7 section 6. Changes require an amendment under constitution XIX and a new version. The JSON Schema export `events-v1.1.0.json` is generated from the typed models and must match this document.
 
-Status: frozen on 2026-09-14 under constitution II and XII. Source: `docs/spec-input.md` 0.5 section 6, with the pre-S1 decisions applied. Changes require an amendment under constitution XIX and a new version. The JSON Schema export `events-v1.0.0.json` is generated from the typed models and must match this document.
+Amendments in 1.1.0, all additive so every 1.0.0 recording still validates: `summary.stop_reason` on `run.terminated`, `latency_ms` on `meter.update`, `stage.changed` permitted in a Single-model run, and the meaning of `budget` on `retry.incremented` and `retries` fixed as the maximum number of reworks.
 
 ## Envelope
 
@@ -13,7 +13,7 @@ Status: frozen on 2026-09-14 under constitution II and XII. Source: `docs/spec-i
 | `seq` | integer | starts at 1, increases by exactly 1 per run |
 | `ts` | ISO 8601 string with timezone | for stubbed runs, run start plus a fixture offset; for live agents, wall time |
 | `type` | string | one of the types below |
-| `stage` | `intake`, `plan`, `work`, `assemble`, `review`, `handoff`, or null | null for `run.started`, `run.terminated`, and every event of a Single-model run |
+| `stage` | `intake`, `plan`, `work`, `assemble`, `review`, `handoff`, or null | null for `run.started` and `run.terminated`; in a Single-model run also null on every event other than `stage.changed` |
 | `actor` | Agent object, `"human"`, or `"system"` | Agent is `{ agent_id, name, role, model }`; `model` is `{ provider, model_id, label }` |
 | `reason` | string | required on every Orchestrator event, one sentence; absent otherwise |
 | `prompt_ref` | string | required on agent messages: `intake.brief`, `intake.readiness`, `clarification.needed`, `task.progress`, `tool.called`, `task.completed`, `blocker.raised`, `draft.committed`, `review.verdict`; absent otherwise |
@@ -44,23 +44,23 @@ System events (actor `"system"`): `model.changed` (from Settings), `artifact.com
 - `draft.committed` `{ version, markdown_path, provenance_tags: [{ tag_id, source_event_id }], note: string (optional, default empty) }` (Writer, or human at Handoff)
 - `artifact.compiled` `{ version, pdf_path: string | null, page_images: [string] }` (empty in S1; populated from S4)
 - `review.verdict` `{ verdict: pass | fail, findings: [{ id, severity: blocker | major | minor, text, evidence, route_to: work | assemble | null, agent_id: string | null }], summary: string (optional, default empty) }`
-- `retry.incremented` `{ count, budget }` (Orchestrator)
+- `retry.incremented` `{ count, budget }` (Orchestrator; `count` is the reworks dispatched so far, `budget` the maximum reworks, which is `review_max_cycles` minus one)
 - `handoff.ready` `{ exit_determination: reviewer_pass | retry_exhausted, package: { pdf_path: string | null, page_images: [string], verdict_event_id, unresolved_findings: [finding id], assumptions: [question_id], clarifications: [{ question_id, answer }], event_log_path } }` (Orchestrator)
 - `human.approved` `{ decision: approve | edit | reject, notes }` (human)
 - `knowledge.appended` `{ client_id, entries: [{ question_id, answer, source_event_id }] }` (Orchestrator; Intake clarifications only)
 - `run.paused` `{ by: human }` (Orchestrator)
 - `run.resumed` `{ by: human }` (Orchestrator)
 - `model.changed` `{ agent_id, from_model: Model, to_model: Model }` (system)
-- `meter.update` `{ agent_id, call_id, tokens_in, tokens_out, wall_ms, est_cost }` (system; per-call delta)
+- `meter.update` `{ agent_id, call_id, tokens_in, tokens_out, wall_ms, latency_ms: int (optional, default 0), est_cost }` (system; per-call delta; `wall_ms` is the measured wall time of the call, `latency_ms` the provider's reported latency)
 - `run.terminated` `{ exit: Exit, summary: Summary }` (Orchestrator, stage null; always the last event)
 
 Where
 
 - `Stage` is `intake | plan | work | assemble | review | handoff`
 - `Exit` is `reviewer_pass | retry_exhausted | blocker_escalated | not_ready | cost_ceiling | stopped | single_complete | dry_intake`
-- `Summary` is `{ headline: string, missing: [{ item, note, source_event_id }], unresolved_findings: [finding id], retries: { count, budget }, readiness_verdict: ready | ready_with_assumptions | not_ready | null, event_count, elapsed_ms, est_cost, human_decision: approve | edit | reject | null }`. `missing` is filled for `not_ready` and `blocker_escalated`; `unresolved_findings` for `retry_exhausted`; `readiness_verdict` for `not_ready` and `dry_intake`. `event_count` counts every event of the run including `run.terminated`.
+- `Summary` is `{ headline: string, missing: [{ item, note, source_event_id }], unresolved_findings: [finding id], retries: { count, budget }, stop_reason: no_progress | repeated_finding | max_cycles | null (optional, default null), readiness_verdict: ready | ready_with_assumptions | not_ready | null, event_count, elapsed_ms, est_cost, human_decision: approve | edit | reject | null }`. `missing` is filled for `not_ready` and `blocker_escalated`; `unresolved_findings` and `stop_reason` for `retry_exhausted` (`no_progress`: the cycle did not reduce the blocker and major findings; `repeated_finding`: a finding matched the previous cycle on normalized evidence and route target; `max_cycles`: `review_max_cycles` was reached); `readiness_verdict` for `not_ready` and `dry_intake`. `event_count` counts every event of the run including `run.terminated`.
 
-Additions relative to spec section 6, all recorded as decisions: `title` on plan sub-tasks (the export's plan card shows one), `text` on findings (the export shows finding text and evidence separately), `headline` on `task.progress` (the one-line thread summary while a sub-task is active), `note` on `draft.committed` and `summary` on `review.verdict` (the export's cards carry a one-line commit note and a verdict sentence), `status` values on checklist items, `pdf_path` nullable and `page_images` possibly empty on `artifact.compiled` while the compiler is stubbed, `readiness_verdict` on the summary (pre-S1 decision 1).
+Additions relative to spec section 6 in 1.0.0, all recorded as decisions: `title` on plan sub-tasks (the export's plan card shows one), `text` on findings (the export shows finding text and evidence separately), `headline` on `task.progress` (the one-line thread summary while a sub-task is active), `note` on `draft.committed` and `summary` on `review.verdict` (the export's cards carry a one-line commit note and a verdict sentence), `status` values on checklist items, `pdf_path` nullable and `page_images` possibly empty on `artifact.compiled` while the compiler is stubbed, `readiness_verdict` on the summary (pre-S1 decision 1).
 
 ## Prompt bundle
 
@@ -71,7 +71,7 @@ Additions relative to spec section 6, all recorded as decisions: `title` on plan
 1. The first event of a run is `run.started`; the last is `run.terminated`; nothing follows it.
 2. `seq` is 1, 2, 3, ... with no gaps.
 3. Every event validates against its payload model before it is emitted, recorded, or rendered.
-4. Recording: `runs/<run_id>/events.jsonl` holds the events in order, one JSON object per line. Replay re-emits them verbatim.
+4. Recording: `runs/<run_id>/events.jsonl` holds the events in order, one JSON object per line. Replay re-emits them verbatim. The rest of the folder is described in spec 0.7 section 6: `run.json` (manifest), `prompts/<prompt_ref>.json`, `responses/<prompt_ref>.json`, `prepared/`, `drafts/`, `knowledge.md`, `knowledge.diff`, `metrics.json`, `seat-calls.jsonl`, `performance.json`. Replay needs only this folder.
 5. Golden logs use the same line format and are compared on the ordered `stage.changed` transitions and the terminal `exit`.
 
 ## Line format

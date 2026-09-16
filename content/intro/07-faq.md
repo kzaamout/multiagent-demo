@@ -4,7 +4,7 @@
 
 **Why not one very good model with a long prompt?** A single model cannot review its own work with a straight face, cannot be denied the tools it should not have, and cannot show you where a number came from. Roles give you separation of duties, which is what your auditors will ask about.
 
-**What stops it from looping forever?** A retry budget owned by the Orchestrator. Two review cycles, then it escalates to a human with the open findings. There is also a hard cost ceiling per run. Stopping is a designed behaviour, not a hope.
+**What stops it from looping forever?** A review limit owned by the Orchestrator. Rework continues while each review cycle fixes more than the last; it stops when a review cycle makes no progress or a ceiling is reached, then it escalates to a human with the open findings. There is also a hard cost ceiling per run. Stopping is a designed behaviour, not a hope.
 
 **What if it gets something wrong?** The Reviewer is designed to catch it, and the Handoff package shows every assumption and source so the human can catch what the Reviewer missed. Nothing is sent externally without a person approving it.
 

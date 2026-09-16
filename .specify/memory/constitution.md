@@ -1,6 +1,6 @@
 <!--
 Sync Impact Report
-Version change: 1.1.0 -> 1.1.1 (PATCH, 2026-09-14): principle VI lists dry intake among the control exits, per the owner's pre-S1 decision recorded in docs/roadmap.md. Earlier: unversioned base (treated as 1.0.0, amended 2026-09-14 for II, VI, and one non-goal) -> 1.1.0
+Version change: 1.1.1 -> 1.2.0 (MINOR, 2026-09-15): principle III applies a review limit instead of tracking a retry budget; principle VI replaces the fixed retry budget with a progress-based review limit under a hard ceiling and names the stop reason on the termination card; principle VIII requires a full recording that replays from its own folder. Per the owner's change request of 2026-09-15 recorded in docs/roadmap.md (slice S3b). Earlier: 1.1.0 -> 1.1.1 (PATCH, 2026-09-14): principle VI lists dry intake among the control exits, per the owner's pre-S1 decision recorded in docs/roadmap.md. Earlier: unversioned base (treated as 1.0.0, amended 2026-09-14 for II, VI, and one non-goal) -> 1.1.0
 Modified principles: none renamed; I through IX carried over verbatim and moved from level-2 to level-3 headings under Core Principles
 Added sections:
   - Engineering Principles (X through XIX)
@@ -23,7 +23,7 @@ This system exists to be demonstrated live by its owner to a prospect and to be 
 The typed event schema is frozen before any agent is written. Every state change, agent action, human interaction with the run, model change, and metering update is an event. The UI, the replay engine, the meters, the provenance links, and any future renderer (Slack) consume the same stream. Nothing renders that was not emitted. Chat with an agent does not touch the run and is out of band: not an event, not recorded, not replayed.
 
 ### III. One owner of state
-The Orchestrator alone changes stage, dispatches work, batches and asks human questions, appends to the knowledge file, tracks the retry budget, and terminates a run. Every Orchestrator event carries a one-sentence reason. No other agent may do any of these things.
+The Orchestrator alone changes stage, dispatches work, batches and asks human questions, appends to the knowledge file, applies the review limit, and terminates a run. Every Orchestrator event carries a one-sentence reason. No other agent may do any of these things.
 
 ### IV. One door to the human
 Agents raise clarifications and blockers as events. Only the Orchestrator presents them to the human, in one batch, with the run paused. Nothing is sent externally by the system; a human approves at Handoff.
@@ -32,13 +32,13 @@ Agents raise clarifications and blockers as events. Only the Orchestrator presen
 Agents differ on three axes and only these: instructions and success criteria, tool access, and visibility scope. Name and role are fixed identity. The underlying model is a runtime attribute, swappable per seat, and must be displayed truthfully wherever the agent appears.
 
 ### VI. Design for the failure
-Termination is a first-class concern with exactly four narrative exits: reviewer pass, retry budget exhausted, blocker escalated, intake not ready. Control exits (cost ceiling, stopped, single-model complete, dry intake) exist for safety and control and are not part of the demo narrative. `run.terminated` is always the last event of a run. Scenario datasets deliberately contain planted defects so failure paths run on cue. The Reviewer is on a different model family from the Writer and cannot see the team working.
+Termination is a first-class concern with exactly four narrative exits: reviewer pass, the progress-based review limit with a hard ceiling stopped the loop, blocker escalated, intake not ready. Rework continues only while a review cycle reduces the blocker and major findings and repeats none of them; a fixed maximum number of cycles and the cost ceiling bound it, and the termination card names which stop fired. Control exits (cost ceiling, stopped, single-model complete, dry intake) exist for safety and control and are not part of the demo narrative. `run.terminated` is always the last event of a run. Scenario datasets deliberately contain planted defects so failure paths run on cue. The Reviewer is on a different model family from the Writer and cannot see the team working.
 
 ### VII. Provenance
 Every factual figure in a deliverable carries a tag linking it to the agent output that produced it. The Writer invents nothing.
 
 ### VIII. Reliability on demo day
-Every run is recorded. Replay mode reproduces a recorded run faithfully at 1x or 4x. A pre-flight page verifies every dependency. A hard per-run cost ceiling halts runaway loops.
+Every run is recorded in full: its events, every prompt and response, every file it produced, and a manifest, so it replays from its own folder alone. Replay mode reproduces a recorded run faithfully at 1x or 4x. A pre-flight page verifies every dependency. A hard per-run cost ceiling halts runaway loops.
 
 ### IX. Writing rules
 No em dashes anywhere: code, comments, prompts, UI copy, generated content, docs. Plain, direct English. Agents are referred to by name and role in user-facing copy.
@@ -99,4 +99,4 @@ Versioning: MAJOR for a removal or redefinition of a principle or non-goal, MINO
 
 Compliance review: every specification, plan, and task list includes a constitution check against the principles above and the non-goals. Reviews verify the check. Anything that sits close to a non-goal states how it stays on the right side. `CLAUDE.md` carries the runtime working rules and points here.
 
-**Version**: 1.1.1 | **Ratified**: 2026-09-14 | **Last Amended**: 2026-09-14
+**Version**: 1.2.0 | **Ratified**: 2026-09-14 | **Last Amended**: 2026-09-15

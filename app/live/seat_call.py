@@ -259,10 +259,12 @@ class SeatCall:
                 raise
             except MaxTokensReachedException:
                 # Retrying would repeat the whole call, tool reads included, and stop at the same limit.
+                self._attempt(attempt, False, "", "the reply hit the model's output limit")
                 raise AgentFailure(
                     f"The {self.role} on {label} reached its output limit before finishing the reply, so the run stops."
                 ) from None
             except Exception as error:  # noqa: BLE001
+                self._attempt(attempt, False, "", f"the model could not be reached: {type(error).__name__}")
                 if attempt == 2:
                     raise AgentFailure(
                         f"The {self.role} could not reach {label} after a retry ({type(error).__name__}), so the run stops."

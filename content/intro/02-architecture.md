@@ -4,7 +4,7 @@ Three layers.
 
 **Renderers.** What you look at. The demo web page is one renderer. A Slack channel could be another. Renderers subscribe to an event stream and draw it; they never decide anything.
 
-**Orchestrator.** A state machine with six stages and a retry budget. It owns the plan, the assignments, every stage transition, all contact with the human, and the decision to stop. It emits a typed event for everything it does, each with a one-sentence reason. It is the only component that changes state.
+**Orchestrator.** A state machine with six stages and a review limit. It owns the plan, the assignments, every stage transition, all contact with the human, and the decision to stop. It emits a typed event for everything it does, each with a one-sentence reason. It is the only component that changes state.
 
 **Agents and tools.** Each agent is a model plus instructions plus a tool set plus a visibility scope. Agents receive a task and a slice of context, return a structured result, and have no idea what stage the system is in. Tools are deliberately narrow: a drawing reader, a price list, a template, a document compiler.
 

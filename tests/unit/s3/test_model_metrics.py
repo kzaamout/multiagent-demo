@@ -185,6 +185,11 @@ def test_the_report_groups_by_seat_and_model(tmp_path: Path) -> None:
     assert "| writer | qwen3.5 9b, local |" in text and "Runs recorded: 2" in text
 
 
+def test_a_seat_that_never_replied_is_still_counted() -> None:
+    assert categorise("the reply hit the model's output limit") == "output_limit"
+    assert categorise("the model could not be reached: ConnectionError") == "provider_error"
+
+
 def test_reasons_are_grouped_so_a_pattern_shows() -> None:
     assert categorise("the draft has no usable provenance tags") == "provenance_tags"
     assert categorise("no price came from price_list_lookup") == "tool_not_used"

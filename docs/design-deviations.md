@@ -47,3 +47,15 @@ Three states the export does not show were captured at 1920 by 1080 (`tests/visu
 ### Notes
 
 - The Dry intake masks in `tests/visual/masks.py` now say the toggle is wired in S3 and is a permanent addition to the export, rather than a deferred region. The region stays masked because the export has no such control.
+
+## Slice S3b (2026-09-15)
+
+### Owner decisions, from the change request after the S3 review
+
+1. **Navigation order.** The export orders the header nav Demo, Introduction, Pre-flight, Settings on every page. The owner's order is Pre-flight, Introduction, Demo, Settings, because Pre-flight is what the presenter opens before a meeting. Behaviour over the export's order; the same links, styles, indicator, and build stamp.
+2. **Threads start collapsed.** The export's running state shows the Estimator thread expanded and spec 0.6 said active threads auto-expand. Spec 0.7 collapses every thread until clicked, with a live indicator on the avatar and header border (the loop strip's active pulse, invisible when animations are frozen) and an unread count chip in the retry badge style. The running-state reference capture opens the thread by clicking it, as it always did, so the comparison is unchanged.
+3. **Stage label under the loop strip.** Spec 0.7 adds a one-line label under the strip with the `target_reason` of the latest `stage.changed`. The export has no such line; it is added in the export's meta text style and masked in the comparison.
+4. **Bypassed nodes and filled connectors.** New node state `bypassed` (dimmed, dashed border) and a filled forward connector between completed nodes. Both are extensions of the export's node states; no export screenshot shows them, so they are reviewed for family consistency like the S3 controls.
+5. **Forward arrow pulse.** The export animates only the Review to Work arrow. Spec 0.7 pulses every arrow once on every `stage.changed`, forward and backward, about 600 ms, in the same red as the export's fired arrow for backward and the ink colour for forward.
+6. **Vocabulary.** The export's copy says "Electrical RFP" (workflow selector, Settings seat notes, sample feed text). The application says "Electrical bid response" and "bid request" or "tender package". The export is not edited; the 43 occurrences in `design/` stay as reference text.
+7. **Performance toggle on the termination card.** A "performance" toggle in the prompt-toggle style opens the per-agent, per-stage, and per-run tables from `performance.json`; a Download performance button joins the Handoff actions in the outlined button style. Not in the export; added in its component family.

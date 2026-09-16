@@ -67,6 +67,10 @@ Demo screen
 - Waiting-on-you banner inputs are read-only in the export; the wired banner makes them editable.
 - Compare strip content exists only in the terminated state; the empty-state text is present.
 - Raw turns sample lines omit `event_id`, `run_id`, and `role`, and give `run.started` the actor "system". Fixture only; the schema governs.
+- Header nav order is Demo, Introduction, Pre-flight, Settings. The owner's order (spec 0.7) is Pre-flight, Introduction, Demo, Settings. Wiring follows the spec.
+- The running state shows an expanded specialist thread. Spec 0.7 collapses every thread until clicked, with an activity indicator and an unread count on the header (`docs/design-deviations.md`, S3b).
+- The loop strip has no stage label, no bypassed node state, and no filled connector; only the Review to Work arrow animates. Spec 0.7 adds all four (`docs/design-deviations.md`, S3b).
+- The copy says "Electrical RFP". Spec 0.7 says "Electrical bid response"; the export text is not edited.
 - Feed text below 16px: card meta and event labels 12 to 13px, prompt panel monospace 13px, finding evidence 14px, checklist grid 15px, raw drawer 12.5px. Body text and replies are 16px as required. Acceptable as meta; revisit if the projector test disagrees.
 
 Introduction

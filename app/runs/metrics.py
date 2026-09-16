@@ -29,6 +29,7 @@ CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("blocker_as_concern", ("blocker, not a concern",)),
     ("missing_fields", ("needs headline", "needs", "must")),
     ("output_limit", ("output limit", "max tokens")),
+    ("provider_error", ("could not be reached",)),
 )
 
 

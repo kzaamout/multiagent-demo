@@ -9,7 +9,7 @@ Six stages. Work moves forward through them and, when something is wrong, moves 
 5. **Review.** An independent Reviewer, on a different model family from the Writer, judges the finished document against the brief and a criteria file. Pass or fail, with findings by severity and a routing recommendation for each. A fail sends work back to the specific stage that caused it.
 6. **Handoff.** You receive the deliverable, the reviewer's verdict, every assumption made on your behalf, every question asked and answered, and the full log. Nothing is sent externally by the system.
 
-**Knowing when to stop.** Termination is the hardest problem in multi-agent systems. This system has exactly four exits, and the Orchestrator alone decides: the Reviewer passed; the retry budget (two review cycles) is spent and the unresolved findings go to you; a blocker needs a human decision; or the request was not ready to begin with. Every run ends with a card saying which exit fired and why.
+**Knowing when to stop.** Termination is the hardest problem in multi-agent systems. This system has exactly four exits, and the Orchestrator alone decides: the Reviewer passed; review stopped, because a review cycle made no progress or a ceiling was reached, and the unresolved findings go to you; a blocker needs a human decision; or the request was not ready to begin with. Every run ends with a card saying which exit fired and why.
 
 **Memory.** Answers you give are written to a per-client knowledge file the Intake Analyst reads at the start of every run. Ask once.
 
