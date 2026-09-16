@@ -68,3 +68,17 @@ def test_the_checklist_marks_the_items_the_engine_relies_on() -> None:
     assert "blocking" in markings["submission deadline, present and in the future"]
     assert "concern" in markings["panel schedules for every panel shown on the single-line"]
     assert "blocking" not in markings["drawing index matching the sheets provided"]
+
+
+def test_a_gap_the_checklist_closes_needs_no_question() -> None:
+    reply = graded(
+        {
+            "Bid security requirement stated, such as a bid bond": "assumed",
+            "Insurance requirements stated": "assumed",
+            "Panel schedules for every panel shown on the single-line": "assumed",
+        },
+        [],
+        "ready_with_assumptions",
+    )
+    assert [g.status for g in reply.readiness.checklist].count("assumed") == 3
+    assert reply.clarifications == [], "defaults and Estimator concerns are graded, not asked"

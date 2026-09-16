@@ -229,12 +229,13 @@ def blocking_at_intake(item: str, markings: Mapping[str, str]) -> bool:
     return "blocking" in marking
 
 
-def estimator_concern(item: str, markings: Mapping[str, str]) -> bool:
-    """An item the checklist hands to the Estimator needs no clarification from the human."""
+def needs_a_question(item: str, markings: Mapping[str, str]) -> bool:
+    """A gap needs a clarification only when the checklist leaves it open. An item the checklist hands to the
+    Estimator, or closes with a default of its own, is graded and carried instead."""
     marking = _marking(item, markings)
     if marking is None:
-        return any(word in item.lower() for word in ESTIMATOR_CONCERN_WORDS)
-    return "concern" in marking
+        return not any(word in item.lower() for word in ESTIMATOR_CONCERN_WORDS)
+    return "concern" not in marking and "default" not in marking
 
 
 BRIEF_FIELDS = (
@@ -283,7 +284,7 @@ class IntakeReply(BaseModel):
                 f"readiness.checklist grades {len(self.readiness.checklist)} items but the readiness checklist has "
                 f"{len(expected_items)}. Grade each of these, in order: " + "; ".join(expected_items)
             )
-        gaps = [c for c in failing + assumed if not estimator_concern(c.item, marks)]
+        gaps = [c for c in failing + assumed if needs_a_question(c.item, marks)]
         # A not_ready run ends before any question is asked, so its gaps need grades, not questions.
         if expected != "not_ready" and len(self.clarifications) < len(gaps):
             names = "; ".join(c.item for c in gaps)

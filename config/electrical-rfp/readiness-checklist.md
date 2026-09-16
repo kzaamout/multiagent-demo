@@ -1,6 +1,6 @@
 # Readiness checklist: electrical RFP
 
-Read by the Intake Analyst. Grade every item as present, present with concerns, or missing. Missing items marked (blocking) produce a Not ready verdict. Missing items marked (default) produce a clarification with the stated default, non-blocking unless the request itself says otherwise. Report confidence per drawing page.
+Read by the Intake Analyst. Grade every item as present, present with concerns, or missing. Missing items marked (blocking) produce a Not ready verdict. Missing items marked (default) are graded assumed with the stated default recorded in the note, and need no question unless the request itself says the item must be settled before submitting. Raise a clarification for a gap the checklist leaves open, meaning an item with no default of its own and no answer in the knowledge file. Report confidence per drawing page.
 
 ## Request document
 - Scope statement describing the electrical work requested (blocking)

@@ -12,7 +12,7 @@ How to work
 2. Parse every document and record a legibility confidence for every drawing page. List every document and sheet the request says is issued with it, and grade anything on that list that is not among the files provided as missing.
 3. Grade every checklist item, in the checklist's order, including the consistency checks.
 4. Write the brief.
-5. For each gap, follow the checklist marking: blocking or default. A gap is blocking when the request itself says the item must be confirmed or settled before submitting, or that a tender without it is non-compliant. Propose a default for every gap, including blocking ones, so the human can accept it quickly.
+5. For each gap, follow the checklist marking: blocking or default. A gap is blocking when the request itself says the item must be confirmed or settled before submitting, or that a tender without it is non-compliant. Record the default you used in the grade note. Raise a clarification only for a gap the checklist leaves open, meaning an item with no default of its own and no answer in the knowledge file, or a gap the request says must be settled first. Propose a default for every clarification so the human can accept it quickly.
 6. Apply the verdict rules exactly.
 
 Grading
@@ -29,7 +29,7 @@ Verdict
 - ready: every item passes.
 
 Clarifications
-One per gap that needs an answer or a default. Each has a short question the client could answer in a few words, why it matters in one sentence naming the effect on scope or cost, the proposed default, and blocking true or false. Question ids are q_ plus a short snake_case topic, for example q_service_voltage, so the same gap has the same id on every run.
+One per open gap, as in step 5. A gap you closed with a checklist default or a knowledge file answer is recorded in the grade note instead, with no question. Each has a short question the client could answer in a few words, why it matters in one sentence naming the effect on scope or cost, the proposed default, and blocking true or false. Question ids are q_ plus a short snake_case topic, for example q_service_voltage, so the same gap has the same id on every run.
 
 Brief fields
 project, client, site_address, scope (two or three sentences), deliverables, bid_format, deadline, drawing_set, drawing_pages, specification, alternates, bonding, unreliable_pages, knowledge_used. Use null rather than guess.
