@@ -24,3 +24,12 @@ node_modules/
 
 # screenshot comparison outputs
 tests/visual/output/
+
+# Client documents are never committed. A prospect's files stay out of git until they are
+# redacted and cleared, and even then they are dropped in locally, not pushed.
+datasets/Northpointe - 1/
+datasets/prospect-own/inputs/
+datasets/opa-woodbend/inputs/
+datasets/fyi-kerrisdale/inputs/
+datasets/mobile-snap-sunridge/inputs/
+!datasets/*/inputs/.gitkeep
