@@ -1,0 +1,21 @@
+# Model sweep, stage 1 (owner decisions 2026-09-17): the Clean run only, one seat varied at a time against
+# a local baseline, plus every seat on one model. Local models only. Hyperparameters stay as the registry
+# sets them; each run records what it used. Run with:
+#   uv run python scripts/sweep.py config/sweep/stage-1.yaml --worker laptop
+label: stage-1
+datasets: [clean-run]
+repeats: 1
+ceiling: 1.00
+max_minutes: 30
+blocker: escalate          # what the sweep does when a blocker needs a human: escalate (the presenter's choice on Missing sheet) or answer
+baseline:                  # decision 4a: Qwen takes the Estimator, since the sweep is local only
+  orchestrator: qwen3-5-9b
+  intake: qwen3-5-9b
+  estimator: qwen3-5-9b
+  pricing: qwen3-5-9b
+  writer: qwen3-5-9b
+  reviewer: gemma4-12b
+vary:
+  models: [qwen3-5-9b, gemma4-12b, llama3-1-8b, deepseek-r1-14b, qwen3-5-4b]   # the baseline model is listed so the seats it does not hold (the Reviewer) get it too
+  seats: [orchestrator, intake, estimator, pricing, writer, reviewer]
+whole: [qwen3-5-9b, gemma4-12b, qwen3-5-4b]   # every seat on one model; a text-only model cannot fill the Estimator, so it is not listed

@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import AsyncIterator, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from pydantic import BaseModel
@@ -66,6 +66,9 @@ class SeatModel:
     price_out: float
     image_input: bool = False
     """Whether the model takes image content; the Reviewer needs it for the compiled pages (S4)."""
+    settings: dict[str, Any] = field(default_factory=dict)
+    """The hyperparameters this seat ran with, as resolved from the registry: temperature, num_ctx, think,
+    max_tokens. Written into every attempt line so a run records what it used, not what the config says today."""
 
 
 def estimated_cost(tokens_in: int, tokens_out: int, price_in: float, price_out: float) -> float:

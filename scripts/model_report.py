@@ -1,42 +1,121 @@
 """Model performance per seat, aggregated across every recorded run.
 
-    uv run python scripts/model_report.py              # print the tables
-    uv run python scripts/model_report.py --write      # also refresh docs/model-performance.md
+    uv run python scripts/model_report.py              # print the report
+    uv run python scripts/model_report.py --write      # also refresh docs/model-performance.md,
+                                                       # docs/model-performance-runs.csv and
+                                                       # docs/model-performance-columns.md
 
 Each run writes runs/<id>/metrics.json as it ends (app/runs/metrics.py). This reads them all, groups by
-seat and model, and reports the numbers a model choice turns on: what a seat costs per run, how long its
-calls take, how much of its context it uses, and how often its reply is accepted first time. Runs whose
-metrics predate the attempt log are recomputed from their event log and rejected replies.
+seat, model and the settings the seat ran with, and reports the numbers a model choice turns on: how often
+a seat stopped a run, how much of what its dataset expected it did, how often its reply was accepted first
+time, and what it cost and took. Runs whose metrics predate the attempt log or the correctness checks are
+recomputed from their event log. The raw rows behind the tables go to the CSV, one per run and seat.
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import httpx
-import yaml
 
 from app.config import ROOT, load_settings
-from app.live.providers import MODELS_PATH, ModelConfig, check_availability
+from app.live.providers import ModelConfig, check_availability
 from app.runs.metrics import METRICS_FILE, run_metrics
 from app.runs.recorder import read_events
 from app.seats.definitions import DRAWING_PAGES, PAGE_TEXT, SEAT_DEFINITIONS
 
 RUNS = load_settings().runs_dir  # RUNS_DIR may point at another checkout (worktrees, rule 15)
 REPORT = ROOT / "docs" / "model-performance.md"
+RAW_CSV = ROOT / "docs" / "model-performance-runs.csv"
+COLUMNS_DOC = ROOT / "docs" / "model-performance-columns.md"
+SEAT_ORDER = ["orchestrator", "intake", "estimator", "pricing", "writer", "reviewer", "single"]
+MIN_RUNS_FOR_BEST = 5
+
+TABLE_COLUMNS: list[tuple[str, str]] = [
+    ("Seat", "the seat the row is about; one seat per row, so a model that held two seats appears twice"),
+    ("Model", "the model label the seat ran on, as the run's events record it"),
+    (
+        "Settings",
+        "the hyperparameters the seat ran with, recorded per run: temperature, num_ctx, think, max_tokens; "
+        "'not recorded' for runs before capture",
+    ),
+    ("Runs", "runs in which the seat made at least one call or reply on this model with these settings"),
+    ("Calls", "model calls the seat made across those runs, from meter.update events"),
+    ("Stopped runs", "times the seat's reply was refused twice in a row and the run ended because of it"),
+    (
+        "Accuracy",
+        "checks met over checks defined: the dataset's own expectations of the seat, or the golden match "
+        "where the dataset defines none for it (app/runs/expectations.py)",
+    ),
+    ("First time", "share of accepted replies that needed no correction"),
+    ("Corrections", "replies accepted on the second attempt, after one refusal"),
+    ("Tokens in per call", "average prompt tokens per call"),
+    ("Tokens out per call", "average completion tokens per call"),
+    ("Seconds per call", "average wall time per call, measured around the call"),
+    ("Cost per run", "estimated spend per run from the registry's prices; zero for local models"),
+]
+
+CSV_COLUMNS: list[tuple[str, str]] = [
+    ("run_id", "the run folder under runs/"),
+    ("started_at", "when the run started, from run.started"),
+    ("dataset_id", "the scenario dataset the run used"),
+    (
+        "exit",
+        "how the run ended: reviewer_pass, retry_exhausted, blocker_escalated, not_ready, cost_ceiling, "
+        "stopped, single_complete, dry_intake",
+    ),
+    (
+        "golden_match",
+        "true when the run's stage sequence and exit match the dataset's golden log, false when not, "
+        "empty when the dataset has no golden",
+    ),
+    (
+        "sweep_label",
+        "the sweep plan the run belongs to, from runs/<id>/sweep.json; empty for a hand-started run",
+    ),
+    ("sweep_config", "the sweep configuration: baseline, seat=model, or all=model"),
+    ("sweep_varied_seat", "the seat the configuration changed from the baseline, or all"),
+    ("sweep_repeat", "which repeat of the configuration on the dataset, from 0"),
+    ("sweep_worker", "the machine that ran the job"),
+    ("seat", "the seat the row is about"),
+    ("role", "the seat's display role"),
+    ("model", "the model label the seat ran on"),
+    ("provider", "bedrock, google, xai or ollama"),
+    ("temperature", "the sampling temperature, or 'fixed by the provider' or 'model default'"),
+    ("num_ctx", "the context window requested from Ollama, or 'model default'"),
+    ("think", "whether the model's thinking mode was on, or 'model default'"),
+    ("max_tokens", "the output limit requested, or 'model default'"),
+    ("calls", "model calls the seat made in the run"),
+    ("tokens_in", "prompt tokens across the seat's calls"),
+    ("tokens_out", "completion tokens across the seat's calls"),
+    ("wall_ms", "wall time across the seat's calls, milliseconds"),
+    ("est_cost", "estimated spend for the seat in the run, USD"),
+    ("tool_calls", "tools the seat called"),
+    ("replies", "structured replies the seat produced"),
+    ("accepted_first_time", "replies accepted without a correction"),
+    ("corrections", "replies accepted on the second attempt"),
+    ("invalid_twice", "replies refused twice, which stops the run"),
+    ("reasons", "refusal reasons by category, as name=count separated by semicolons"),
+    ("checks_met", "correctness checks the seat met in the run"),
+    ("checks_total", "correctness checks defined for the seat on the dataset"),
+    ("checks", "each check as name=1 or name=0 separated by semicolons"),
+]
 
 
 @dataclass
 class Group:
-    """One seat on one model, across runs."""
+    """One seat on one model with one set of settings, across runs."""
 
     agent_id: str
     role: str
     model: str
+    provider: str = ""
+    settings: str = "not recorded"
     runs: int = 0
     calls: int = 0
     tokens_in: int = 0
@@ -48,11 +127,17 @@ class Group:
     accepted_first_time: int = 0
     corrections: int = 0
     invalid_twice: int = 0
+    checks_met: int = 0
+    checks_total: int = 0
     reasons: dict[str, int] = field(default_factory=dict)
 
     @property
     def first_time_rate(self) -> float:
         return self.accepted_first_time / self.replies if self.replies else 0.0
+
+    @property
+    def accuracy(self) -> float | None:
+        return self.checks_met / self.checks_total if self.checks_total else None
 
     @property
     def seconds_per_call(self) -> float:
@@ -71,6 +156,19 @@ class Group:
         return round(self.tokens_out / self.calls) if self.calls else 0
 
 
+def settings_text(settings: dict[str, Any]) -> str:
+    if not settings:
+        return "not recorded"
+    parts = []
+    for name in ("temperature", "num_ctx", "think", "max_tokens"):
+        if name in settings:
+            value = settings[name]
+            if isinstance(value, bool):
+                value = "on" if value else "off"
+            parts.append(f"{name} {value}")
+    return ", ".join(parts) or "not recorded"
+
+
 def metrics_of(folder: Path) -> dict[str, Any] | None:
     events_path = folder / "events.jsonl"
     if not events_path.exists():
@@ -78,7 +176,7 @@ def metrics_of(folder: Path) -> dict[str, Any] | None:
     path = folder / METRICS_FILE
     if path.exists():
         data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
-        if data.get("seats"):
+        if data.get("seats") and "golden_match" in data:
             return data
     try:
         return run_metrics(read_events(events_path), folder)
@@ -86,19 +184,51 @@ def metrics_of(folder: Path) -> dict[str, Any] | None:
         return None
 
 
+def sweep_of(folder: Path) -> dict[str, Any]:
+    path = folder / "sweep.json"
+    if not path.exists():
+        return {}
+    try:
+        return dict(json.loads(path.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return {}
+
+
+def started_at(folder: Path, data: dict[str, Any]) -> str:
+    manifest = folder / "run.json"
+    if manifest.exists():
+        try:
+            return str(json.loads(manifest.read_text(encoding="utf-8")).get("started_at", ""))
+        except (OSError, ValueError):
+            pass
+    return str(data.get("started_at", ""))
+
+
 def collect(runs_dir: Path = RUNS) -> tuple[list[Group], list[dict[str, Any]]]:
-    groups: dict[tuple[str, str], Group] = {}
+    groups: dict[tuple[str, str, str], Group] = {}
     runs: list[dict[str, Any]] = []
-    for folder in sorted(p for p in runs_dir.glob("*") if p.is_dir()):
+    for folder in sorted(p for p in runs_dir.glob("*") if p.is_dir() and not p.name.startswith("_")):
         data = metrics_of(folder)
         if data is None:
             continue
+        data["sweep"] = sweep_of(folder)
+        data["started_at"] = started_at(folder, data)
         runs.append(data)
         for seat in data["seats"]:
             if not seat["calls"] and not seat["replies"]:
                 continue  # a seat that never ran in this run
-            key = (seat["agent_id"], seat["model"] or "unknown")
-            group = groups.setdefault(key, Group(agent_id=seat["agent_id"], role=seat["role"], model=key[1]))
+            settings = settings_text(seat.get("settings") or {})
+            key = (seat["agent_id"], seat["model"] or "unknown", settings)
+            group = groups.setdefault(
+                key,
+                Group(
+                    agent_id=seat["agent_id"],
+                    role=seat["role"],
+                    model=key[1],
+                    provider=seat.get("provider", ""),
+                    settings=settings,
+                ),
+            )
             group.runs += 1
             for name in ("calls", "tokens_in", "tokens_out", "wall_ms", "tool_calls"):
                 setattr(group, name, getattr(group, name) + seat[name])
@@ -108,74 +238,187 @@ def collect(runs_dir: Path = RUNS) -> tuple[list[Group], list[dict[str, Any]]]:
             group.corrections += seat["corrections"]
             group.invalid_twice += seat["invalid_twice"]
             group.role = group.role or seat["role"]
+            group.provider = group.provider or seat.get("provider", "")
+            checks = seat.get("checks") or {}
+            group.checks_met += sum(1 for met in checks.values() if met)
+            group.checks_total += len(checks)
             for reason, count in seat["reasons"].items():
                 group.reasons[reason] = group.reasons.get(reason, 0) + count
-    order = ["orchestrator", "intake", "estimator", "pricing", "writer", "reviewer"]
     return sorted(
         groups.values(),
-        key=lambda g: (order.index(g.agent_id) if g.agent_id in order else 99, g.model),
+        key=lambda g: (SEAT_ORDER.index(g.agent_id) if g.agent_id in SEAT_ORDER else 99, g.model, g.settings),
     ), runs
 
 
-def seat_settings() -> dict[str, str]:
-    """What each seat is configured with, so a first time rate can be read against it."""
-    data = yaml.safe_load(MODELS_PATH.read_text(encoding="utf-8"))
-    models = data.get("models", {})
-    settings: dict[str, str] = {}
-    for seat, seat_config in (data.get("seats") or {}).items():
-        model = models.get(seat_config.get("model"), {})
-        parts = [str(model.get("label", ""))]
-        if "temperature" in seat_config:
-            parts.append(f"temperature {seat_config['temperature']}")
-        elif model.get("temperature") is False:
-            parts.append("temperature fixed by the provider")
-        else:
-            parts.append("model default temperature")
-        context = (model.get("options") or {}).get("num_ctx")
-        if context:
-            parts.append(f"num_ctx {context}")
-        if model.get("max_tokens"):
-            parts.append(f"max_tokens {model['max_tokens']}")
-        settings[seat] = ", ".join(part for part in parts if part)
-    return settings
-
-
-def settings_for(seat: str, model: str, settings: dict[str, str]) -> str:
-    """The seat's settings, but only beside the model it runs on today."""
-    current = settings.get(seat, "")
-    if not current.startswith(model):
-        return "not the current model"
-    return current.removeprefix(model).lstrip(", ")
+def _accuracy(g: Group) -> str:
+    return f"{g.checks_met}/{g.checks_total} ({g.accuracy * 100:.0f}%)" if g.accuracy is not None else "n/a"
 
 
 def table(groups: list[Group]) -> list[str]:
-    settings = seat_settings()
-    head = (
-        "| Seat | Model | Settings today | Runs | Calls | First time | Corrections | Stopped runs | "
-        "Tokens in per call | Tokens out per call | Seconds per call | Cost per run |"
-    )
-    lines = [head, "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    head = "| " + " | ".join(name for name, _ in TABLE_COLUMNS) + " |"
+    lines = [head, "|" + "---|" * len(TABLE_COLUMNS)]
     for g in groups:
         first = f"{g.first_time_rate * 100:.0f}%" if g.replies else "n/a"
         lines.append(
-            f"| {g.agent_id} | {g.model} | {settings_for(g.agent_id, g.model, settings)} | {g.runs} | {g.calls} | "
-            f"{first} | {g.corrections} | {g.invalid_twice} | {g.tokens_in_per_call} | "
+            f"| {g.agent_id} | {g.model} | {g.settings} | {g.runs} | {g.calls} | {g.invalid_twice} | "
+            f"{_accuracy(g)} | {first} | {g.corrections} | {g.tokens_in_per_call} | "
             f"{g.tokens_out_per_call} | {g.seconds_per_call:.1f} | ${g.cost_per_run:.2f} |"
         )
     return lines
 
 
 def reason_table(groups: list[Group]) -> list[str]:
+    """Every seat and model pair, including the ones never sent back, so absence is visible."""
     lines = ["| Seat | Model | Rejections | Reasons |", "|---|---|---|---|"]
+    merged: dict[tuple[str, str], dict[str, int]] = {}
     for g in groups:
-        total = sum(g.reasons.values())
-        if not total:
-            continue
-        reasons = ", ".join(f"{name} {count}" for name, count in sorted(g.reasons.items()))
-        lines.append(f"| {g.agent_id} | {g.model} | {total} | {reasons} |")
-    if len(lines) == 2:
-        lines.append("| none | | 0 | |")
+        bucket = merged.setdefault((g.agent_id, g.model), {})
+        for name, count in g.reasons.items():
+            bucket[name] = bucket.get(name, 0) + count
+    for (agent_id, model), reasons in merged.items():
+        total = sum(reasons.values())
+        text = ", ".join(f"{name} {count}" for name, count in sorted(reasons.items())) if total else "none"
+        lines.append(f"| {agent_id} | {model} | {total} | {text} |")
     return lines
+
+
+def rank_key(g: Group) -> tuple[int, float, float, float]:
+    """Owner ranking (2026-09-17): fewest stopped runs, then accuracy, then first-time rate, then speed."""
+    return (
+        g.invalid_twice,
+        -(g.accuracy if g.accuracy is not None else 0.0),
+        -g.first_time_rate,
+        g.seconds_per_call,
+    )
+
+
+def best_local_table(groups: list[Group]) -> list[str]:
+    lines = [
+        "| Seat | Best local model | Runs | Stopped runs | Accuracy | First time | Seconds per call | Runner-up |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for seat in SEAT_ORDER:
+        local = [g for g in groups if g.agent_id == seat and g.provider == "ollama"]
+        if not local:
+            continue
+        qualified = sorted((g for g in local if g.runs >= MIN_RUNS_FOR_BEST), key=rank_key)
+        if not qualified:
+            leader = min(local, key=rank_key)
+            lines.append(
+                f"| {seat} | none with {MIN_RUNS_FOR_BEST} runs yet; leading so far {leader.model} ({leader.runs} runs) "
+                f"| | | | | | |"
+            )
+            continue
+        best = qualified[0]
+        runner = (
+            f"{qualified[1].model} ({qualified[1].runs} runs)" if len(qualified) > 1 else "none qualified"
+        )
+        first = f"{best.first_time_rate * 100:.0f}%" if best.replies else "n/a"
+        lines.append(
+            f"| {seat} | {best.model}, {best.settings} | {best.runs} | {best.invalid_twice} | {_accuracy(best)} | "
+            f"{first} | {best.seconds_per_call:.1f} | {runner} |"
+        )
+    return lines
+
+
+def raw_rows(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for data in runs:
+        sweep = data.get("sweep") or {}
+        for seat in data["seats"]:
+            if not seat["calls"] and not seat["replies"]:
+                continue
+            settings = seat.get("settings") or {}
+            checks = seat.get("checks") or {}
+            match = data.get("golden_match")
+            rows.append(
+                {
+                    "run_id": data["run_id"],
+                    "started_at": data.get("started_at", ""),
+                    "dataset_id": data["dataset_id"],
+                    "exit": data["exit"],
+                    "golden_match": "" if match is None else str(bool(match)).lower(),
+                    "sweep_label": sweep.get("label", ""),
+                    "sweep_config": sweep.get("config_key", ""),
+                    "sweep_varied_seat": sweep.get("varied_seat", ""),
+                    "sweep_repeat": sweep.get("repeat", ""),
+                    "sweep_worker": sweep.get("worker", ""),
+                    "seat": seat["agent_id"],
+                    "role": seat["role"],
+                    "model": seat["model"],
+                    "provider": seat.get("provider", ""),
+                    "temperature": settings.get("temperature", ""),
+                    "num_ctx": settings.get("num_ctx", ""),
+                    "think": settings.get("think", ""),
+                    "max_tokens": settings.get("max_tokens", ""),
+                    "calls": seat["calls"],
+                    "tokens_in": seat["tokens_in"],
+                    "tokens_out": seat["tokens_out"],
+                    "wall_ms": seat["wall_ms"],
+                    "est_cost": seat["est_cost"],
+                    "tool_calls": seat["tool_calls"],
+                    "replies": seat["replies"],
+                    "accepted_first_time": seat["accepted_first_time"],
+                    "corrections": seat["corrections"],
+                    "invalid_twice": seat["invalid_twice"],
+                    "reasons": ";".join(f"{k}={v}" for k, v in sorted(seat["reasons"].items())),
+                    "checks_met": sum(1 for met in checks.values() if met),
+                    "checks_total": len(checks),
+                    "checks": ";".join(f"{k}={int(bool(v))}" for k, v in sorted(checks.items())),
+                }
+            )
+    return rows
+
+
+def write_csv(rows: list[dict[str, Any]], path: Path = RAW_CSV) -> Path:
+    names = [name for name, _ in CSV_COLUMNS]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=names, lineterminator="\n")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({name: row.get(name, "") for name in names})
+    return path
+
+
+def definitions(columns: list[tuple[str, str]]) -> list[str]:
+    return [f"- **{name}**: {meaning}" for name, meaning in columns]
+
+
+def columns_document() -> str:
+    return "\n".join(
+        [
+            "# Model performance columns",
+            "",
+            "Generated with `docs/model-performance.md` and `docs/model-performance-runs.csv` by "
+            "`uv run python scripts/model_report.py --write`. The CSV holds one row per run and seat, raw; "
+            "the report's tables aggregate those rows by seat, model and settings.",
+            "",
+            "## Columns of the report tables",
+            "",
+            *definitions(TABLE_COLUMNS),
+            "",
+            "## Columns of model-performance-runs.csv",
+            "",
+            *definitions(CSV_COLUMNS),
+            "",
+            "## How Accuracy is scored",
+            "",
+            "Each dataset README states its planted defect and what each seat should do about it. "
+            "`app/runs/expectations.py` turns that into checks per seat: Intake stops the not-ready request naming "
+            "the deadline and the specification; the Estimator raises the LP-2 blocker on Missing sheet and names "
+            "E-001 and E-002 on Planted inconsistency; Pricing reports the exit sign unpriced on Missing price; "
+            "the Writer's first draft carries the disagreement or the exclusion; the Reviewer fails the flawed "
+            "first draft and passes the clean one; the Orchestrator takes the golden route. A seat with no check "
+            "on a dataset is scored on the run's golden match, and a dataset without a golden scores nothing.",
+            "",
+            "## How the best local model is chosen",
+            "",
+            f"Among local (Ollama) models with at least {MIN_RUNS_FOR_BEST} runs on the seat: fewest stopped runs "
+            "first, then the highest accuracy, then the highest first-time rate, then the fastest call "
+            "(owner decision 2026-09-17).",
+            "",
+        ]
+    )
 
 
 SEAT_WHY: dict[str, str] = {
@@ -282,23 +525,36 @@ def modality_section(probe: bool = True) -> list[str]:
 def report(groups: list[Group], runs: list[dict[str, Any]], probe: bool = True) -> str:
     live = [r for r in runs if any(s["calls"] for s in r["seats"])]
     spend = sum(s["est_cost"] for r in runs for s in r["seats"])
+    sweeps = sorted({str((r.get("sweep") or {}).get("label", "")) for r in runs} - {""})
     body = [
         "# Model performance by seat",
         "",
-        "Generated by `uv run python scripts/model_report.py --write` from every run under `runs/`.",
-        "Each run writes its own `metrics.json` as it ends, so this table grows with every run.",
+        "Generated by `uv run python scripts/model_report.py --write` from every run under `runs/`, with the raw "
+        "rows in `docs/model-performance-runs.csv` and every column defined in `docs/model-performance-columns.md`. "
+        "Each run writes its own `metrics.json` as it ends, so the tables grow with every run.",
         "",
         f"Runs recorded: {len(runs)}, of which {len(live)} called a model. "
-        f"Estimated spend across all of them: ${spend:.2f}.",
+        f"Estimated spend across all of them: ${spend:.2f}."
+        + (f" Sweeps included: {', '.join(sweeps)}." if sweeps else ""),
         "",
-        "First time is the share of accepted replies that needed no correction. Corrections are replies "
-        "accepted on the second attempt. Stopped runs counts the times a seat failed twice and ended the run. "
-        "Settings are the seat's current configuration in `config/models.yaml`, not necessarily what every "
-        "past run used.",
+        "## What the columns mean",
+        "",
+        *definitions(TABLE_COLUMNS),
+        "",
+        "## Best local model per seat",
+        "",
+        f"Ranked among Ollama models with at least {MIN_RUNS_FOR_BEST} runs on the seat: fewest stopped runs, then "
+        "accuracy, then first-time rate, then seconds per call (owner decision 2026-09-17).",
+        "",
+        *best_local_table(groups),
+        "",
+        "## Every seat and model",
         "",
         *table(groups),
         "",
         "## Why replies were sent back",
+        "",
+        "Every seat and model pair that ran, with none where nothing was sent back.",
         "",
         *reason_table(groups),
         "",
@@ -309,15 +565,22 @@ def report(groups: list[Group], runs: list[dict[str, Any]], probe: bool = True) 
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--write", action="store_true", help="refresh docs/model-performance.md")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--write", action="store_true", help="refresh the report, the CSV and the columns document"
+    )
     args = parser.parse_args()
     groups, runs = collect()
     text = report(groups, runs)
     print(text)
     if args.write:
         REPORT.write_text(text, encoding="utf-8", newline="\n")
-        print(f"written: {REPORT.relative_to(ROOT)}")
+        write_csv(raw_rows(runs))
+        COLUMNS_DOC.write_text(columns_document(), encoding="utf-8", newline="\n")
+        for path in (REPORT, RAW_CSV, COLUMNS_DOC):
+            print(f"written: {path.relative_to(ROOT)}")
     return 0
 
 

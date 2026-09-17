@@ -55,6 +55,8 @@ class SeatAttempt:
     attempt: int
     accepted: bool
     error: str = ""
+    settings: dict[str, Any] = field(default_factory=dict)
+    """temperature, num_ctx, think, max_tokens as the seat resolved them (decision 5a); empty on old lines."""
 
     def line(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False)
@@ -79,6 +81,10 @@ class SeatRow:
     corrections: int = 0
     invalid_twice: int = 0
     reasons: dict[str, int] = field(default_factory=dict)
+    settings: dict[str, Any] = field(default_factory=dict)
+    """The hyperparameters the seat ran with, from its attempt lines; empty when the run predates capture."""
+    checks: dict[str, bool] = field(default_factory=dict)
+    """Correctness checks the dataset defines for this seat, each met or not (app/runs/expectations.py)."""
 
     def add_reason(self, error: str) -> None:
         name = categorise(error)
@@ -216,6 +222,8 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
             continue
         if attempt.model and not seat.model:
             seat.model, seat.provider = attempt.model, attempt.provider
+        if attempt.settings:
+            seat.settings = dict(attempt.settings)
         if attempt.accepted:
             seat.replies += 1
             if attempt.attempt == 1:
@@ -244,10 +252,20 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
 
     last = events[-1] if events else None
     exit_value = str((last.payload or {}).get("exit", "")) if last is not None else ""
+    from app.runs.expectations import golden_match, seat_checks
+
+    for agent_id, checks in seat_checks(dataset, events, folder).items():
+        seat = row(agent_id)
+        if seat is not None:
+            seat.checks = checks
+    matched, note = golden_match(dataset, events)
     return {
         "run_id": folder.name,
+        "started_at": events[0].ts if events else "",
         "dataset_id": dataset,
         "exit": exit_value,
+        "golden_match": matched,
+        "golden_note": note,
         "events": len(events),
         "seats": [asdict(seat) for seat in rows.values()],
     }

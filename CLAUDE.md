@@ -35,7 +35,7 @@ A sales demo that shows several AI agents, under an orchestrator, taking a busin
 - Frozen event schema: `docs/schema/events-v1.1.0.md`, an additive amendment of `events-v1.0.0.md` (typed models in `app/schema/`)
 - Dependency rationale record: `docs/dependencies.md`
 - Deviations found while building (design/ is never edited): `docs/design-deviations.md`
-- Model performance per seat, captured on every run: `docs/model-performance.md`, refreshed with `uv run python scripts/model_report.py --write`
+- Model performance per seat, captured on every run: `docs/model-performance.md` with the raw rows in `docs/model-performance-runs.csv` and every column defined in `docs/model-performance-columns.md`, refreshed with `uv run python scripts/model_report.py --write`; sweeps over seats and models: `uv run python scripts/sweep.py config/sweep/<plan>.yaml`
 - Quality gates: `uv run python scripts/check.py`; screenshots and browser tests: `uv run pytest -m visual`
 
 ## Stack (verify current versions before pinning)

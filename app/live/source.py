@@ -300,6 +300,7 @@ class LiveAgentSource:
                 attempt=attempt,
                 accepted=accepted,
                 error=without_em_dashes(error),
+                settings=dict(self.seat_models[agent_id].settings) if agent_id in self.seat_models else {},
             ),
         )
         # Every reply is kept, so a recorded run can be read back without the provider (spec section 6).
