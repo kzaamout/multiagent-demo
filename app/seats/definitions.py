@@ -30,6 +30,8 @@ AGENT_REASONING = "agent_reasoning"
 PRICE_FIXTURE = "price_fixture"
 TEMPLATE = "template"
 DRAFT = "draft"
+PAGE_TEXT = "page_text"
+"""The text of each compiled page, beside the page images the Reviewer sees (S4)."""
 REVIEWER_CRITERIA = "reviewer_criteria"
 FINDINGS = "findings"
 RUN_STATE = "run_state"
@@ -49,6 +51,7 @@ ALL_KINDS = frozenset(
         PRICE_FIXTURE,
         TEMPLATE,
         DRAFT,
+        PAGE_TEXT,
         REVIEWER_CRITERIA,
         FINDINGS,
         RUN_STATE,
@@ -102,7 +105,7 @@ SEAT_DEFINITIONS: dict[str, SeatDefinition] = {
         "reviewer",
         "reviewer.md",
         (),
-        frozenset({BRIEF, DRAFT, REVIEWER_CRITERIA}),
+        frozenset({BRIEF, PAGE_TEXT, REVIEWER_CRITERIA}),
     ),
 }
 

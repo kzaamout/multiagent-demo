@@ -215,7 +215,7 @@ def build_materials(
             for number, text in enumerate(texts, start=1):
                 materials.append(
                     Material(
-                        d.DRAFT, f"Page {number} text", text or "(no text on this page)", f"page-{number}"
+                        d.PAGE_TEXT, f"Page {number} text", text or "(no text on this page)", f"page-{number}"
                     )
                 )
 

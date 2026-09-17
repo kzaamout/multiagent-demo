@@ -250,13 +250,13 @@ def build_tools(
 
     @tool(context=True)
     def compile_trigger(version: int, tool_context: ToolContext) -> dict[str, Any]:
-        """Ask for the draft to be committed and compiled. In this slice compiled pages are not
-        produced; the draft from your final reply is committed as the given version.
+        """Ask for the draft to be committed and compiled. The draft from your final reply is
+        committed as the given version and compiled to pages for the Reviewer.
 
         Args:
             version: The draft version you are committing, starting at 1.
         """
-        log.record(tool_context, f"v{version}", "commit requested; pages arrive in slice S4")
+        log.record(tool_context, f"v{version}", "commit requested; the final reply is compiled")
         return _text({"version": version, "status": "commit requested"})
 
     by_seat: dict[str, list[Any]] = {

@@ -60,6 +60,7 @@ def everything() -> list[Material]:
         Material(d.PRICE_FIXTURE, "Price fixture", "csv rows"),
         Material(d.TEMPLATE, "Template", "template"),
         Material(d.DRAFT, "Draft v1", "draft markdown", "evt-draft"),
+        Material(d.PAGE_TEXT, "Page 1 text", "page one text", "page-1"),
         Material(d.REVIEWER_CRITERIA, "Criteria", "criteria"),
     ]
 
@@ -69,7 +70,7 @@ EXPECTED = {
     "estimator": {d.BRIEF, d.DRAWING_PAGES, d.ESTIMATING_CONVENTIONS},
     "pricing": {d.ESTIMATOR_OUTPUT, d.KNOWLEDGE_FILE},
     "writer": {d.BRIEF, d.SPECIALIST_OUTPUTS, d.TEMPLATE, d.KNOWLEDGE_FILE},
-    "reviewer": {d.BRIEF, d.DRAFT, d.REVIEWER_CRITERIA},
+    "reviewer": {d.BRIEF, d.PAGE_TEXT, d.REVIEWER_CRITERIA},
 }
 
 
@@ -88,9 +89,10 @@ def test_reviewer_bundle_excludes_the_team_working() -> None:
         "priced bom",
         "csv rows",
         "markup 15 percent",
+        "draft markdown",
     ]:
         assert secret not in rendered
-    assert "draft markdown" in rendered and "criteria" in rendered
+    assert "page one text" in rendered and "criteria" in rendered, "from S4 the Reviewer reads the pages"
 
 
 def test_nobody_but_the_orchestrator_sees_reasoning_or_tool_results() -> None:
