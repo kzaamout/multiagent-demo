@@ -18,9 +18,9 @@ pytestmark = pytest.mark.dataset
 DATASETS = [d.id for d in discover_datasets(load_settings().datasets_dir)]
 
 
-def test_all_six_datasets_have_golden_logs() -> None:
+def test_all_nine_datasets_have_golden_logs() -> None:
     infos = discover_datasets(load_settings().datasets_dir)
-    assert len(infos) == 6
+    assert len(infos) == 9
     assert all(info.golden_path.exists() for info in infos)
 
 

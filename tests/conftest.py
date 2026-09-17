@@ -78,7 +78,7 @@ def make_orchestrator(
         ),
         scenario=scenario,
         roster=build_roster("electrical_rfp", names=EXPORT_NAMES),
-        retry_budget=settings.retry_budget,
+        review_max_cycles=settings.review_max_cycles,
         cost_ceiling=settings.cost_ceiling,
         clock=clock or VirtualClock(START),
         bus=bus or StreamBus(),

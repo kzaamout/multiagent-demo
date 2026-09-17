@@ -87,7 +87,7 @@ def test_planted_inconsistency_through_the_page(page: Any, server: tuple[str, Pa
     page.wait_for_selector("#banner", state="hidden", timeout=20000)
 
     page.wait_for_selector('path[data-arrow="review-work"][data-fired="true"]', timeout=30000)
-    page.wait_for_selector(".retry-badge:has-text('retry 1 of 2')")
+    page.wait_for_selector(".retry-badge:has-text('retry 1 of 3')")
     page.wait_for_selector("#btn-approve:not([disabled])", timeout=30000)
     card = page.locator('article[data-kind="termination"]')
     assert "exit: reviewer_pass" in card.inner_text()

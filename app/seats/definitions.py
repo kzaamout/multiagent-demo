@@ -12,8 +12,8 @@ from pathlib import Path
 
 from app.config import ROOT
 
-SEATS_DIR = ROOT / "config" / "electrical-rfp" / "seats"
-PLACEHOLDERS = ("name", "retry_budget", "long_lead_days")
+SEATS_DIR = ROOT / "config" / "electrical-bid" / "seats"
+PLACEHOLDERS = ("name", "review_max_cycles", "long_lead_days")
 _PLACEHOLDER = re.compile(r"(?<!\{)\{([a-z_]+)\}(?!\})")
 
 # Context material kinds. Every item placed in a context slice has exactly one kind.
@@ -77,7 +77,7 @@ SEAT_DEFINITIONS: dict[str, SeatDefinition] = {
     "intake": SeatDefinition(
         "intake",
         "intake.md",
-        ("document_parse_pdf", "document_extract_attachments"),
+        ("prepare_documents", "document_parse_pdf", "document_extract_attachments"),
         frozenset({REQUEST_DOCUMENTS, KNOWLEDGE_FILE, READINESS_CHECKLIST}),
     ),
     "estimator": SeatDefinition(
@@ -115,7 +115,7 @@ def load_instructions(
     agent_id: str,
     *,
     name: str,
-    retry_budget: int,
+    review_max_cycles: int,
     long_lead_days: int,
     seats_dir: Path = SEATS_DIR,
 ) -> str:
@@ -127,7 +127,11 @@ def load_instructions(
     """
     definition = SEAT_DEFINITIONS[agent_id]
     text = (seats_dir / definition.instructions_file).read_text(encoding="utf-8")
-    values = {"name": name, "retry_budget": str(retry_budget), "long_lead_days": str(long_lead_days)}
+    values = {
+        "name": name,
+        "review_max_cycles": str(review_max_cycles),
+        "long_lead_days": str(long_lead_days),
+    }
     for key, value in values.items():
         text = text.replace("{" + key + "}", value)
     leftover = sorted(set(_PLACEHOLDER.findall(text)))

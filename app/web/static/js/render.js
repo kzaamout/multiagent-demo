@@ -391,8 +391,14 @@
       return retries === 0 ? 'The Reviewer passed the proposal first time.'
         : 'The Reviewer passed the proposal after ' + (retries === 1 ? 'one rework' : retries + ' reworks') + '.';
     }
-    return 'The retry budget ran out with findings unresolved.';
+    return 'Review stopped with findings unresolved.';
   }
+
+  var STOP_REASON_TEXT = {
+    no_progress: 'no progress in the last review cycle',
+    repeated_finding: 'a finding repeated from the previous cycle',
+    max_cycles: 'the maximum number of review cycles was reached'
+  };
 
   function terminationCard(card, view) {
     var h = card.handoff;
@@ -427,6 +433,9 @@
     }
     if (summary && summary.readiness_verdict && exit !== 'not_ready') {
       main.push(el('div', { class: 'term-reason' }, [el('span', { class: 'term-reason-k', text: 'Readiness verdict:' }), ' ' + summary.readiness_verdict.replace(/_/g, ' ')]));
+    }
+    if (exit === 'retry_exhausted' && summary && summary.stop_reason) {
+      main.push(el('div', { class: 'term-reason' }, [el('span', { class: 'term-reason-k', text: 'Review stopped:' }), ' ' + (STOP_REASON_TEXT[summary.stop_reason] || summary.stop_reason)]));
     }
     if (summary && summary.unresolved_findings && summary.unresolved_findings.length) {
       main.push(el('div', { class: 'term-reason' }, [el('span', { class: 'term-reason-k', text: 'Notes carried to Handoff:' }), ' ' + summary.unresolved_findings.length]));

@@ -1,4 +1,4 @@
-"""Seat reply shapes (from config/electrical-rfp/seats/*.md) and their conversion to event payloads.
+"""Seat reply shapes (from config/electrical-bid/seats/*.md) and their conversion to event payloads.
 
 Replies are validated before anything reaches the event stream (FR-016). The shapes are lenient
 where the seat files are loose (numbers may arrive as strings) and strict where the schema is
@@ -170,7 +170,7 @@ class Clarification(BaseModel):
 
 
 # Checklist items that are concerns for the Estimator rather than questions for the human
-# (config/electrical-rfp/readiness-checklist.md and the intake seat instructions).
+# (config/electrical-bid/readiness-checklist.md and the intake seat instructions).
 ESTIMATOR_CONCERN_WORDS = ("panel schedule", "rating")
 
 

@@ -1,6 +1,6 @@
-# Readiness checklist: electrical RFP
+# Readiness checklist: electrical bid request
 
-Read by the Intake Analyst. Grade every item as present, present with concerns, or missing. Missing items marked (blocking) produce a Not ready verdict. Missing items marked (default) are graded assumed with the stated default recorded in the note, and need no question unless the request itself says the item must be settled before submitting. Raise a clarification for a gap the checklist leaves open, meaning an item with no default of its own and no answer in the knowledge file. Report confidence per drawing page.
+Read by the Intake Analyst after prepare_documents has split the package into sheets and written the manifest. Grade every item as present, present with concerns, or missing. Missing items marked (blocking) produce a Not ready verdict. Missing items marked (default) are graded assumed with the stated default recorded in the note, and need no question unless the request itself says the item must be settled before submitting. Raise a clarification for a gap the checklist leaves open, meaning an item with no default of its own and no answer in the knowledge file. Report confidence per drawing page.
 
 ## Request document
 - Scope statement describing the electrical work requested (blocking)
@@ -21,7 +21,7 @@ Read by the Intake Analyst. Grade every item as present, present with concerns, 
 - Electrical floor plans, power and lighting, for every level (blocking if any level referenced in scope has no plan)
 - Specifications or a specification section list for Division 26 (blocking if absent and scope references specifications)
 - Drawing index matching the sheets provided (default: infer index from sheet titles, flag)
-- Revision and issue date on each sheet (default: treat all as issued for tender, flag)
+- Revision and issue date on each sheet (default: treat all as issued for tender, flag; read the "Issued for" stamp from the prepared manifest, and grade a set that is not Issued for Tender or Issued for Construction, or a sheet whose stamp reads unknown, as assumed with the stamp named in the note)
 
 ## Consistency checks
 - Every panel named on a panel schedule appears on the single-line, and vice versa

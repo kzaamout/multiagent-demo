@@ -183,22 +183,22 @@ def finding(
 
 
 SYSTEM_INTAKE = (
-    "You are the Intake Analyst on an electrical RFP team. Read the request exactly as it arrived. "
+    "You are the Intake Analyst on an electrical bid response team. Read the request exactly as it arrived. "
     "Grade it against the readiness checklist item by item. Produce a structured brief. For every gap, "
     "propose a default and say whether it blocks work. Do not estimate, price, or write proposal text."
 )
 SYSTEM_ESTIMATOR = (
-    "You are the Estimator on an electrical RFP team. Read the drawings and produce a bill of materials "
+    "You are the Estimator on an electrical bid response team. Read the drawings and produce a bill of materials "
     "with quantities and a drawing reference on every line, plus a labour estimate with stated assumptions. "
     "Flag any drawing ambiguity. Never price anything."
 )
 SYSTEM_PRICING = (
-    "You are Pricing on an electrical RFP team. Cost every BOM line from the supplier price fixture, apply "
+    "You are Pricing on an electrical bid response team. Cost every BOM line from the supplier price fixture, apply "
     "the markup rules from the knowledge file, and list every unpriced or long-lead item as an exception. "
     "Never read drawings and never invent a price."
 )
 SYSTEM_WRITER = (
-    "You are the Writer on an electrical RFP team. Assemble the deliverable into the template from the brief "
+    "You are the Writer on an electrical bid response team. Assemble the deliverable into the template from the brief "
     "and the specialist outputs. Tag every figure with the output it came from. Invent nothing."
 )
 SYSTEM_REVIEWER = (

@@ -139,7 +139,7 @@ def test_intake_must_grade_every_item_and_ask_about_every_gap() -> None:
     from app.config import ROOT
     from app.live.replies import checklist_items
 
-    expected = checklist_items(ROOT / "config" / "electrical-rfp" / "readiness-checklist.md")
+    expected = checklist_items(ROOT / "config" / "electrical-bid" / "readiness-checklist.md")
     assert len(expected) == 21 and expected[0] == "Scope statement describing the electrical work requested"
     passes = [{"item": f"Item {i}", "status": "pass", "note": None} for i in range(len(expected) - 2)]
     bonding = {
@@ -185,7 +185,7 @@ def test_stray_closing_brace_is_repaired_and_brief_fields_folded_back() -> None:
     from app.config import ROOT
     from app.live.replies import checklist_items
 
-    items = checklist_items(ROOT / "config" / "electrical-rfp" / "readiness-checklist.md")
+    items = checklist_items(ROOT / "config" / "electrical-bid" / "readiness-checklist.md")
     grades = ", ".join(json.dumps({"item": item, "status": "pass", "note": ""}) for item in items)
     broken = (
         '{"brief": {"project": "Library", "drawing_set": {"sheets": ["E-001"]}}, "bonding": "open"}, '
@@ -212,7 +212,7 @@ def test_not_ready_needs_grades_not_a_question_per_gap() -> None:
     from app.config import ROOT
     from app.live.replies import checklist_items
 
-    items = checklist_items(ROOT / "config" / "electrical-rfp" / "readiness-checklist.md")
+    items = checklist_items(ROOT / "config" / "electrical-bid" / "readiness-checklist.md")
     grades = [{"item": item, "status": "pass", "note": ""} for item in items]
     grades[1] = {"item": items[1], "status": "fail", "note": "no closing date"}
     grades[5] = {"item": items[5], "status": "assumed", "note": "bid security open"}
@@ -238,7 +238,7 @@ def test_estimator_concerns_never_fail_intake_and_consistency_checks_are_optiona
     from app.config import ROOT
     from app.live.replies import REQUIRED_SECTIONS, checklist_items
 
-    path = ROOT / "config" / "electrical-rfp" / "readiness-checklist.md"
+    path = ROOT / "config" / "electrical-bid" / "readiness-checklist.md"
     required = checklist_items(path, REQUIRED_SECTIONS)
     assert len(required) == 17 and len(checklist_items(path)) == 21
     grades = [{"item": item, "status": "pass", "note": ""} for item in required]

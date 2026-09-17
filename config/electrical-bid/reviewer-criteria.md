@@ -1,4 +1,4 @@
-# Reviewer criteria: electrical RFP response
+# Reviewer criteria: electrical bid response
 
 Read by the Reviewer. You see the brief, the compiled document as page images, and this file. You do not see how the team produced the document. Judge the document, not the process.
 

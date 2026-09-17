@@ -14,7 +14,7 @@ from pathlib import Path
 from app.config import ROOT
 from app.schema.events import KnowledgeEntry
 
-WORKFLOW_SEED = ROOT / "config" / "electrical-rfp" / "knowledge-file.seed.md"
+WORKFLOW_SEED = ROOT / "config" / "electrical-bid" / "knowledge-file.seed.md"
 ANSWERS_HEADING = "## Answers from previous runs"
 EMPTY_MARKER = "(empty; the Orchestrator appends here)"
 _CLIENT_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,80}$")

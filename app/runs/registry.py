@@ -38,6 +38,9 @@ DATASET_ORDER: list[tuple[str, str]] = [
     ("missing-price", "Missing price"),
     ("not-ready", "Not ready"),
     ("prospect-own", "Prospect own"),
+    ("prospect-a", "Prospect A"),
+    ("prospect-b", "Prospect B"),
+    ("prospect-c", "Prospect C"),
 ]
 
 
@@ -238,10 +241,10 @@ class Registry:
                     files=DatasetFiles(info.folder),
                     knowledge=knowledge_store,
                     prospect_name=str(info.brand.get("prospect_name") or "the prospect"),
-                    project=f"Electrical RFP response, {info.label}",
+                    project=f"Electrical bid response, {info.label}",
                     supplier_order=supplier_order_from(knowledge_store.read(info.client_id)),
                     long_lead_days=self.settings.long_lead_days,
-                    retry_budget=self.settings.retry_budget,
+                    review_max_cycles=self.settings.review_max_cycles,
                 ),
                 seat_models=seat_models,
                 knowledge_seed=info.knowledge_seed,
@@ -258,7 +261,7 @@ class Registry:
             ),
             scenario=scenario,
             roster=roster,
-            retry_budget=self.settings.retry_budget,
+            review_max_cycles=self.settings.review_max_cycles,
             cost_ceiling=self.settings.cost_ceiling,
             clock=clock,
             bus=self.bus,

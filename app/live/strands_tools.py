@@ -62,20 +62,33 @@ def build_tools(
     files: DatasetFiles,
     log: ToolLog,
     prospect_name: str,
+    prepared_dir: Path | None = None,
     project: str,
     supplier_order: list[str],
     long_lead_days: int,
 ) -> list[Any]:
-    """The tools this seat may use, per the roster. Unknown seats get none."""
+    """The tools this seat may use, per the roster. Unknown seats get none. `prepared_dir` is where
+    prepare_documents put the per-sheet files; a path starting with prepared/ or a sheet name found there
+    resolves to the prepared file first, so a multi-sheet binder is read one sheet at a time."""
+
+    def _prepared(name: str) -> Path | None:
+        if prepared_dir is None or not prepared_dir.is_dir():
+            return None
+        candidate = (prepared_dir / name).resolve()
+        if candidate.is_relative_to(prepared_dir.resolve()) and candidate.is_file():
+            return candidate
+        return None
 
     @tool(context=True)
     def document_parse_pdf(file: str, tool_context: ToolContext) -> dict[str, Any]:
         """Read a request document or drawing sheet: text and a legibility confidence for each page.
 
         Args:
-            file: Path in the inputs folder, for example "request.pdf" or "drawings/E-001.pdf".
+            file: A prepared sheet or page, for example "prepared/E-001.pdf", or a path in the inputs
+                folder, for example "request.pdf" or "drawings/E-001.pdf".
         """
-        path = _resolve_in(files.inputs, file)
+        prepared = _prepared(file[len("prepared/") :]) if file.startswith("prepared/") else None
+        path = prepared or _resolve_in(files.inputs, file)
         pages = parse_pdf(path)
         data = [{"page": p.page, "confidence": p.confidence, "text": p.text[:MAX_PAGE_TEXT]} for p in pages]
         low = [p.page for p in pages if p.confidence < 0.7]
@@ -84,11 +97,20 @@ def build_tools(
 
     @tool(context=True)
     def document_extract_attachments(tool_context: ToolContext) -> dict[str, Any]:
-        """List the request files and drawing sheets provided with the request."""
+        """List the request files and drawing sheets provided with the request, and the prepared sheets."""
         request = [p.name for p in files.request_files()]
         sheets = [p.stem for p in files.drawing_files()]
-        log.record(tool_context, "inputs", f"{len(request)} request files, {len(sheets)} drawing sheets")
-        return _text({"request_files": request, "drawing_sheets": sheets})
+        prepared = (
+            sorted(p.stem for p in prepared_dir.glob("*.pdf"))
+            if prepared_dir and prepared_dir.is_dir()
+            else []
+        )
+        log.record(
+            tool_context,
+            "inputs",
+            f"{len(request)} request files, {len(sheets)} drawing files, {len(prepared)} prepared sheets",
+        )
+        return _text({"request_files": request, "drawing_sheets": sheets, "prepared_sheets": prepared})
 
     @tool(context=True)
     def vision_read_drawing(sheet: str, tool_context: ToolContext, page: int = 1) -> dict[str, Any]:
@@ -98,7 +120,7 @@ def build_tools(
             sheet: Sheet name as listed in the drawing sheets, for example "E-001".
             page: Page within the sheet file, starting at 1.
         """
-        path = _resolve_in(files.drawings_dir, f"{sheet}.pdf")
+        path = _prepared(f"{sheet}.pdf") or _resolve_in(files.drawings_dir, f"{sheet}.pdf")
         png = render_page_png(path, page)
         text_layer = next((p.text for p in parse_pdf(path) if p.page == page), "")
         log.record(

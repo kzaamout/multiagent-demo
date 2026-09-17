@@ -3,7 +3,7 @@
 Each subfolder is one selectable scenario in the Demo composer dropdown. A dataset is complete when it has:
 
 - `README.md`: the scenario, the planted defects and where they are, the expected stage sequence, the expected termination exit, and what the presenter should say when the defect fires.
-- `inputs/`: the request files (email or PDF) at the top level, and the drawing set under `inputs/drawings/` (PDF, one file per sheet or one multi-page file). Name each sheet file by its sheet number, for example `E-001.pdf`, because the tools refer to sheets by file name.
+- `inputs/`: the request files (email or PDF) at the top level, and the drawing set under `inputs/drawings/` (PDF, one file per sheet or one multi-page binder). Name a single-sheet file by its sheet number, for example `E-001.pdf`. A binder is split by Intake's `prepare_documents` tool into one sheet per page under `runs/<run_id>/prepared/`, named by the sheet number read from the title block or by source file and page when it cannot be read; the tools refer to sheets by those prepared names.
 - `fixtures/`: `supplier-prices.csv` (item code, description, unit, price, supplier, lead time days), and any other fixture the specialists need.
 - `knowledge.seed.md`: per-scenario copy of the knowledge file seed, so runs do not pollute each other.
 - `brand.yaml`: `prospect_name`, `logo_path`, `primary_colour` for the deliverable cover.
@@ -33,6 +33,7 @@ machine that presents.
 - [x] Missing sheet: delete the panel schedule for a panel that appears on the single-line. Done 2026-09-15 on the synthetic set: panel LP-2 with schedule E-003 absent.
 - [x] Not ready: strip the deadline and the specification section from the request. Done 2026-09-15 on the synthetic set.
 - [ ] Prospect own: leave empty apart from README and brand.yaml template. Populate per prospect, run Dry intake, record a clean run for Replay.
+- [ ] Prospect A, B, C (`prospect-a`, `prospect-b`, `prospect-c`, slice S3b): scaffolds with README, brand template, and empty `inputs/` and `fixtures/`, one per real package (spec section 7, scenarios 7 to 9). Each runs on its stub until the redacted inputs are dropped in. Redact every sheet, get the prospect's written consent, keep the files out of git even then, and never name the prospect, project, or site in a tracked file; the mapping is `prospect-map.md`, local only.
 - [ ] Record `golden-events.jsonl` for each scenario after a verified live run.
 - [ ] Fictional prospect brand for the five stock scenarios (name, simple logo).
 

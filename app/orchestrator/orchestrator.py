@@ -30,6 +30,13 @@ from app.schema.events import (
     Subtask,
 )
 
+STOP_REASON_TEXT: dict[str, str] = {
+    "no_progress": "no progress in the last review cycle",
+    "repeated_finding": "a finding repeated from the previous cycle",
+    "max_cycles": "the maximum number of review cycles was reached",
+}
+"""Plain words for each stop reason, used in Orchestrator reasons and the termination headline."""
+
 
 class RunStopped(Exception):
     pass
@@ -77,17 +84,17 @@ DEFAULT_REASONS: dict[str, str] = {
     "assemble_dispatch": "The Writer assembles from the specialist outputs and tags every figure with its source.",
     "review_enter": "A draft exists, so the Reviewer judges it against the brief and the criteria.",
     "handoff_enter": "The Reviewer passed the draft, so it goes to you for approval.",
-    "handoff_exhausted": "The retry budget is spent, so the draft goes to you with findings unresolved.",
+    "handoff_exhausted": "Review stopped ({stop_reason}), so the draft goes to you with findings unresolved.",
     "handoff": "The package is complete: deliverable, verdict, assumptions, clarifications, and the event log.",
     "route_back_work": "The finding concerns a source figure, so the specialist who produced it resolves it.",
     "route_back_assemble": "The finding concerns the writing, so the Writer resolves it without new specialist work.",
-    "retry": "A failed review consumes one retry from the budget.",
+    "retry": "The review made progress, so one more rework is dispatched within the review limit.",
     "rework_dispatch": "The specialist receives the finding and reworks only what it concerns.",
     "blocker": "A specialist cannot continue without you, so the run pauses on the blocker.",
     "escalated": "You escalated the blocker, so the run ends with what is missing listed.",
     "route_back_intake": "A specialist found the brief incomplete, so Intake runs again once.",
     "terminated_pass": "The verdict is pass; the package is approved and the run closes.",
-    "terminated_exhausted": "The retry budget is spent; your decision on the draft is recorded and the run closes with findings unresolved.",
+    "terminated_exhausted": "Review stopped ({stop_reason}); your decision on the draft is recorded and the run closes with findings unresolved.",
     "terminated_rejected": "You rejected the package; the rejection is recorded and the run closes without re-entering the loop.",
     "terminated": "The run has reached its exit and nothing further can be dispatched.",
     "cost_ceiling": "The estimated cost passed the per-run ceiling, so nothing further is dispatched.",
@@ -106,7 +113,7 @@ class Orchestrator:
         dataset: DatasetRef,
         scenario: StubScenario | AgentSource,
         roster: dict[str, Agent],
-        retry_budget: int,
+        review_max_cycles: int,
         cost_ceiling: float,
         clock: Clock,
         bus: StreamBus,
@@ -128,7 +135,7 @@ class Orchestrator:
         self.clock = clock
         self.bus = bus
         self.recorder = recorder
-        self.state = RunState(retry_budget=retry_budget, cost_ceiling=cost_ceiling)
+        self.state = RunState(review_max_cycles=review_max_cycles, cost_ceiling=cost_ceiling)
         self.events: list[Event] = []
         self.bundles: dict[str, PromptBundle] = {}
         self.knowledge = KnowledgeFile(knowledge_path, dataset.knowledge_seed, dataset.client_id)
@@ -313,6 +320,8 @@ class Orchestrator:
                     "mode": "team",
                     "started_at": self.clock.ts(0),
                     "roster": {k: v.model_dump() for k, v in self.roster.items()},
+                    "review_max_cycles": self.state.review_max_cycles,
+                    "cost_ceiling": self.state.cost_ceiling,
                 }
             )
         self.bus.open(self.run_id)
@@ -599,7 +608,7 @@ class Orchestrator:
                 self.state.unresolved_findings = [f["id"] for f in findings if f["severity"] == "minor"]
                 await self._handoff("reviewer_pass", verdict_event)
                 return
-            outcome = self.state.on_review_fail()
+            outcome = self.state.on_review_fail(findings)
             if outcome == "retry_exhausted":
                 self.state.unresolved_findings = [f["id"] for f in findings]
                 await self._handoff("retry_exhausted", verdict_event)
@@ -771,7 +780,9 @@ class Orchestrator:
             raise RunStopped()
 
     def _names(self) -> dict[str, str]:
-        return {seat: agent.name for seat, agent in self.roster.items()}
+        names = {seat: agent.name for seat, agent in self.roster.items()}
+        names["stop_reason"] = STOP_REASON_TEXT.get(self.state.stop_reason or "", "the review limit")
+        return names
 
     def _reason(self, key: str) -> str:
         text = self.scenario.reasons.get(key) or DEFAULT_REASONS[key]
@@ -850,6 +861,7 @@ class Orchestrator:
                 "tokens_in": delta.tokens_in,
                 "tokens_out": delta.tokens_out,
                 "wall_ms": delta.wall_ms,
+                "latency_ms": delta.latency_ms,
                 "est_cost": delta.est_cost,
             },
         )
@@ -948,6 +960,7 @@ class Orchestrator:
             ],
             "unresolved_findings": list(self.state.unresolved_findings),
             "retries": {"count": self.state.retries, "budget": self.state.retry_budget},
+            "stop_reason": self.state.stop_reason if exit_value == "retry_exhausted" else None,
             "readiness_verdict": self.state.readiness_verdict
             if exit_value in ("not_ready", "dry_intake")
             else None,
@@ -977,7 +990,7 @@ class Orchestrator:
                 else self.scenario.headline_pass_rework
             )
         if exit_value == "retry_exhausted":
-            return "The retry budget ran out with findings unresolved."
+            return f"Review stopped ({STOP_REASON_TEXT.get(self.state.stop_reason or '', 'review limit')}) with findings unresolved."
         if exit_value == "blocker_escalated":
             return "A blocker was escalated: the run cannot continue without what is missing."
         if exit_value == "not_ready":

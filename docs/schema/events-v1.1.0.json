@@ -1,0 +1,1602 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "envelope": {
+    "$defs": {
+      "Agent": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "title": "Agent Id",
+            "type": "string"
+          },
+          "model": {
+            "$ref": "#/$defs/Model"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_id",
+          "name",
+          "role",
+          "model"
+        ],
+        "title": "Agent",
+        "type": "object"
+      },
+      "Model": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "model_id",
+          "label"
+        ],
+        "title": "Model",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "description": "The envelope. Field order is the line format order.",
+    "properties": {
+      "actor": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/Agent"
+          },
+          {
+            "enum": [
+              "human",
+              "system"
+            ],
+            "type": "string"
+          }
+        ],
+        "title": "Actor"
+      },
+      "event_id": {
+        "title": "Event Id",
+        "type": "string"
+      },
+      "payload": {
+        "additionalProperties": true,
+        "title": "Payload",
+        "type": "object"
+      },
+      "prompt_ref": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Prompt Ref"
+      },
+      "reason": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Reason"
+      },
+      "run_id": {
+        "title": "Run Id",
+        "type": "string"
+      },
+      "seq": {
+        "minimum": 1,
+        "title": "Seq",
+        "type": "integer"
+      },
+      "stage": {
+        "anyOf": [
+          {
+            "enum": [
+              "intake",
+              "plan",
+              "work",
+              "assemble",
+              "review",
+              "handoff"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Stage"
+      },
+      "ts": {
+        "title": "Ts",
+        "type": "string"
+      },
+      "type": {
+        "enum": [
+          "run.started",
+          "stage.changed",
+          "intake.brief",
+          "intake.readiness",
+          "clarification.needed",
+          "clarification.asked",
+          "clarification.answered",
+          "assumption.accepted",
+          "plan.created",
+          "task.dispatched",
+          "task.progress",
+          "tool.called",
+          "task.completed",
+          "blocker.raised",
+          "draft.committed",
+          "artifact.compiled",
+          "review.verdict",
+          "retry.incremented",
+          "handoff.ready",
+          "human.approved",
+          "knowledge.appended",
+          "run.paused",
+          "run.resumed",
+          "model.changed",
+          "meter.update",
+          "run.terminated"
+        ],
+        "title": "Type",
+        "type": "string"
+      }
+    },
+    "required": [
+      "event_id",
+      "run_id",
+      "seq",
+      "ts",
+      "type",
+      "actor",
+      "payload"
+    ],
+    "title": "Event",
+    "type": "object"
+  },
+  "payloads": {
+    "artifact.compiled": {
+      "additionalProperties": false,
+      "properties": {
+        "page_images": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Page Images",
+          "type": "array"
+        },
+        "pdf_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pdf Path"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "page_images"
+      ],
+      "title": "ArtifactCompiledPayload",
+      "type": "object"
+    },
+    "assumption.accepted": {
+      "additionalProperties": false,
+      "properties": {
+        "default_used": {
+          "title": "Default Used",
+          "type": "string"
+        },
+        "question_id": {
+          "title": "Question Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question_id",
+        "default_used"
+      ],
+      "title": "AssumptionAcceptedPayload",
+      "type": "object"
+    },
+    "blocker.raised": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "blocker_id": {
+          "title": "Blocker Id",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "needs_human": {
+          "title": "Needs Human",
+          "type": "boolean"
+        },
+        "route_back_to": {
+          "anyOf": [
+            {
+              "const": "intake",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Route Back To"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "blocker_id",
+        "task_id",
+        "agent_id",
+        "description",
+        "needs_human"
+      ],
+      "title": "BlockerRaisedPayload",
+      "type": "object"
+    },
+    "clarification.answered": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "answer",
+            "escalate"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "answer": {
+          "title": "Answer",
+          "type": "string"
+        },
+        "question_id": {
+          "title": "Question Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question_id",
+        "answer",
+        "action"
+      ],
+      "title": "ClarificationAnsweredPayload",
+      "type": "object"
+    },
+    "clarification.asked": {
+      "$defs": {
+        "Blocker": {
+          "additionalProperties": false,
+          "properties": {
+            "agent_id": {
+              "title": "Agent Id",
+              "type": "string"
+            },
+            "blocker_id": {
+              "title": "Blocker Id",
+              "type": "string"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            },
+            "task_id": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "blocker_id",
+            "task_id",
+            "agent_id",
+            "description"
+          ],
+          "title": "Blocker",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "blocker": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Blocker"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "question_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Question Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "question_ids"
+      ],
+      "title": "ClarificationAskedPayload",
+      "type": "object"
+    },
+    "clarification.needed": {
+      "additionalProperties": false,
+      "properties": {
+        "blocking": {
+          "title": "Blocking",
+          "type": "boolean"
+        },
+        "proposed_default": {
+          "title": "Proposed Default",
+          "type": "string"
+        },
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "question_id": {
+          "title": "Question Id",
+          "type": "string"
+        },
+        "why_it_matters": {
+          "title": "Why It Matters",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question_id",
+        "question",
+        "why_it_matters",
+        "proposed_default",
+        "blocking"
+      ],
+      "title": "ClarificationNeededPayload",
+      "type": "object"
+    },
+    "draft.committed": {
+      "$defs": {
+        "ProvenanceTag": {
+          "additionalProperties": false,
+          "properties": {
+            "source_event_id": {
+              "title": "Source Event Id",
+              "type": "string"
+            },
+            "tag_id": {
+              "title": "Tag Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "tag_id",
+            "source_event_id"
+          ],
+          "title": "ProvenanceTag",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "markdown_path": {
+          "title": "Markdown Path",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "title": "Note",
+          "type": "string"
+        },
+        "provenance_tags": {
+          "items": {
+            "$ref": "#/$defs/ProvenanceTag"
+          },
+          "title": "Provenance Tags",
+          "type": "array"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "markdown_path",
+        "provenance_tags"
+      ],
+      "title": "DraftCommittedPayload",
+      "type": "object"
+    },
+    "handoff.ready": {
+      "$defs": {
+        "ClarificationRecord": {
+          "additionalProperties": false,
+          "properties": {
+            "answer": {
+              "title": "Answer",
+              "type": "string"
+            },
+            "question_id": {
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "question_id",
+            "answer"
+          ],
+          "title": "ClarificationRecord",
+          "type": "object"
+        },
+        "HandoffPackage": {
+          "additionalProperties": false,
+          "properties": {
+            "assumptions": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Assumptions",
+              "type": "array"
+            },
+            "clarifications": {
+              "items": {
+                "$ref": "#/$defs/ClarificationRecord"
+              },
+              "title": "Clarifications",
+              "type": "array"
+            },
+            "event_log_path": {
+              "title": "Event Log Path",
+              "type": "string"
+            },
+            "page_images": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Page Images",
+              "type": "array"
+            },
+            "pdf_path": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Pdf Path"
+            },
+            "unresolved_findings": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Unresolved Findings",
+              "type": "array"
+            },
+            "verdict_event_id": {
+              "title": "Verdict Event Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "page_images",
+            "verdict_event_id",
+            "unresolved_findings",
+            "assumptions",
+            "clarifications",
+            "event_log_path"
+          ],
+          "title": "HandoffPackage",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "exit_determination": {
+          "enum": [
+            "reviewer_pass",
+            "retry_exhausted"
+          ],
+          "title": "Exit Determination",
+          "type": "string"
+        },
+        "package": {
+          "$ref": "#/$defs/HandoffPackage"
+        }
+      },
+      "required": [
+        "exit_determination",
+        "package"
+      ],
+      "title": "HandoffReadyPayload",
+      "type": "object"
+    },
+    "human.approved": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "enum": [
+            "approve",
+            "edit",
+            "reject"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "required": [
+        "decision"
+      ],
+      "title": "HumanApprovedPayload",
+      "type": "object"
+    },
+    "intake.brief": {
+      "additionalProperties": false,
+      "properties": {
+        "brief": {
+          "additionalProperties": true,
+          "title": "Brief",
+          "type": "object"
+        }
+      },
+      "required": [
+        "brief"
+      ],
+      "title": "IntakeBriefPayload",
+      "type": "object"
+    },
+    "intake.readiness": {
+      "$defs": {
+        "ChecklistItem": {
+          "additionalProperties": false,
+          "properties": {
+            "item": {
+              "title": "Item",
+              "type": "string"
+            },
+            "note": {
+              "default": "",
+              "title": "Note",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "pass",
+                "fail",
+                "assumed"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "item",
+            "status"
+          ],
+          "title": "ChecklistItem",
+          "type": "object"
+        },
+        "LegibilityScore": {
+          "additionalProperties": false,
+          "properties": {
+            "confidence": {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "title": "Confidence",
+              "type": "number"
+            },
+            "page": {
+              "title": "Page",
+              "type": "string"
+            }
+          },
+          "required": [
+            "page",
+            "confidence"
+          ],
+          "title": "LegibilityScore",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "checklist": {
+          "items": {
+            "$ref": "#/$defs/ChecklistItem"
+          },
+          "title": "Checklist",
+          "type": "array"
+        },
+        "legibility": {
+          "items": {
+            "$ref": "#/$defs/LegibilityScore"
+          },
+          "title": "Legibility",
+          "type": "array"
+        },
+        "verdict": {
+          "enum": [
+            "ready",
+            "ready_with_assumptions",
+            "not_ready"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "verdict",
+        "checklist",
+        "legibility"
+      ],
+      "title": "IntakeReadinessPayload",
+      "type": "object"
+    },
+    "knowledge.appended": {
+      "$defs": {
+        "KnowledgeEntry": {
+          "additionalProperties": false,
+          "properties": {
+            "answer": {
+              "title": "Answer",
+              "type": "string"
+            },
+            "question_id": {
+              "title": "Question Id",
+              "type": "string"
+            },
+            "source_event_id": {
+              "title": "Source Event Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "question_id",
+            "answer",
+            "source_event_id"
+          ],
+          "title": "KnowledgeEntry",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "client_id": {
+          "title": "Client Id",
+          "type": "string"
+        },
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/KnowledgeEntry"
+          },
+          "title": "Entries",
+          "type": "array"
+        }
+      },
+      "required": [
+        "client_id",
+        "entries"
+      ],
+      "title": "KnowledgeAppendedPayload",
+      "type": "object"
+    },
+    "meter.update": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "call_id": {
+          "title": "Call Id",
+          "type": "string"
+        },
+        "est_cost": {
+          "minimum": 0.0,
+          "title": "Est Cost",
+          "type": "number"
+        },
+        "latency_ms": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Latency Ms",
+          "type": "integer"
+        },
+        "tokens_in": {
+          "minimum": 0,
+          "title": "Tokens In",
+          "type": "integer"
+        },
+        "tokens_out": {
+          "minimum": 0,
+          "title": "Tokens Out",
+          "type": "integer"
+        },
+        "wall_ms": {
+          "minimum": 0,
+          "title": "Wall Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "agent_id",
+        "call_id",
+        "tokens_in",
+        "tokens_out",
+        "wall_ms",
+        "est_cost"
+      ],
+      "title": "MeterUpdatePayload",
+      "type": "object"
+    },
+    "model.changed": {
+      "$defs": {
+        "Model": {
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "model_id": {
+              "title": "Model Id",
+              "type": "string"
+            },
+            "provider": {
+              "title": "Provider",
+              "type": "string"
+            }
+          },
+          "required": [
+            "provider",
+            "model_id",
+            "label"
+          ],
+          "title": "Model",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "from_model": {
+          "$ref": "#/$defs/Model"
+        },
+        "to_model": {
+          "$ref": "#/$defs/Model"
+        }
+      },
+      "required": [
+        "agent_id",
+        "from_model",
+        "to_model"
+      ],
+      "title": "ModelChangedPayload",
+      "type": "object"
+    },
+    "plan.created": {
+      "$defs": {
+        "Subtask": {
+          "additionalProperties": false,
+          "properties": {
+            "agent_id": {
+              "title": "Agent Id",
+              "type": "string"
+            },
+            "depends_on": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Depends On",
+              "type": "array"
+            },
+            "scope": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Scope",
+              "type": "array"
+            },
+            "task_id": {
+              "title": "Task Id",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            }
+          },
+          "required": [
+            "task_id",
+            "title",
+            "agent_id",
+            "depends_on",
+            "scope"
+          ],
+          "title": "Subtask",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "subtasks": {
+          "items": {
+            "$ref": "#/$defs/Subtask"
+          },
+          "title": "Subtasks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "subtasks"
+      ],
+      "title": "PlanCreatedPayload",
+      "type": "object"
+    },
+    "retry.incremented": {
+      "additionalProperties": false,
+      "description": "`count` is the reworks dispatched so far; `budget` the maximum reworks, `review_max_cycles` minus one.",
+      "properties": {
+        "budget": {
+          "minimum": 0,
+          "title": "Budget",
+          "type": "integer"
+        },
+        "count": {
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "count",
+        "budget"
+      ],
+      "title": "RetryIncrementedPayload",
+      "type": "object"
+    },
+    "review.verdict": {
+      "$defs": {
+        "Finding": {
+          "additionalProperties": false,
+          "properties": {
+            "agent_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Agent Id"
+            },
+            "evidence": {
+              "title": "Evidence",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "route_to": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "work",
+                    "assemble"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Route To"
+            },
+            "severity": {
+              "enum": [
+                "blocker",
+                "major",
+                "minor"
+              ],
+              "title": "Severity",
+              "type": "string"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "severity",
+            "text",
+            "evidence"
+          ],
+          "title": "Finding",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/Finding"
+          },
+          "title": "Findings",
+          "type": "array"
+        },
+        "summary": {
+          "default": "",
+          "title": "Summary",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "verdict",
+        "findings"
+      ],
+      "title": "ReviewVerdictPayload",
+      "type": "object"
+    },
+    "run.paused": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "const": "human",
+          "title": "By",
+          "type": "string"
+        }
+      },
+      "required": [
+        "by"
+      ],
+      "title": "RunPausedPayload",
+      "type": "object"
+    },
+    "run.resumed": {
+      "additionalProperties": false,
+      "properties": {
+        "by": {
+          "const": "human",
+          "title": "By",
+          "type": "string"
+        }
+      },
+      "required": [
+        "by"
+      ],
+      "title": "RunResumedPayload",
+      "type": "object"
+    },
+    "run.started": {
+      "$defs": {
+        "Agent": {
+          "additionalProperties": false,
+          "properties": {
+            "agent_id": {
+              "title": "Agent Id",
+              "type": "string"
+            },
+            "model": {
+              "$ref": "#/$defs/Model"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "role": {
+              "title": "Role",
+              "type": "string"
+            }
+          },
+          "required": [
+            "agent_id",
+            "name",
+            "role",
+            "model"
+          ],
+          "title": "Agent",
+          "type": "object"
+        },
+        "Model": {
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "model_id": {
+              "title": "Model Id",
+              "type": "string"
+            },
+            "provider": {
+              "title": "Provider",
+              "type": "string"
+            }
+          },
+          "required": [
+            "provider",
+            "model_id",
+            "label"
+          ],
+          "title": "Model",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "dataset_id": {
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "team",
+            "single"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "roster": {
+          "items": {
+            "$ref": "#/$defs/Agent"
+          },
+          "title": "Roster",
+          "type": "array"
+        },
+        "workflow": {
+          "title": "Workflow",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workflow",
+        "dataset_id",
+        "mode",
+        "roster"
+      ],
+      "title": "RunStartedPayload",
+      "type": "object"
+    },
+    "run.terminated": {
+      "$defs": {
+        "MissingItem": {
+          "additionalProperties": false,
+          "properties": {
+            "item": {
+              "title": "Item",
+              "type": "string"
+            },
+            "note": {
+              "default": "",
+              "title": "Note",
+              "type": "string"
+            },
+            "source_event_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source Event Id"
+            }
+          },
+          "required": [
+            "item"
+          ],
+          "title": "MissingItem",
+          "type": "object"
+        },
+        "Retries": {
+          "additionalProperties": false,
+          "properties": {
+            "budget": {
+              "minimum": 0,
+              "title": "Budget",
+              "type": "integer"
+            },
+            "count": {
+              "minimum": 0,
+              "title": "Count",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "count",
+            "budget"
+          ],
+          "title": "Retries",
+          "type": "object"
+        },
+        "Summary": {
+          "additionalProperties": false,
+          "properties": {
+            "elapsed_ms": {
+              "minimum": 0,
+              "title": "Elapsed Ms",
+              "type": "integer"
+            },
+            "est_cost": {
+              "minimum": 0.0,
+              "title": "Est Cost",
+              "type": "number"
+            },
+            "event_count": {
+              "minimum": 1,
+              "title": "Event Count",
+              "type": "integer"
+            },
+            "headline": {
+              "title": "Headline",
+              "type": "string"
+            },
+            "human_decision": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "approve",
+                    "edit",
+                    "reject"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Human Decision"
+            },
+            "missing": {
+              "items": {
+                "$ref": "#/$defs/MissingItem"
+              },
+              "title": "Missing",
+              "type": "array"
+            },
+            "readiness_verdict": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "ready",
+                    "ready_with_assumptions",
+                    "not_ready"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Readiness Verdict"
+            },
+            "retries": {
+              "$ref": "#/$defs/Retries"
+            },
+            "stop_reason": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "no_progress",
+                    "repeated_finding",
+                    "max_cycles"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Stop Reason"
+            },
+            "unresolved_findings": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Unresolved Findings",
+              "type": "array"
+            }
+          },
+          "required": [
+            "headline",
+            "missing",
+            "unresolved_findings",
+            "retries",
+            "event_count",
+            "elapsed_ms",
+            "est_cost"
+          ],
+          "title": "Summary",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "exit": {
+          "enum": [
+            "reviewer_pass",
+            "retry_exhausted",
+            "blocker_escalated",
+            "not_ready",
+            "cost_ceiling",
+            "stopped",
+            "single_complete",
+            "dry_intake"
+          ],
+          "title": "Exit",
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/Summary"
+        }
+      },
+      "required": [
+        "exit",
+        "summary"
+      ],
+      "title": "RunTerminatedPayload",
+      "type": "object"
+    },
+    "stage.changed": {
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "enum": [
+            "forward",
+            "backward"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "from": {
+          "anyOf": [
+            {
+              "enum": [
+                "intake",
+                "plan",
+                "work",
+                "assemble",
+                "review",
+                "handoff"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "From"
+        },
+        "target_reason": {
+          "title": "Target Reason",
+          "type": "string"
+        },
+        "to": {
+          "enum": [
+            "intake",
+            "plan",
+            "work",
+            "assemble",
+            "review",
+            "handoff"
+          ],
+          "title": "To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "direction",
+        "target_reason"
+      ],
+      "title": "StageChangedPayload",
+      "type": "object"
+    },
+    "task.completed": {
+      "$defs": {
+        "Provenance": {
+          "additionalProperties": false,
+          "properties": {
+            "confidence": {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "title": "Confidence",
+              "type": "number"
+            },
+            "source": {
+              "title": "Source",
+              "type": "string"
+            },
+            "tool": {
+              "title": "Tool",
+              "type": "string"
+            }
+          },
+          "required": [
+            "tool",
+            "source",
+            "confidence"
+          ],
+          "title": "Provenance",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "provenance": {
+          "items": {
+            "$ref": "#/$defs/Provenance"
+          },
+          "title": "Provenance",
+          "type": "array"
+        },
+        "result": {
+          "additionalProperties": true,
+          "title": "Result",
+          "type": "object"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id",
+        "agent_id",
+        "result",
+        "provenance"
+      ],
+      "title": "TaskCompletedPayload",
+      "type": "object"
+    },
+    "task.dispatched": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "inputs_summary": {
+          "title": "Inputs Summary",
+          "type": "string"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id",
+        "agent_id",
+        "inputs_summary"
+      ],
+      "title": "TaskDispatchedPayload",
+      "type": "object"
+    },
+    "task.progress": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "headline": {
+          "default": "",
+          "title": "Headline",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id",
+        "agent_id",
+        "message"
+      ],
+      "title": "TaskProgressPayload",
+      "type": "object"
+    },
+    "tool.called": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "args_summary": {
+          "title": "Args Summary",
+          "type": "string"
+        },
+        "duration_ms": {
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "result_summary": {
+          "title": "Result Summary",
+          "type": "string"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        },
+        "tool": {
+          "title": "Tool",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id",
+        "agent_id",
+        "tool",
+        "args_summary",
+        "result_summary",
+        "duration_ms"
+      ],
+      "title": "ToolCalledPayload",
+      "type": "object"
+    }
+  },
+  "prompt_bundle": {
+    "$defs": {
+      "Model": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "model_id",
+          "label"
+        ],
+        "title": "Model",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "context_slice": {
+        "title": "Context Slice",
+        "type": "string"
+      },
+      "model": {
+        "$ref": "#/$defs/Model"
+      },
+      "prompt_ref": {
+        "title": "Prompt Ref",
+        "type": "string"
+      },
+      "system": {
+        "title": "System",
+        "type": "string"
+      },
+      "task": {
+        "title": "Task",
+        "type": "string"
+      },
+      "tools": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Tools",
+        "type": "array"
+      }
+    },
+    "required": [
+      "prompt_ref",
+      "system",
+      "context_slice",
+      "task",
+      "tools",
+      "model"
+    ],
+    "title": "PromptBundle",
+    "type": "object"
+  },
+  "title": "Sterling AI multi-agent demo events v1.1.0",
+  "version": "1.1.0"
+}

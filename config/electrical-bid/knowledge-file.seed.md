@@ -1,4 +1,4 @@
-# Client knowledge: electrical RFP workflow (seed)
+# Client knowledge: electrical bid response workflow (seed)
 
 Read by the Intake Analyst before generating clarifications, and by Pricing and the Writer where noted. Appended by the Orchestrator with human answers, each entry timestamped with the run id. Human-readable on purpose.
 

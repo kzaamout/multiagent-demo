@@ -1,6 +1,6 @@
 """quantity.calculate: totals, waste factors, and labour roll-up for the Estimator.
 
-Rules from config/electrical-rfp/estimating-conventions.md: 5 percent waste on wire and conduit,
+Rules from config/electrical-bid/estimating-conventions.md: 5 percent waste on wire and conduit,
 2 percent on devices. Counted items are rounded up to whole units after waste; lengths are
 rounded to 0.1 metre. Labour hours use the installed quantity before waste.
 """

@@ -17,7 +17,7 @@ from app.live.replies import (
     parse_reply,
 )
 
-CHECKLIST = ROOT / "config" / "electrical-rfp" / "readiness-checklist.md"
+CHECKLIST = ROOT / "config" / "electrical-bid" / "readiness-checklist.md"
 BRIEF = {"project": "Quillbrook Library", "scope": "Main floor fit-out"}
 
 

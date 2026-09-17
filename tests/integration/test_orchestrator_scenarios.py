@@ -115,17 +115,29 @@ async def test_missing_price_carries_minor_finding(settings: Settings) -> None:
     assert events[-1].payload["summary"]["unresolved_findings"] == ["f1"]
 
 
-async def test_retry_exhausted_goes_through_handoff(settings: Settings) -> None:
+async def test_review_without_progress_goes_through_handoff_with_a_stop_reason(settings: Settings) -> None:
+    """The same failing verdict twice: the second cycle reduces nothing, so review stops after one rework."""
     base = SCENARIOS["planted-inconsistency"]
     fail = base.review[0]
-    scenario = dataclasses.replace(base, review=[fail, fail, fail], assemble=[base.assemble[0]] * 3)
+    scenario = dataclasses.replace(base, review=[fail, fail], assemble=[base.assemble[0]] * 2)
     events = await run_scenario(scenario, settings)
     assert events[-1].payload["exit"] == "retry_exhausted"
-    assert [e.payload["count"] for e in of_type(events, "retry.incremented")] == [1, 2]
+    assert [e.payload["count"] for e in of_type(events, "retry.incremented")] == [1]
+    assert of_type(events, "retry.incremented")[0].payload["budget"] == settings.review_max_cycles - 1
     assert of_type(events, "handoff.ready")[0].payload["exit_determination"] == "retry_exhausted"
-    assert events[-1].payload["summary"]["unresolved_findings"] == ["f1", "f2"]
+    summary = events[-1].payload["summary"]
+    assert summary["unresolved_findings"] == ["f1", "f2"]
+    assert summary["stop_reason"] == "no_progress"
+    assert summary["retries"] == {"count": 1, "budget": settings.review_max_cycles - 1}
     assert "verdict is pass" not in (events[-1].reason or ""), "the closing reason matches the exit"
-    assert "retry budget is spent" in (events[-1].reason or "")
+    assert "no progress in the last review cycle" in (events[-1].reason or "")
+    assert "no progress in the last review cycle" in (of_type(events, "stage.changed")[-1].reason or "")
+
+
+async def test_a_pass_carries_no_stop_reason(settings: Settings) -> None:
+    events = await run_scenario(SCENARIOS["planted-inconsistency"], settings)
+    assert events[-1].payload["exit"] == "reviewer_pass"
+    assert events[-1].payload["summary"]["stop_reason"] is None
 
 
 async def test_review_fail_routed_to_assemble_uses_backward_arrow(settings: Settings) -> None:

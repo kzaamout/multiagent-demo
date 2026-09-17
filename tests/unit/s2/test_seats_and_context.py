@@ -10,7 +10,7 @@ from app.seats.definitions import SEAT_DEFINITIONS, InstructionsError, load_inst
 
 SPEC_TOOLS = {
     "orchestrator": (),
-    "intake": ("document_parse_pdf", "document_extract_attachments"),
+    "intake": ("prepare_documents", "document_parse_pdf", "document_extract_attachments"),
     "estimator": ("vision_read_drawing", "quantity_calculate"),
     "pricing": ("price_list_lookup",),
     "writer": ("template_render", "compile_trigger"),
@@ -20,24 +20,24 @@ SPEC_TOOLS = {
 
 @pytest.mark.parametrize("agent_id", sorted(SEAT_DEFINITIONS))
 def test_instructions_load_with_placeholders_filled(agent_id: str) -> None:
-    text = load_instructions(agent_id, name="Rosa", retry_budget=2, long_lead_days=28)
+    text = load_instructions(agent_id, name="Rosa", review_max_cycles=4, long_lead_days=28)
     assert text.startswith("You are Rosa")
-    assert "{name}" not in text and "{retry_budget}" not in text and "{long_lead_days}" not in text
+    assert "{name}" not in text and "{review_max_cycles}" not in text and "{long_lead_days}" not in text
     assert chr(0x2014) not in text
 
 
 def test_writer_tag_syntax_and_json_braces_survive() -> None:
-    writer = load_instructions("writer", name="Willa", retry_budget=2, long_lead_days=28)
+    writer = load_instructions("writer", name="Willa", review_max_cycles=4, long_lead_days=28)
     assert "{{value|src:ID}}" in writer and "{{225 A|src:takeoff}}" in writer
-    pricing = load_instructions("pricing", name="Pavel", retry_budget=2, long_lead_days=28)
+    pricing = load_instructions("pricing", name="Pavel", review_max_cycles=4, long_lead_days=28)
     assert "over 28 days" in pricing
     assert '{"headline"' in pricing
 
 
 def test_unknown_placeholder_is_refused(tmp_path: Path) -> None:
-    (tmp_path / "reviewer.md").write_text("You are {name}. Budget {retry_budgt}.", encoding="utf-8")
-    with pytest.raises(InstructionsError, match="retry_budgt"):
-        load_instructions("reviewer", name="Rosa", retry_budget=2, long_lead_days=28, seats_dir=tmp_path)
+    (tmp_path / "reviewer.md").write_text("You are {name}. Limit {review_max_cycls}.", encoding="utf-8")
+    with pytest.raises(InstructionsError, match="review_max_cycls"):
+        load_instructions("reviewer", name="Rosa", review_max_cycles=4, long_lead_days=28, seats_dir=tmp_path)
 
 
 @pytest.mark.parametrize("agent_id", sorted(SPEC_TOOLS))

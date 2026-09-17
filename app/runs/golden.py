@@ -44,7 +44,7 @@ async def deterministic_run(
             root=settings.root,
             runs_dir=Path(tmp),
             datasets_dir=settings.datasets_dir,
-            retry_budget=settings.retry_budget,
+            review_max_cycles=settings.review_max_cycles,
             cost_ceiling=settings.cost_ceiling,
             stub_pace=settings.stub_pace,
             workflow=settings.workflow,

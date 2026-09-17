@@ -309,7 +309,7 @@ def build(tmp: Path, turns: dict[str, list[Turn]], run_id: str, cost_ceiling: fl
             project="Test Library lighting upgrade",
             supplier_order=["Supplier A", "Supplier B", "Supplier C"],
             long_lead_days=28,
-            retry_budget=2,
+            review_max_cycles=4,
         ),
         seat_models=models,
     )
@@ -319,7 +319,7 @@ def build(tmp: Path, turns: dict[str, list[Turn]], run_id: str, cost_ceiling: fl
         dataset=DatasetRef(dataset_id="test-live", label="Test live", client_id=CLIENT),
         scenario=source,
         roster=roster,
-        retry_budget=2,
+        review_max_cycles=4,
         cost_ceiling=cost_ceiling,
         clock=Clock(dt.datetime.now(dt.UTC), pace=1.0),
         bus=StreamBus(),

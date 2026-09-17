@@ -9,6 +9,9 @@ from app.agents.stubs import (
     missing_sheet,
     not_ready,
     planted_inconsistency,
+    prospect_a,
+    prospect_b,
+    prospect_c,
     prospect_own,
 )
 from app.schema.bundles import PromptBundle
@@ -22,6 +25,9 @@ SCENARIOS: dict[str, StubScenario] = {
         missing_price.SCENARIO,
         not_ready.SCENARIO,
         prospect_own.SCENARIO,
+        prospect_a.SCENARIO,
+        prospect_b.SCENARIO,
+        prospect_c.SCENARIO,
     )
 }
 

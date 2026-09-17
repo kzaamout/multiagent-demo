@@ -10,13 +10,20 @@ include provider exception text, which could carry credentials or request detail
 from __future__ import annotations
 
 import asyncio
+import time
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
 from typing import Any, Literal
 
 from pydantic import BaseModel
 from strands import Agent
-from strands.hooks import AfterModelCallEvent, AfterToolCallEvent, HookProvider, HookRegistry
+from strands.hooks import (
+    AfterModelCallEvent,
+    AfterToolCallEvent,
+    BeforeModelCallEvent,
+    HookProvider,
+    HookRegistry,
+)
 from strands.models import Model as StrandsModel
 from strands.tools.executors import SequentialToolExecutor
 from strands.types.exceptions import MaxTokensReachedException
@@ -68,13 +75,21 @@ class _Observer(HookProvider):
         self.queue = queue
         self.seat_model = seat_model
         self.log = log
+        self._call_started: float | None = None
 
     def register_hooks(self, registry: HookRegistry, **kwargs: Any) -> None:
+        registry.add_callback(BeforeModelCallEvent, self._before_model)
         registry.add_callback(AfterModelCallEvent, self._after_model)
         registry.add_callback(AfterToolCallEvent, self._after_tool)
 
+    def _before_model(self, event: BeforeModelCallEvent) -> None:
+        self._call_started = time.monotonic()
+
     def _after_model(self, event: AfterModelCallEvent) -> None:
         response = event.stop_response
+        # wall_ms is measured here; latency_ms is what the provider reports (schema 1.1.0).
+        started, self._call_started = self._call_started, None
+        wall_ms = int(round((time.monotonic() - started) * 1000)) if started is not None else 0
         if response is None:
             return
         message = response.message
@@ -98,7 +113,8 @@ class _Observer(HookProvider):
                 usage=MeterDelta(
                     tokens_in=tokens_in,
                     tokens_out=tokens_out,
-                    wall_ms=int(metrics.get("latencyMs", 0)),
+                    wall_ms=wall_ms,
+                    latency_ms=int(metrics.get("latencyMs", 0)),
                     est_cost=estimated_cost(
                         tokens_in, tokens_out, self.seat_model.price_in, self.seat_model.price_out
                     ),

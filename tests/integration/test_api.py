@@ -45,6 +45,9 @@ async def test_datasets_in_spec_order(client: httpx.AsyncClient) -> None:
         "04 · Missing price",
         "05 · Not ready",
         "06 · Prospect own",
+        "07 · Prospect A",
+        "08 · Prospect B",
+        "09 · Prospect C",
     ]
     assert all(d["replay_source"] == "golden" for d in listing)
 

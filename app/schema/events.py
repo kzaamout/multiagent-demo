@@ -1,7 +1,9 @@
-"""Event schema, version 1.0.0. Frozen (constitution II and XII).
+"""Event schema, version 1.1.0. Frozen (constitution II and XII).
 
-Normative text: docs/schema/events-v1.0.0.md. This module is the typed form of that
-document. Any change is an amendment and a new version.
+Normative text: docs/schema/events-v1.1.0.md, an additive amendment of 1.0.0 (slice S3b): a
+stop reason on the termination summary, provider latency on meter updates, stage changes in a
+Single-model run, and the retry budget defined as the maximum number of reworks. This module
+is the typed form of that document. Any change is an amendment and a new version.
 """
 
 from __future__ import annotations
@@ -11,7 +13,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.1.0"
 
 Stage = Literal["intake", "plan", "work", "assemble", "review", "handoff"]
 STAGE_ORDER: tuple[Stage, ...] = ("intake", "plan", "work", "assemble", "review", "handoff")
@@ -38,6 +40,7 @@ Decision = Literal["approve", "edit", "reject"]
 RunMode = Literal["team", "single"]
 AnswerAction = Literal["answer", "escalate"]
 RouteTo = Literal["work", "assemble"]
+StopReason = Literal["no_progress", "repeated_finding", "max_cycles"]
 
 EventType = Literal[
     "run.started",
@@ -281,6 +284,8 @@ class ReviewVerdictPayload(Strict):
 
 
 class RetryIncrementedPayload(Strict):
+    """`count` is the reworks dispatched so far; `budget` the maximum reworks, `review_max_cycles` minus one."""
+
     count: int = Field(ge=0)
     budget: int = Field(ge=0)
 
@@ -341,6 +346,7 @@ class MeterUpdatePayload(Strict):
     tokens_in: int = Field(ge=0)
     tokens_out: int = Field(ge=0)
     wall_ms: int = Field(ge=0)
+    latency_ms: int = Field(default=0, ge=0)
     est_cost: float = Field(ge=0.0)
 
 
@@ -360,6 +366,7 @@ class Summary(Strict):
     missing: list[MissingItem]
     unresolved_findings: list[str]
     retries: Retries
+    stop_reason: StopReason | None = None
     readiness_verdict: ReadinessVerdict | None = None
     event_count: int = Field(ge=1)
     elapsed_ms: int = Field(ge=0)

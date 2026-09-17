@@ -22,7 +22,7 @@ Required by constitution XV. One entry per major dependency, stating the problem
 | Typst (authoring only) | 0.15.1 (2026-09-15) | Compiles the Clean run request and drawing PDFs from sources kept in `datasets/clean-run/source/`; not needed to run the demo until S4 | Hand-drawn PDFs with no reproducible source | S2 |
 | Ollama (setup) | 0.34.0 (2026-09-15), winget package `Ollama.Ollama` on Windows, the official install script on Linux, the download page on macOS | Runs the local Pricing model; `scripts/setup.py` installs it with consent and pulls the seat models over the Ollama API | Manual install steps per presenter | S2 |
 | uv standalone installer (setup) | current from astral.sh (2026-09-15) | `scripts/setup.ps1` and `scripts/setup.sh` install uv when it is missing, and uv installs Python 3.13 and the locked dependencies | Manual Python and dependency setup per presenter | S2 |
-| pypdfium2 | 5.13.0 (2026-09-14) | Text per page and page rendering to PNG for the Intake parsing tool and the Estimator's drawing reading; BSD-3-Clause and Apache-2.0, Windows wheels | PyMuPDF does both but is AGPL; pypdf extracts text but cannot render pages | S2 |
+| pypdfium2 | 5.13.0 (2026-09-14) | Text per page and page rendering to PNG for the Intake parsing tool and the Estimator's drawing reading; from S3b also splits binders into single-page PDFs for `prepare_documents` (no new dependency); BSD-3-Clause and Apache-2.0, Windows wheels | PyMuPDF does both but is AGPL; pypdf extracts text but cannot render pages | S2 |
 
 Not adopted, with reason:
 

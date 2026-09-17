@@ -123,6 +123,7 @@ def create_app(
             "preflight": "pending",
             "stub_pace": cfg.stub_pace,
             "workflow": cfg.workflow,
+            "review_max_cycles": cfg.review_max_cycles,
             "retry_budget": cfg.retry_budget,
             "cost_ceiling": cfg.cost_ceiling,
             "schema_version": cfg.schema_version,
@@ -174,6 +175,7 @@ def create_app(
         return {
             "run_id": orchestrator.run_id,
             "stream_url": f"/api/streams/{orchestrator.run_id}/events",
+            "review_max_cycles": orchestrator.state.review_max_cycles,
             "retry_budget": orchestrator.state.retry_budget,
             "cost_ceiling": orchestrator.state.cost_ceiling,
         }
@@ -194,6 +196,7 @@ def create_app(
             "mode": "team",
             "status": o.status,
             "exit": o.state.exit,
+            "review_max_cycles": o.state.review_max_cycles,
             "retry_budget": o.state.retry_budget,
             "cost_ceiling": o.state.cost_ceiling,
             "roster": [a.model_dump() for a in o.roster.values()],

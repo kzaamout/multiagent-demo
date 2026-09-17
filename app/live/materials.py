@@ -18,8 +18,9 @@ from app.live.context import Material
 from app.live.documents import page_count
 from app.schema.events import Event
 from app.seats import definitions as d
+from app.tools.prepare import Prepared
 
-CONFIG_DIR = ROOT / "config" / "electrical-rfp"
+CONFIG_DIR = ROOT / "config" / "electrical-bid"
 TEMPLATE_PATH = ROOT / "templates" / "rfp-response.md"
 ROLE_LABEL = {"estimator": "Estimator", "pricing": "Pricing", "writer": "Writer", "intake": "Intake Analyst"}
 
@@ -98,13 +99,26 @@ def build_materials(
     knowledge_text: str,
     run_folder: Path,
     findings: list[dict[str, Any]] | None = None,
+    prepared: Prepared | None = None,
 ) -> list[Material]:
     """Every material the run has so far. Seats get a filtered subset via build_context."""
     materials: list[Material] = []
 
     request_lines = [f"- {p.name} ({_pages(p)})" for p in files.request_files()]
     drawing_lines = [f"- drawings/{p.name} ({_pages(p)})" for p in files.drawing_files()]
-    if request_lines or drawing_lines:
+    if prepared is not None:
+        manifest = prepared.folder / "manifest.md"
+        materials.append(
+            Material(
+                d.REQUEST_DOCUMENTS,
+                "Request documents and drawing sheets, prepared by prepare_documents",
+                (manifest.read_text(encoding="utf-8") if manifest.exists() else "no manifest")
+                + "\nRead the manifest first. Use document_parse_pdf with prepared/<sheet>.pdf to read any sheet or "
+                "request page listed above; do not read the raw binders. A field that reads unknown could not be "
+                "read: grade it as an assumption, never guess it.",
+            )
+        )
+    elif request_lines or drawing_lines:
         materials.append(
             Material(
                 d.REQUEST_DOCUMENTS,
@@ -140,7 +154,13 @@ def build_materials(
         }
         materials.append(Material(d.BRIEF, "Brief", _json(body), "brief", brief.event_id))
 
-    sheet_lines = [f"- {p.stem} ({_pages(p)})" for p in files.drawing_files()]
+    if prepared is not None:
+        sheet_lines = [
+            f"- {s.sheet_id}: {s.title} (discipline {s.discipline}, issued for {s.issued_for}, legibility {s.confidence:.2f})"
+            for s in prepared.drawing_sheets()
+        ]
+    else:
+        sheet_lines = [f"- {p.stem} ({_pages(p)})" for p in files.drawing_files()]
     if sheet_lines:
         materials.append(
             Material(

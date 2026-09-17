@@ -8,9 +8,11 @@ records ride on the next emission so every model call gets its own meter update.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from collections.abc import AsyncIterator, Callable, Mapping
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel
@@ -48,6 +50,7 @@ from app.runs.metrics import SeatAttempt, append_attempt
 from app.schema.bundles import PromptBundle
 from app.schema.events import Event, Subtask
 from app.seats.definitions import SEAT_DEFINITIONS, load_instructions
+from app.tools.prepare import PREPARED_DIR, prepare_documents, read_manifest
 from app.tools.template import commit_draft, find_tags, provenance_problems
 
 if TYPE_CHECKING:
@@ -106,7 +109,7 @@ class LiveContext:
     project: str
     supplier_order: list[str]
     long_lead_days: int
-    retry_budget: int
+    review_max_cycles: int
 
 
 def pricing_used_lookup(reply: BaseModel, tools_used: list[str]) -> str | None:
@@ -203,14 +206,19 @@ class LiveAgentSource:
             raise RuntimeError("the live source is not bound to a run")
         return self._orchestrator
 
+    @property
+    def run_folder(self) -> Path:
+        return self.o.run_folder or self.o.knowledge.path.parent
+
     def _bundle(self, agent_id: str, task: str, findings: list[dict[str, Any]] | None = None) -> PromptBundle:
         self._counter += 1
         materials = build_materials(
             files=self.ctx.files,
             events=self.o.events,
             knowledge_text=self.ctx.knowledge.read(self.client_id),
-            run_folder=self.o.run_folder or self.o.knowledge.path.parent,
+            run_folder=self.run_folder,
             findings=findings,
+            prepared=read_manifest(self.run_folder / PREPARED_DIR),
         )
         context = build_context(agent_id, materials)
         self._sources = context.source_events()
@@ -219,7 +227,7 @@ class LiveAgentSource:
             system=load_instructions(
                 agent_id,
                 name=self.o.roster[agent_id].name,
-                retry_budget=self.ctx.retry_budget,
+                review_max_cycles=self.ctx.review_max_cycles,
                 long_lead_days=self.ctx.long_lead_days,
             ),
             context_slice=context.render(),
@@ -239,6 +247,7 @@ class LiveAgentSource:
         tools = build_tools(
             agent_id,
             files=self.ctx.files,
+            prepared_dir=self.run_folder / PREPARED_DIR,
             log=log,
             prospect_name=self.ctx.prospect_name,
             project=self.ctx.project,
@@ -351,9 +360,27 @@ class LiveAgentSource:
     # Steps
 
     async def intake(self) -> AsyncIterator[Emit]:
+        # prepare_documents runs before the Analyst reads anything: deterministic, no model call (spec 0.7 stage 1).
+        prepared = await asyncio.to_thread(
+            prepare_documents,
+            self.ctx.files.request_files(),
+            self.ctx.files.drawing_files(),
+            self.run_folder / PREPARED_DIR,
+        )
         bundle = self._bundle(
             "intake",
-            "Grade the request in the inputs folder against every item of the readiness checklist, including the drawing set and consistency checks. Raise one clarification for each item that is not pass. Return the brief, readiness, and clarifications as the JSON your instructions describe.",
+            "Read prepared/manifest.md, then grade the request against every item of the readiness checklist, including the drawing set and consistency checks, reading sheets with document_parse_pdf on prepared/<sheet>.pdf. Raise one clarification for each item that is not pass. Return the brief, readiness, and clarifications as the JSON your instructions describe.",
+        )
+        for prepared_file in prepared.files:
+            yield self._tool_emit(
+                bundle, prepared_file.source, prepared_file.summary(), prepared_file.duration_ms
+            )
+        yield self._tool_emit(
+            bundle,
+            "manifest.md",
+            f"{len(prepared.sheets)} sheets from {len(prepared.files)} files, "
+            f"{prepared.unknown_count()} title block fields unknown",
+            prepared.manifest_ms,
         )
         checklist = CONFIG_DIR / "readiness-checklist.md"
         expected_items = checklist_items(checklist, REQUIRED_SECTIONS)
@@ -379,6 +406,22 @@ class LiveAgentSource:
             yield Emit("intake", "intake.readiness", 0, readiness, bundle, meters=tuple(pending))
             for question in questions:
                 yield Emit("intake", "clarification.needed", 0, question, bundle)
+
+    def _tool_emit(self, bundle: PromptBundle, args: str, result: str, duration_ms: int) -> Emit:
+        return Emit(
+            "intake",
+            "tool.called",
+            0,
+            {
+                "task_id": "intake",
+                "agent_id": "intake",
+                "tool": "prepare_documents",
+                "args_summary": without_em_dashes(args)[:200],
+                "result_summary": without_em_dashes(result)[:200],
+                "duration_ms": duration_ms,
+            },
+            bundle,
+        )
 
     async def plan(self) -> PlanResult:
         bundle = self._bundle(

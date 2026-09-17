@@ -20,6 +20,7 @@ class MeterDelta:
     tokens_out: int
     wall_ms: int
     est_cost: float
+    latency_ms: int = 0
 
 
 @dataclass(frozen=True)

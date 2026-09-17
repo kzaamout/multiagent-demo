@@ -28,7 +28,7 @@ A sales demo that shows several AI agents, under an orchestrator, taking a busin
 - UI design brief (also given to Claude Design): `docs/design-brief.md`
 - Claude Design export: what the files are, known deviations, handling rules: `design/README.md`
 - Runtime content served by the Introduction tab: `content/intro/*.md`
-- Agent runtime config for the electrical RFP workflow: `config/electrical-rfp/`
+- Agent runtime config for the electrical bid response workflow: `config/electrical-bid/`
 - Scenario datasets and curation checklist: `datasets/`
 - Sales playbook (humans only, do not load unless asked): `docs/sales-playbook.md`
 - Approved slice roadmap and pre-S1 decisions: `docs/roadmap.md`

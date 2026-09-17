@@ -7,7 +7,7 @@ from app.agents.stubs import SCENARIOS, bundle_for
 from app.schema.events import AGENT_MESSAGE_TYPES, HUMAN_TYPES, ORCHESTRATOR_TYPES
 
 
-def test_six_scenarios_registered() -> None:
+def test_nine_scenarios_registered() -> None:
     assert set(SCENARIOS) == {
         "clean-run",
         "planted-inconsistency",
@@ -15,6 +15,9 @@ def test_six_scenarios_registered() -> None:
         "missing-price",
         "not-ready",
         "prospect-own",
+        "prospect-a",
+        "prospect-b",
+        "prospect-c",
     }
 
 

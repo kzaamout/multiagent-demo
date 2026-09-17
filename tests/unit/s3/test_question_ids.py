@@ -15,7 +15,7 @@ from app.live.replies import (
     parse_reply,
 )
 
-CHECKLIST = ROOT / "config" / "electrical-rfp" / "readiness-checklist.md"
+CHECKLIST = ROOT / "config" / "electrical-bid" / "readiness-checklist.md"
 ITEMS = checklist_items(CHECKLIST, REQUIRED_SECTIONS)
 BID_SECURITY = "Bid security requirement stated, such as a bid bond"
 

@@ -1,4 +1,4 @@
-# Seat instructions: electrical RFP workflow
+# Seat instructions: electrical bid response workflow
 
 One file per seat. The whole file is the `system` section of the prompt bundle for that seat, so it appears verbatim in the prompt toggle. The context slice and the task are supplied per call by the Orchestrator; they are not part of these files. Loaded from slice S2.
 
@@ -20,10 +20,10 @@ Drafted 2026-09-14 and accepted by the owner the same day, together with the dec
 | Placeholder | Source |
 |---|---|
 | `{name}` | the seat's name for this run, chosen at random from its two names |
-| `{retry_budget}` | `RETRY_BUDGET` in configuration, default 2 |
+| `{review_max_cycles}` | `REVIEW_MAX_CYCLES` in configuration, default 4: the hard ceiling on review cycles per run |
 | `{long_lead_days}` | `LONG_LEAD_DAYS` in configuration, default 28 |
 
-Output shapes in each file map onto event payloads in `docs/schema/events-v1.0.0.md`. Each seat reads its own config file named in the text: the Intake Analyst reads `readiness-checklist.md` and the knowledge file, the Estimator reads `estimating-conventions.md`, Pricing and the Writer read the knowledge file, and the Reviewer reads `reviewer-criteria.md`.
+Output shapes in each file map onto event payloads in `docs/schema/events-v1.1.0.md`. Each seat reads its own config file named in the text: the Intake Analyst reads `readiness-checklist.md` and the knowledge file, the Estimator reads `estimating-conventions.md`, Pricing and the Writer read the knowledge file, and the Reviewer reads `reviewer-criteria.md`.
 
 ## Decisions (owner, 2026-09-14)
 

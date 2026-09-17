@@ -50,6 +50,10 @@ async def test_tools_progress_meters_and_bundles(tmp_path: Path) -> None:
 
     tools = [(e.payload["task_id"], e.payload["tool"]) for e in of_type(events, "tool.called")]
     assert tools == [
+        ("intake", "prepare_documents"),  # division-26-specification.pdf
+        ("intake", "prepare_documents"),  # request.pdf
+        ("intake", "prepare_documents"),  # drawings/E-001.pdf
+        ("intake", "prepare_documents"),  # manifest.md
         ("intake", "document_extract_attachments"),
         ("intake", "document_parse_pdf"),
         ("t1", "vision_read_drawing"),
@@ -57,6 +61,16 @@ async def test_tools_progress_meters_and_bundles(tmp_path: Path) -> None:
         ("t2", "price_list_lookup"),
         ("assemble-v1", "template_render"),
     ]
+    prepared = [e for e in of_type(events, "tool.called") if e.payload["tool"] == "prepare_documents"]
+    assert [e.payload["args_summary"] for e in prepared] == [
+        "division-26-specification.pdf",
+        "request.pdf",
+        "drawings/E-001.pdf",
+        "manifest.md",
+    ]
+    assert prepared[2].payload["result_summary"].startswith("1 page, sheets E-001")
+    assert prepared[3].payload["result_summary"].startswith("5 sheets from 3 files")
+    assert (tmp_path / "runs" / "10000000-0000-4000-8000-000000000002" / "prepared" / "manifest.md").exists()
     parse = next(e for e in of_type(events, "tool.called") if e.payload["tool"] == "document_parse_pdf")
     assert parse.payload["args_summary"] == "request.pdf" and parse.payload["result_summary"].startswith(
         "2 pages"
