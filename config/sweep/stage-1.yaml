@@ -8,6 +8,11 @@ repeats: 1
 ceiling: 1.00
 max_minutes: 30
 blocker: escalate          # what the sweep does when a blocker needs a human: escalate (the presenter's choice on Missing sheet) or answer
+# Temperature per seat comes from config/models.yaml and cannot be set here. The Estimator's line carries
+# no temperature (Bedrock's sonnet-5 rejects a non-default one), so a local model in that seat runs at the
+# model default while the other seats run at 0.1. Every run records what it used, and the report groups by
+# settings, so comparisons within a seat (which is what "best model per seat" needs) stay like for like;
+# only a comparison across seats would be affected.
 baseline:                  # decision 4a: Qwen takes the Estimator, since the sweep is local only
   orchestrator: qwen3-5-9b
   intake: qwen3-5-9b

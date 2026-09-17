@@ -12,6 +12,10 @@ A maintenance slice, not a demo slice: nothing on the Demo page changes. It answ
 4. **Local models added** (decision 2a): `qwen3.5:4b` and `deepseek-r1:14b` in the registry, pulled on the reference laptop. DeepSeek is text only, so it never takes the Estimator or the Reviewer.
 5. **The report** (decisions 6b, 7). `docs/model-performance.md` gains what the columns mean, the best local model per seat ranked by fewest stopped runs, then accuracy, then first-time rate, then speed, among models with at least five runs on the seat, and a rejection reasons table with every pair. `docs/model-performance-runs.csv` holds one raw row per run and seat with dataset, exit, golden match, sweep job, settings and every count. `docs/model-performance-columns.md` defines every column of both. The modality tables (models and what they take, seats and what they need) are generated from the registry, Ollama's capability list and the seat definitions.
 
+## Known limit
+
+Temperature is a property of the seat in `config/models.yaml`, not of the sweep, and the Estimator's line carries none because Bedrock's sonnet-5 rejects a non-default one. A local model put in that seat therefore runs at the model default while the other seats run at 0.1. The runs record it and the report groups by settings, so within-seat comparisons stay like for like; only across-seat comparison would be affected. Setting a temperature per seat from a sweep plan would need the seat API to take one, which is not built.
+
 ## Not in scope
 
 Hyperparameter variation (constant for now), parallel runs on one machine (the card holds one model), cloud models in the sweep, a UI for any of this, and any change to event types or the schema.
