@@ -56,3 +56,20 @@ def test_every_page_links_to_the_introduction(tmp_path: Path) -> None:
     client = _client(tmp_path)
     for path in ("/demo", "/settings", "/preflight"):
         assert 'href="/introduction"' in client.get(path).text, path
+
+
+def test_header_dot_renders_from_the_stored_preflight_result(tmp_path: Path) -> None:
+    from app.preflight.result import FAIL, PASS, CheckResult, build_result, save_result
+
+    pending = _client(tmp_path).get("/introduction").text
+    assert "{{PREFLIGHT_" not in pending
+    assert (
+        'data-part="preflight-indicator" data-status="pending" title="Pre-flight: not run yet">○<' in pending
+    )
+    checks = [
+        CheckResult("login", "Login pair set", FAIL, "missing", True, 1),
+        CheckResult("typst", "Typst compiles", PASS, "ok", True, 1),
+    ]
+    save_result(tmp_path / "runs", build_result("laptop", "2026-09-17T09:00:00", checks))
+    failed = _client(tmp_path).get("/introduction").text
+    assert 'data-status="fail" title="Pre-flight: Login pair set failed, 17 Sep 2026, 09:00">' in failed

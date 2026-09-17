@@ -222,7 +222,16 @@ def create_app(
     async def introduction_page() -> HTMLResponse:
         events = registry.events_for(cfg.public_run_id)
         info = build_info(cfg.root)
-        html = render_page(cfg, registry.seat_table(), events).replace("{{BUILD_STAMP}}", info.stamp)
+        # The same dot as every other header, from the stored pre-flight result alone (S7 research D1).
+        dot = header_state(load_result(cfg.runs_dir))
+        html = render_page(cfg, registry.seat_table(), events)
+        for placeholder, value in {
+            "{{BUILD_STAMP}}": info.stamp,
+            "{{PREFLIGHT_STATUS}}": dot.status,
+            "{{PREFLIGHT_GLYPH}}": dot.glyph,
+            "{{PREFLIGHT_TITLE}}": dot.title,
+        }.items():
+            html = html.replace(placeholder, value)
         return HTMLResponse(html)
 
     @app.get("/introduction.pdf")
