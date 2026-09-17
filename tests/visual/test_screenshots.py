@@ -1,5 +1,5 @@
 """Screenshot comparison against the Claude Design export at 1920 by 1080 (acceptance criterion 3,
-except Introduction which is S6). Run with: uv run pytest -m visual"""
+including the Introduction since S6). Run with: uv run pytest -m visual"""
 
 from __future__ import annotations
 
@@ -81,6 +81,7 @@ def captures(base_url: str) -> dict[str, Path]:
         "demo-terminated",
         "demo-terminated-chat",
         "login",
+        "introduction",
         "settings",
         "settings-dropdown",
         "preflight-pending",

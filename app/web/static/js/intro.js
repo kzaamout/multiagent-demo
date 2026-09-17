@@ -14,7 +14,17 @@
     card.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
   });
 
+  /* The frame shows the Demo page at its projector width, scaled to the viewport's width. */
   var frame = document.getElementById('replay-iframe');
+  var viewport = document.getElementById('replay-viewport');
+  function fitFrame() {
+    if (!frame || !viewport) { return; }
+    var scale = viewport.clientWidth / 1920;
+    frame.style.transform = 'scale(' + scale + ')';
+    viewport.style.height = Math.round(1080 * scale) + 'px';
+  }
+  fitFrame();
+  window.addEventListener('resize', fitFrame);
   document.querySelectorAll('.replay-speed').forEach(function (button) {
     button.addEventListener('click', function () {
       if (!frame) { return; }

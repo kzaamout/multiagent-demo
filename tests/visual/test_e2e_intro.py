@@ -72,7 +72,16 @@ def test_sections_diagrams_and_team_cards(page: Any, server: tuple[str, Path]) -
     base, _ = server
     page.goto(base + "/introduction")
     ids = page.evaluate("() => Array.from(document.querySelectorAll('section.intro-section')).map(s => s.id)")
-    assert ids == ["what-it-is", "architecture", "agentic-loop", "the-team", "how-agents-differ", "aws", "faq", "replay"]
+    assert ids == [
+        "what-it-is",
+        "architecture",
+        "agentic-loop",
+        "the-team",
+        "how-agents-differ",
+        "aws",
+        "faq",
+        "replay",
+    ]
     assert page.locator("figure[data-part='diagram'] svg").count() == 3
     assert page.locator("[data-part='team-card']").count() == 8
     card = page.locator("[data-part='team-card'][data-agent='reviewer']")
@@ -92,14 +101,18 @@ def test_sections_diagrams_and_team_cards(page: Any, server: tuple[str, Path]) -
     assert page.errors == []
 
 
-def test_replay_frame_plays_the_pinned_run_with_pages_and_no_controls(page: Any, server: tuple[str, Path]) -> None:
+def test_replay_frame_plays_the_pinned_run_with_pages_and_no_controls(
+    page: Any, server: tuple[str, Path]
+) -> None:
     base, _ = server
     page.goto(base + "/introduction")
     frame_el = page.locator("#replay-iframe")
     assert frame_el.count() == 1
     assert "dataset planted-inconsistency" in page.inner_text(".replay-caption")
     page.click(".replay-speed[data-speed='4']")
-    page.wait_for_function("() => document.getElementById('replay-iframe').getAttribute('src').includes('speed=4')")
+    page.wait_for_function(
+        "() => document.getElementById('replay-iframe').getAttribute('src').includes('speed=4')"
+    )
     frame = page.frame_locator("#replay-iframe")
     frame.locator("article.card").first.wait_for(timeout=60000)
     page.wait_for_function(
@@ -117,11 +130,23 @@ def test_replay_frame_plays_the_pinned_run_with_pages_and_no_controls(page: Any,
         "() => { const d = document.getElementById('replay-iframe').contentDocument;"
         " return Array.from(d.querySelectorAll('.hdr .nav a')).every(a => a.offsetParent === null); }"
     )
-    assert page.evaluate("() => document.getElementById('replay-iframe').contentDocument.querySelectorAll('figure.page-figure').length") >= 2
-    assert page.evaluate("() => document.getElementById('replay-iframe').contentDocument.querySelectorAll('.node[data-state=\"complete\"]').length") == 6
+    assert (
+        page.evaluate(
+            "() => document.getElementById('replay-iframe').contentDocument.querySelectorAll('figure.page-figure').length"
+        )
+        >= 2
+    )
+    assert (
+        page.evaluate(
+            "() => document.getElementById('replay-iframe').contentDocument.querySelectorAll('.node[data-state=\"complete\"]').length"
+        )
+        == 6
+    )
     private = [u for u in page.requests if "/api/runs/" in u or "/api/replays" in u or "/api/streams/" in u]
     assert not private, private
-    run_requests = [u for u in page.requests if ("/files/" in u or u.endswith("/events")) and "/static/" not in u]
+    run_requests = [
+        u for u in page.requests if ("/files/" in u or u.endswith("/events")) and "/static/" not in u
+    ]
     assert run_requests and all("/public/run/" in u for u in run_requests), run_requests
     assert page.errors == []
     del inner
@@ -129,5 +154,8 @@ def test_replay_frame_plays_the_pinned_run_with_pages_and_no_controls(page: Any,
 
 def test_public_routes_refuse_another_run(page: Any, server: tuple[str, Path]) -> None:
     base, _ = server
-    status = page.evaluate("(u) => fetch(u).then(r => r.status)", base + "/public/run/00000000-0000-4000-8000-0000000000dd/events")
+    status = page.evaluate(
+        "(u) => fetch(u).then(r => r.status)",
+        base + "/public/run/00000000-0000-4000-8000-0000000000dd/events",
+    )
     assert status == 404

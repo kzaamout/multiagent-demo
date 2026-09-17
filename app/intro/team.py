@@ -19,7 +19,7 @@ from app.seats import definitions as d
 
 SEAT_ORDER = ("orchestrator", "intake", "estimator", "pricing", "writer", "reviewer")
 SEAT_FILES = ROOT / "config" / "electrical-bid" / "seats"
-SWAP_NOTE = "swaps in for the appraisal workflow"
+SWAP_NOTE = "appraisal workflow only"
 
 KIND_WORDS: dict[str, str] = {
     d.REQUEST_DOCUMENTS: "the request documents and drawing sheets",
@@ -93,13 +93,19 @@ def _content_entries() -> tuple[dict[str, tuple[str, str, str]], list[tuple[str,
     return seats, swaps
 
 
+OWNS: dict[str, str] = {
+    "orchestrator": "The plan, the assignments, every stage change, all contact with the human, and the decision to stop.",
+    "intake": "The brief, the readiness verdict, and the questions the human is asked.",
+    "estimator": "The bill of materials and the labour hours, with a concern for every disagreement in the drawings.",
+    "pricing": "Every priced line, the markup, and the exceptions and long-lead items.",
+    "writer": "The deliverable, every figure tagged with the specialist output it came from.",
+    "reviewer": "The verdict, the findings by severity, and where each one goes.",
+}
+"""What each seat owns, in plain words that follow the seat files in config/electrical-bid/seats/."""
+
+
 def _owns(agent_id: str) -> str:
-    path = SEAT_FILES / f"{agent_id}.md"
-    if not path.is_file():
-        return ""
-    first = path.read_text(encoding="utf-8").split("\n\n", 1)[0].replace("{name}", "the agent")
-    sentences = [s.strip() for s in re.split(r"(?<=\.)\s+", first) if s.strip()]
-    return " ".join(sentences[1:3]) if len(sentences) > 1 else first
+    return OWNS.get(agent_id, "")
 
 
 def _initials(names: str) -> str:

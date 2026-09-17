@@ -495,3 +495,7 @@ body[data-public="1"] #handoff-actions, body[data-public="1"] #edit-area, body[d
 body[data-public="1"] .hdr .nav a, body[data-public="1"] .hdr .nav .nav-current, body[data-public="1"] .hdr .build-stamp,
 body[data-public="1"] [data-part="workflow-select"] { display: none !important; }
 body[data-public="1"] .frame { min-height: 0; }
+.team-card .agent-name { white-space: normal; }
+.replay-viewport { position: relative; overflow: hidden; width: 100%; height: 620px; background: #ffffff; }
+.replay-viewport .replay-iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+.team-card .agent-model { white-space: normal; }

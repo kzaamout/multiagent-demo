@@ -69,6 +69,7 @@ def states() -> list[AppState]:
         AppState("demo-terminated", g + str(golden_seq("terminated"))),
         AppState("demo-terminated-chat", g + str(golden_seq("terminated"))),
         AppState("login", "/login"),
+        AppState("introduction", "/introduction"),
         AppState("settings", "/settings"),
         AppState("settings-dropdown", "/settings"),
         AppState("preflight-pending", "/preflight"),

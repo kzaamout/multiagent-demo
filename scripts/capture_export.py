@@ -43,6 +43,7 @@ CAPTURES = [
     Capture("demo-terminated", "Demo", {"state": "terminated"}),
     Capture("demo-terminated-chat", "Demo", {"state": "terminated", "chatOpen": True}),
     Capture("login", "Login"),
+    Capture("introduction", "Introduction"),
     Capture("settings", "Settings", {"openDropdown": "-1"}),
     Capture("settings-dropdown", "Settings", {"openDropdown": "2"}),
     Capture("preflight-pending", "Preflight", {"result": "pending"}),

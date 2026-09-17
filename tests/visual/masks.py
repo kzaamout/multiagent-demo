@@ -109,6 +109,26 @@ MASKS: dict[str, list[Rect]] = {
         HANDOFF_EYEBROW,
     ],
     "login": [],
+    "introduction": [
+        Rect(
+            1300,
+            8,
+            1910,
+            48,
+            "nav order (spec 0.7, S3b) and the build stamp added to the Introduction header (decision); "
+            "the replay frame and the loop section sit below the 1080 px fold, so nothing else is masked",
+            "S7",
+        ),
+        Rect(
+            510,
+            708,
+            1410,
+            772,
+            "the first two lines of the workflows paragraph: the export says electrical RFP, the content file says "
+            "electrical bid request (bid response vocabulary, S3b decision); the rest of the copy is compared",
+            "never",
+        ),
+    ],
     "settings": [
         Rect(
             1300,

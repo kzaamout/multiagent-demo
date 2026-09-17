@@ -112,7 +112,7 @@ def render_replay(pinned: PinnedRun) -> str:
         '<div class="replay-bar"><span class="replay-dot-label"><span class="replay-dot"></span>Replay</span>'
         '<span class="replay-speeds"><button type="button" class="replay-speed is-on" data-speed="1">1x</button>'
         '<button type="button" class="replay-speed" data-speed="4">4x</button></span></div>'
-        f'<iframe class="replay-iframe" id="replay-iframe" title="Replay of a recorded run" src="{src}" loading="lazy"></iframe>'
+        f'<div class="replay-viewport" id="replay-viewport"><iframe class="replay-iframe" id="replay-iframe" title="Replay of a recorded run" src="{src}" loading="lazy"></iframe></div>'
         "</div></section>"
     )
 
