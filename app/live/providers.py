@@ -7,7 +7,9 @@ variable is set, and Ollama is asked which models it has.
 
 from __future__ import annotations
 
+import dataclasses
 import os
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -92,6 +94,29 @@ class ModelConfig:
 
     def seat_spec(self, agent_id: str) -> ModelSpec:
         return self.models[self.seats[agent_id].model]
+
+    def with_seat(self, agent_id: str, model_key: str) -> ModelConfig:
+        """This configuration with one seat moved to another model (an in-memory swap, S5 research D1).
+        The seat's temperature is kept only when the new model accepts one."""
+        if model_key not in self.models:
+            raise ValueError(f"unknown model {model_key}")
+        previous = self.seats.get(agent_id)
+        temperature = previous.temperature if previous and self.models[model_key].temperature else None
+        seats = {**self.seats, agent_id: SeatChoice(model=model_key, temperature=temperature)}
+        return dataclasses.replace(self, seats=seats)
+
+
+_FAMILY_WORD = re.compile(r"[a-z]+")
+
+
+def family_of(spec: ModelSpec) -> str:
+    """The model family a seat is on, for the Reviewer and Writer rule (constitution VI): the vendor's
+    family word from the model id, such as claude, gemini, llama, qwen, gemma, or grok."""
+    name = spec.model_id.rsplit("/", 1)[-1].lower()
+    segments = [s for s in name.split(".") if s and s[0].isalpha()]
+    candidate = segments[-1] if segments else name
+    match = _FAMILY_WORD.search(candidate)
+    return match.group(0) if match else candidate
 
 
 def _bedrock_available(region: str | None) -> Availability:

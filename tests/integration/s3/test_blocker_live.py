@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 
 from app.agents.base import HumanScript
+from app.config import load_settings
 from app.orchestrator.driver import drive
 from app.orchestrator.knowledge_store import KnowledgeStore
 from app.runs.golden import read_golden, transitions
@@ -17,7 +18,7 @@ from tests.support.scripted_model import Turn, reply
 
 pytestmark = pytest.mark.dataset
 
-GOLDEN = Path(__file__).resolve().parents[3] / "datasets" / "missing-sheet" / "golden-events.jsonl"
+GOLDEN = load_settings().datasets_dir / "missing-sheet" / "golden-events.jsonl"
 DESCRIPTION = "Panel LP-2 appears on single-line E-001 but its schedule E-003 is not in the drawing set."
 
 

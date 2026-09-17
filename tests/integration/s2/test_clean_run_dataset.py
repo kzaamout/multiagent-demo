@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from app.config import ROOT
+from app.config import load_settings
 from app.live.documents import parse_pdf
 from app.live.materials import DatasetFiles
 from app.runs.registry import discover_datasets
@@ -17,7 +17,7 @@ from app.tools.price_list import LookupRequest, PriceList
 
 pytestmark = pytest.mark.dataset
 
-FOLDER = ROOT / "datasets" / "clean-run"
+FOLDER = load_settings().datasets_dir / "clean-run"
 SCHEDULED = {
     "2x4 LED troffer": "each",
     "Exit sign, LED": "each",
@@ -84,5 +84,5 @@ def test_request_leaves_exactly_bid_security_open() -> None:
 
 
 def test_registry_finds_clean_run_curated() -> None:
-    info = next(d for d in discover_datasets(ROOT / "datasets") if d.id == "clean-run")
+    info = next(d for d in discover_datasets(load_settings().datasets_dir) if d.id == "clean-run")
     assert DatasetFiles(info.folder).is_curated()

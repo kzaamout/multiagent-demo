@@ -16,22 +16,24 @@ from app.compile.pipeline import tools_available
 from app.config import Settings
 from app.live.materials import DatasetFiles, supplier_order_from
 from app.live.providers import (
+    Availability,
     LiveUnavailable,
     ModelConfig,
     SeatModelFactory,
     check_availability,
+    family_of,
     live_roster,
     strands_model_for,
     unavailable_seats,
 )
 from app.live.source import LiveAgentSource, LiveContext
-from app.orchestrator.knowledge_store import KnowledgeStore
 from app.orchestrator.clock import Clock
+from app.orchestrator.knowledge_store import KnowledgeStore
 from app.orchestrator.orchestrator import DatasetRef, Orchestrator
-from app.orchestrator.roster import build_roster
+from app.orchestrator.roster import EXPORT_NAMES, SEATS, build_roster
 from app.runs.bus import StreamBus
 from app.runs.recorder import Recorder, read_events, read_meta
-from app.schema.events import Event
+from app.schema.events import Agent, Event, Model
 
 DATASET_ORDER: list[tuple[str, str]] = [
     ("clean-run", "Clean run"),
@@ -95,6 +97,30 @@ def discover_datasets(datasets_dir: Path) -> list[DatasetInfo]:
 
 __all__ = ["LiveUnavailable"]
 
+DEPENDENCY_NOTES: dict[str, str] = {
+    "orchestrator": "Runs every stage transition",
+    "intake": "Stage 1, before Plan",
+    "estimator": "Bid response workflow. Needs vision on drawings",
+    "pricing": "Bid response workflow. Runs after Estimator",
+    "writer": "Runs after all specialists",
+    "reviewer": "Different model family from Writer",
+    "case": "Appraisal workflow",
+    "market": "Appraisal workflow. Runs after Case Manager",
+    "single": "Single-model mode. Does the whole job alone, no review",
+}
+"""The dependency note on each Settings row (design brief 9)."""
+
+SHARED_FAMILY_WARNING = "The Reviewer now shares the Writer's model family; the review is weaker for it."
+
+
+@dataclass(frozen=True)
+class SeatSwap:
+    seat: str
+    model: Model
+    warning: str
+    applied: str
+
+
 
 @dataclass
 class ReplaySource:
@@ -110,10 +136,13 @@ class Registry:
         bus: StreamBus | None = None,
         seat_model_factory: SeatModelFactory | None = None,
         model_config: ModelConfig | None = None,
+        availability: dict[str, Availability] | None = None,
     ) -> None:
         self.settings = settings
         self.seat_model_factory = seat_model_factory
         self._model_config = model_config
+        self._availability = availability
+        self.overrides: dict[str, str] = {}
         self.bus = bus or StreamBus()
         self.datasets = {d.id: d for d in discover_datasets(settings.datasets_dir)}
         self.live: Orchestrator | None = None
@@ -161,14 +190,126 @@ class Registry:
             self._model_config = ModelConfig.load()
         return self._model_config
 
+    @property
+    def availability(self) -> dict[str, Availability]:
+        """Provider availability, checked once and cached (S5 research D2). Tests inject it."""
+        if self._availability is None:
+            self._availability = check_availability(self.model_config)
+        return self._availability
+
+    def effective_config(self) -> ModelConfig:
+        """The models configuration with every in-memory seat swap applied. The file is never written."""
+        config = self.model_config
+        for seat, key in self.overrides.items():
+            config = config.with_seat(seat, key)
+        return config
+
+    def seat_model_object(self, seat: str, config: ModelConfig | None = None) -> Model | None:
+        """The model a seat is on right now, or None when the configuration has no entry for it."""
+        config = config or self.effective_config()
+        if seat in config.seats:
+            return config.seat_spec(seat).model_object()
+        return None
+
+    def roster_with_config(
+        self, roster: dict[str, Agent], config: ModelConfig | None = None
+    ) -> dict[str, Agent]:
+        """A roster whose model labels are the effective configuration's, not the code defaults (constitution V)."""
+        config = config or self.effective_config()
+        updated: dict[str, Agent] = {}
+        for seat, agent in roster.items():
+            model = self.seat_model_object(seat, config)
+            updated[seat] = agent.model_copy(update={"model": model}) if model is not None else agent
+        return updated
+
+    def idle_roster(self) -> dict[str, Agent]:
+        """The roster shown before a run starts, with the export's names and the live models."""
+        return self.roster_with_config(build_roster(self.settings.workflow, names=EXPORT_NAMES))
+
+    def family_warning(self, config: ModelConfig | None = None) -> str:
+        config = config or self.effective_config()
+        if "reviewer" not in config.seats or "writer" not in config.seats:
+            return ""
+        if family_of(config.seat_spec("reviewer")) == family_of(config.seat_spec("writer")):
+            return SHARED_FAMILY_WARNING
+        return ""
+
+    def model_options(self) -> list[dict[str, Any]]:
+        """Every model in the registry with its availability as a boolean and a reason, never a credential."""
+        config = self.model_config
+        options: list[dict[str, Any]] = []
+        for key, spec in config.models.items():
+            state = self.availability.get(spec.provider)
+            available = bool(state and state.available)
+            if available:
+                reason = ""
+            elif spec.provider == "ollama":
+                reason = "Ollama not detected at startup"
+            else:
+                reason = "no credentials in .env"
+            options.append(
+                {
+                    "key": key,
+                    "label": spec.label,
+                    "provider": spec.provider,
+                    "provider_label": str(
+                        config.providers.get(spec.provider, {}).get("label", spec.provider)
+                    ),
+                    "available": available,
+                    "reason": reason,
+                }
+            )
+        return options
+
+    def seat_table(self) -> dict[str, Any]:
+        """The Settings page: one row per seat with its live card, effective model key, note, and warning."""
+        config = self.effective_config()
+        names = {seat: agent.name for seat, agent in self.live.roster.items()} if self.live else EXPORT_NAMES
+        warning = self.family_warning(config)
+        rows: list[dict[str, Any]] = []
+        for seat in SEATS:
+            if seat.agent_id == "single":
+                continue
+            name = names.get(seat.agent_id) or EXPORT_NAMES.get(seat.agent_id) or seat.names[0]
+            model = self.seat_model_object(seat.agent_id, config) or seat.default_model
+            rows.append(
+                {
+                    "seat": seat.agent_id,
+                    "card": Agent(
+                        agent_id=seat.agent_id, name=name, role=seat.role, model=model
+                    ).model_dump(),
+                    "model_key": config.seats[seat.agent_id].model if seat.agent_id in config.seats else None,
+                    "dependency": DEPENDENCY_NOTES.get(seat.agent_id, ""),
+                    "warning": warning if seat.agent_id == "reviewer" else "",
+                }
+            )
+        return {"seats": rows, "models": self.model_options(), "note": "Changes apply at the next stage."}
+
+    def set_seat_model(self, seat: str, model_key: str) -> SeatSwap:
+        """Move a seat to another model in memory. Unknown keys and seats raise ValueError; a model whose
+        provider is not available raises LiveUnavailable. The caller emits model.changed into a live run."""
+        if seat not in {s.agent_id for s in SEATS}:
+            raise ValueError(f"unknown seat {seat}")
+        config = self.model_config
+        if model_key not in config.models:
+            raise ValueError(f"unknown model {model_key}")
+        spec = config.models[model_key]
+        state = self.availability.get(spec.provider)
+        if state is None or not state.available:
+            reason = state.reason if state else "provider not configured"
+            raise LiveUnavailable([f"{spec.label}: {reason}"])
+        self.overrides[seat] = model_key
+        applied = "next-dispatch" if self.is_live() else "next-run"
+        return SeatSwap(seat=seat, model=spec.model_object(), warning=self.family_warning(), applied=applied)
+
     def mode_for(self, dataset_id: str) -> str:
         if self.settings.agent_mode == "stub":
             return "stub"
         return "live" if DatasetFiles(self.dataset(dataset_id).folder).is_curated() else "stub"
 
     def provider_report(self) -> dict[str, Any]:
-        config = self.model_config
-        availability = check_availability(config)
+        config = self.effective_config()
+        availability = self.availability
         return {
             "providers": {k: {"available": v.available, "reason": v.reason} for k, v in availability.items()},
             "seats": {
@@ -217,18 +358,20 @@ class Registry:
             # Every run compiles its drafts (spec FR-014, FR-016), so a missing tool stops it here.
             raise LiveUnavailable([f"compiler missing ({name})" for name in missing])
         rid = run_id or str(uuid.uuid4())
-        roster = build_roster(self.settings.workflow, seed=seed, names=names)
+        roster = self.roster_with_config(build_roster(self.settings.workflow, seed=seed, names=names))
         recorder = Recorder(self.settings.runs_dir, rid) if record else None
         knowledge_path = (
-            recorder.knowledge_path if recorder else self.settings.runs_dir / "_ephemeral" / rid / "knowledge.md"
+            recorder.knowledge_path
+            if recorder
+            else self.settings.runs_dir / "_ephemeral" / rid / "knowledge.md"
         )
         scenario: Any
         knowledge_store: KnowledgeStore | None = None
         run_folder = recorder.folder if recorder else knowledge_path.parent
         if self.mode_for(dataset_id) == "live":
-            config = self.model_config
+            config = self.effective_config()
             if self.seat_model_factory is None:
-                problems = unavailable_seats(config, check_availability(config))
+                problems = unavailable_seats(config, self.availability)
                 if problems:
                     raise LiveUnavailable(problems)
             factory = self.seat_model_factory or (lambda seat: strands_model_for(config, seat))

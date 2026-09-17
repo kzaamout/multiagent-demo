@@ -22,8 +22,6 @@ from app.compile import CompileError, compile_timeline, tools_available
 from app.config import Settings, load_settings
 from app.live.providers import ModelConfig, SeatModelFactory
 from app.orchestrator.orchestrator import Answer
-from app.orchestrator.roster import EXPORT_NAMES as EXPORT_NAMES_FOR_IDLE
-from app.orchestrator.roster import build_roster
 from app.runs.bus import StreamBus
 from app.runs.recorder import read_events
 from app.runs.registry import LiveUnavailable, Registry
@@ -131,10 +129,7 @@ def create_app(
             "cost_ceiling": cfg.cost_ceiling,
             "schema_version": cfg.schema_version,
             "live_run_id": registry.live.run_id if registry.is_live() and registry.live else None,
-            "idle_roster": {
-                seat: agent.model_dump()
-                for seat, agent in build_roster(cfg.workflow, names=EXPORT_NAMES_FOR_IDLE).items()
-            },
+            "idle_roster": {seat: agent.model_dump() for seat, agent in registry.idle_roster().items()},
         }
 
     @app.get("/api/providers")

@@ -12,7 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.agents.base import HumanScript, StubScenario  # noqa: E402
-from app.config import Settings  # noqa: E402
+from app.config import Settings, load_settings  # noqa: E402
 from app.orchestrator.clock import Clock, VirtualClock  # noqa: E402
 from app.orchestrator.driver import drive  # noqa: E402
 from app.orchestrator.orchestrator import DatasetRef, Orchestrator  # noqa: E402
@@ -33,7 +33,7 @@ def pytest_configure(config: pytest.Config) -> None:
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Datasets are not committed (see .gitignore). Without them these tests cannot run, so they skip
     rather than fail, and a checkout with the datasets in place runs everything as before."""
-    folder = ROOT / "datasets"
+    folder = load_settings().datasets_dir  # DATASETS_DIR may point at another checkout (worktrees)
     if not (folder.is_dir() and any(p.is_dir() for p in folder.iterdir())):
         skip = pytest.mark.skip(reason="no datasets in this checkout; see datasets/README.md")
         for item in items:

@@ -7,13 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from app.config import ROOT
+from app.config import load_settings
 from app.live.documents import parse_pdf
 from app.live.materials import DatasetFiles
 
 pytestmark = pytest.mark.dataset
 
-DATASETS = ROOT / "datasets"
+DATASETS = load_settings().datasets_dir
 CLEAN = DATASETS / "clean-run"
 FAILURES = ("planted-inconsistency", "missing-sheet", "missing-price", "not-ready")
 
