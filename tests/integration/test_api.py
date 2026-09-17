@@ -76,8 +76,9 @@ async def test_full_run_over_the_api(client: httpx.AsyncClient) -> None:
     assert (await client.post(f"/api/runs/{run_id}/answers", json={"answers": answers})).status_code == 202
 
     await wait_for(client, run_id, lambda s: s["pending"]["kind"] == "handoff")
-    reject = await client.post(f"/api/runs/{run_id}/decision", json={"decision": "reject"})
-    assert reject.status_code == 400 and "S4" in reject.json()["error"]
+    # From S4 every decision is real; an edit without its markdown is the one refused here.
+    empty_edit = await client.post(f"/api/runs/{run_id}/decision", json={"decision": "edit"})
+    assert empty_edit.status_code == 400 and "markdown" in empty_edit.json()["error"]
     assert (
         await client.post(f"/api/runs/{run_id}/decision", json={"decision": "approve"})
     ).status_code == 202
