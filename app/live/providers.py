@@ -201,7 +201,16 @@ def strands_model_for(config: ModelConfig, agent_id: str) -> SeatModel:
         model=spec.model_object(),
         price_in=spec.price_in,
         price_out=spec.price_out,
+        image_input=spec.image_input,
     )
+
+
+class LiveUnavailable(RuntimeError):
+    """A live run cannot start because a seat's provider or model is unavailable or unfit."""
+
+    def __init__(self, problems: list[str]) -> None:
+        super().__init__("; ".join(problems))
+        self.problems = problems
 
 
 SeatModelFactory = Callable[[str], SeatModel]
@@ -212,6 +221,14 @@ def live_roster(
 ) -> tuple[dict[str, Agent], dict[str, SeatModel]]:
     """The run's roster with each seat's truthful model, and the seat models to call."""
     seat_models = {seat: factory(seat) for seat in roster}
+    reviewer = seat_models.get("reviewer")
+    if reviewer is not None and not reviewer.image_input:
+        # The Reviewer judges the compiled page images (spec stage 5, S4 FR-008).
+        raise LiveUnavailable(
+            [
+                f"the Reviewer's model {reviewer.model.label} cannot read page images; choose one with image_input"
+            ]
+        )
     updated = {
         seat: agent.model_copy(update={"model": seat_models[seat].model}) for seat, agent in roster.items()
     }

@@ -94,6 +94,7 @@ async def test_full_run_over_the_api(client: httpx.AsyncClient) -> None:
         "Task",
         "Tools available",
         "Model",
+        "Pages",
     ]
     listing = (await client.get("/api/datasets")).json()
     assert next(d for d in listing if d["id"] == "planted-inconsistency")["replay_source"] == "recording"

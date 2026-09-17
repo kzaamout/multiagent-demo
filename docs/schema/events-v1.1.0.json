@@ -1563,6 +1563,14 @@
         "title": "Context Slice",
         "type": "string"
       },
+      "images": {
+        "default": [],
+        "items": {
+          "type": "string"
+        },
+        "title": "Images",
+        "type": "array"
+      },
       "model": {
         "$ref": "#/$defs/Model"
       },

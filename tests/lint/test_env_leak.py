@@ -34,7 +34,7 @@ async def test_env_values_never_reach_events_or_bundles(
         assert MARKER not in event.to_line()
     folder = tmp_path / "runs" / run_id
     for path in folder.rglob("*"):
-        if path.is_file():
+        if path.is_file() and path.suffix.lower() not in {".png", ".pdf"}:
             assert MARKER not in path.read_text(encoding="utf-8"), path
     for bundle in SCENARIOS[dataset_id].bundles().values():
         assert MARKER not in json.dumps(bundle.model_dump())

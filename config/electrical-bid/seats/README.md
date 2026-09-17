@@ -13,7 +13,7 @@ Drafted 2026-09-14 and accepted by the owner the same day, together with the dec
 | `estimator.md` | Estimator | Claude via Bedrock, vision |
 | `pricing.md` | Pricing | local model via Ollama |
 | `writer.md` | Writer | Claude via Bedrock |
-| `reviewer.md` | Reviewer | Gemini, vision, a different model family from the Writer |
+| `reviewer.md` | Reviewer | A model that reads images, a different model family from the Writer; from S4 it sees the compiled page images with each page's text, never the markdown |
 
 ## Placeholders filled per run
 

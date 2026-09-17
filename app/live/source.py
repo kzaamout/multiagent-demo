@@ -243,6 +243,7 @@ class LiveAgentSource:
         bundle: PromptBundle,
         parse: Callable[[str], BaseModel],
         requirement: Requirement | None = None,
+        images: list[bytes] | None = None,
     ) -> AsyncIterator[CallItem]:
         log = ToolLog()
         tools = build_tools(
@@ -268,6 +269,7 @@ class LiveAgentSource:
             on_attempt=lambda attempt, accepted, text, error: self._record_attempt(
                 agent_id, bundle, attempt, accepted, text, error
             ),
+            images=images,
         )
         return call.run()
 
@@ -311,12 +313,13 @@ class LiveAgentSource:
         bundle: PromptBundle,
         parse: Callable[[str], BaseModel],
         requirement: Requirement | None = None,
+        images: list[bytes] | None = None,
     ) -> AsyncIterator[tuple[Emit | None, BaseModel | None, list[MeterDelta], list[str]]]:
         """Yield progress and tool emissions as they happen; the last item carries the reply,
         the usage not yet attached to an emission, and the tools that were used."""
         pending: list[MeterDelta] = []
         tools_used: list[str] = []
-        async for item in self._call(agent_id, bundle, parse, requirement):
+        async for item in self._call(agent_id, bundle, parse, requirement, images):
             if item.kind == "usage" and item.usage is not None:
                 pending.append(item.usage)
             elif item.kind == "progress":
@@ -570,8 +573,17 @@ class LiveAgentSource:
         bundle = self._bundle(
             "reviewer", f"Review draft v{version} against the brief and the reviewer criteria."
         )
+        # The compiled pages go with the call as image content (spec stage 5, S4 decision 3b).
+        compiled = self.o.latest_compiled
+        page_paths = list(compiled.page_images) if compiled is not None else []
+        bundle = bundle.model_copy(update={"images": page_paths})
+        images = [(self.run_folder / path).read_bytes() for path in page_paths]
         async for emit, reply, pending, _ in self._stream(
-            "reviewer", f"review-{review_round + 1}", bundle, lambda t: parse_reply("reviewer", t)
+            "reviewer",
+            f"review-{review_round + 1}",
+            bundle,
+            lambda t: parse_reply("reviewer", t),
+            images=images,
         ):
             if emit is not None:
                 yield emit

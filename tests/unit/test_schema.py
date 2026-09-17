@@ -235,4 +235,4 @@ def test_validate_run_rules() -> None:
 def test_prompt_bundle_sections() -> None:
     bundle = PromptBundle(prompt_ref="pb", system="s", context_slice="c", task="t", tools=[], model=MODEL)
     labels = [label for label, _ in bundle.sections()]
-    assert labels == ["System instructions", "Context provided", "Task", "Tools available", "Model"]
+    assert labels == ["System instructions", "Context provided", "Task", "Tools available", "Model", "Pages"]

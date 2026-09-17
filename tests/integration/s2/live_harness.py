@@ -270,13 +270,16 @@ def headline_turn() -> Turn:
     return reply({"headline": "The Reviewer passed the proposal first time."})
 
 
-def seat_models(turns: dict[str, list[Turn]]) -> dict[str, SeatModel]:
+def seat_models(
+    turns: dict[str, list[Turn]], image_input: dict[str, bool] | None = None
+) -> dict[str, SeatModel]:
     return {
         seat: SeatModel(
             strands_model=ScriptedModel(seat_turns),
             model=Model(provider="test", model_id="scripted", label=f"scripted {seat}"),
             price_in=2.0,
             price_out=10.0,
+            image_input=(image_input or {}).get(seat, True),
         )
         for seat, seat_turns in turns.items()
     }
@@ -293,9 +296,15 @@ def full_turns(blocking: bool = True) -> dict[str, list[Turn]]:
     }
 
 
-def build(tmp: Path, turns: dict[str, list[Turn]], run_id: str, cost_ceiling: float = 5.0) -> Orchestrator:
+def build(
+    tmp: Path,
+    turns: dict[str, list[Turn]],
+    run_id: str,
+    cost_ceiling: float = 5.0,
+    image_input: dict[str, bool] | None = None,
+) -> Orchestrator:
     folder = dataset(tmp)
-    models = seat_models(turns)
+    models = seat_models(turns, image_input)
     roster, _ = live_roster(build_roster("electrical_rfp", names=EXPORT_NAMES), lambda seat: models[seat])
     store = KnowledgeStore(tmp / "knowledge")
     recorder = Recorder(tmp / "runs", run_id)

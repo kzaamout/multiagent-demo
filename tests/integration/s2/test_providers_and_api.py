@@ -119,6 +119,7 @@ def scripted_factory() -> Any:
             Model(provider="test", model_id="scripted", label=f"scripted {seat}"),
             2.0,
             10.0,
+            image_input=True,
         )
 
     return factory

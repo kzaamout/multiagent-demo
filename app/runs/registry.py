@@ -16,6 +16,7 @@ from app.compile.pipeline import tools_available
 from app.config import Settings
 from app.live.materials import DatasetFiles, supplier_order_from
 from app.live.providers import (
+    LiveUnavailable,
     ModelConfig,
     SeatModelFactory,
     check_availability,
@@ -92,12 +93,7 @@ def discover_datasets(datasets_dir: Path) -> list[DatasetInfo]:
     return found
 
 
-class LiveUnavailable(RuntimeError):
-    """A live run cannot start because a seat's provider is unavailable."""
-
-    def __init__(self, problems: list[str]) -> None:
-        super().__init__("; ".join(problems))
-        self.problems = problems
+__all__ = ["LiveUnavailable"]
 
 
 @dataclass

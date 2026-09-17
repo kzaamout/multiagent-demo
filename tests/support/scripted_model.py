@@ -52,6 +52,8 @@ class ScriptedModel(Model):
         self.tokens_out = tokens_out
         self.config: dict[str, Any] = {"model_id": "scripted"}
         self.prompts: list[str] = []
+        self.messages: list[Any] = []
+        """The raw message lists of every call, so a test can check image blocks as well as text."""
 
     def update_config(self, **model_config: Any) -> None:
         self.config.update(model_config)
@@ -83,6 +85,7 @@ class ScriptedModel(Model):
         self.calls += 1
         text = _prompt_text(messages)
         self.prompts.append(text)
+        self.messages.append(messages)
         if isinstance(turn, BaseException):
             raise turn
         if isinstance(turn, Hang):

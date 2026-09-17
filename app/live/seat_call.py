@@ -64,6 +64,8 @@ class SeatModel:
     model: Model
     price_in: float
     price_out: float
+    image_input: bool = False
+    """Whether the model takes image content; the Reviewer needs it for the compiled pages (S4)."""
 
 
 def estimated_cost(tokens_in: int, tokens_out: int, price_in: float, price_out: float) -> float:
@@ -183,6 +185,7 @@ class SeatCall:
         parse: Callable[[str], BaseModel],
         requirement: Requirement | None = None,
         on_attempt: Callable[[int, bool, str, str], None] | None = None,
+        images: list[bytes] | None = None,
     ) -> None:
         self.agent_id = agent_id
         self.role = role
@@ -194,6 +197,7 @@ class SeatCall:
         self.parse = parse
         self.requirement = requirement
         self.on_attempt = on_attempt
+        self.images = list(images or [])
         self.tools_used: list[str] = []
         self.tool_names = {str(getattr(t, "tool_name", getattr(t, "__name__", ""))) for t in tools}
 
@@ -235,8 +239,17 @@ class SeatCall:
             retry_strategy=None,
         )
 
+    def _first_message(self, prompt: str) -> Any:
+        """The prompt text, plus one image block per page when the call carries pages (S4)."""
+        if not self.images:
+            return prompt
+        blocks: list[dict[str, Any]] = [{"text": prompt}]
+        for png in self.images:
+            blocks.append({"image": {"format": "png", "source": {"bytes": png}}})
+        return blocks
+
     async def _invoke(
-        self, agent: Agent, prompt: str, queue: asyncio.Queue[CallItem]
+        self, agent: Agent, prompt: Any, queue: asyncio.Queue[CallItem]
     ) -> AsyncIterator[CallItem | str]:
         task: asyncio.Task[Any] = asyncio.create_task(agent.invoke_async(prompt))
         try:
@@ -264,7 +277,7 @@ class SeatCall:
             agent = self._agent(queue)
             try:
                 text = ""
-                async for item in self._invoke(agent, prompt, queue):
+                async for item in self._invoke(agent, self._first_message(prompt), queue):
                     if isinstance(item, str):
                         text = item
                     else:

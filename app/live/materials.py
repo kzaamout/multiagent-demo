@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from app.compile.pipeline import ARTIFACTS
 from app.config import ROOT
 from app.live.context import Material
 from app.live.documents import page_count
@@ -204,19 +205,19 @@ def build_materials(
 
     materials.append(Material(d.TEMPLATE, "Response template", TEMPLATE_PATH.read_text(encoding="utf-8")))
 
-    draft = latest(events, "draft.committed")
-    if draft is not None:
-        path = run_folder / draft.payload["markdown_path"]
-        if path.exists():
-            materials.append(
-                Material(
-                    d.DRAFT,
-                    f"Draft v{draft.payload['version']}",
-                    path.read_text(encoding="utf-8"),
-                    f"draft-v{draft.payload['version']}",
-                    draft.event_id,
+    # The Reviewer judges the compiled pages (spec stage 5, S4 decision 3b): the text of each page rides
+    # along as material, and the page images go on the bundle. The markdown is never shown to it.
+    compiled = latest(events, "artifact.compiled")
+    if compiled is not None:
+        pages_path = run_folder / ARTIFACTS / f"v{compiled.payload['version']}" / "pages.json"
+        if pages_path.exists():
+            texts = json.loads(pages_path.read_text(encoding="utf-8"))
+            for number, text in enumerate(texts, start=1):
+                materials.append(
+                    Material(
+                        d.DRAFT, f"Page {number} text", text or "(no text on this page)", f"page-{number}"
+                    )
                 )
-            )
 
     materials.append(
         Material(

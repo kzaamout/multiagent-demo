@@ -264,24 +264,6 @@ def test_replay_fires_every_arrow_pulse(page: Any, server: tuple[str, Path]) -> 
     assert page.errors == []
 
 
-def test_draft_renderer_keeps_provenance_tags_whole_inside_table_cells(
-    page: Any, server: tuple[str, Path]
-) -> None:
-    base, _ = server
-    page.goto(base + "/demo")
-    page.wait_for_function("() => window.S1Draft && window.S1Draft.renderMarkdown")
-    markdown = (
-        "| Item | Qty | Extended |"
-        + chr(10)
-        + "|---|---|---|"
-        + chr(10)
-        + "| Troffer | 46 | {{6532.00|src:e1}} |"
-    )
-    html = page.evaluate("(md) => window.S1Draft.renderMarkdown(md)", markdown)
-    assert html.count('class="prov"') == 1 and "{{" not in html and "src:" not in html
-    assert html.count("<td>") == 3, "the tag's pipe does not split the cell"
-
-
 def _stage_events(transitions: list[tuple[str | None, str, str]], *, ended: bool) -> list[dict[str, Any]]:
     """A minimal event list shaped like a run: start, the given stage transitions, optional end."""
     actor = {"agent_id": "orchestrator", "name": "Oscar", "role": "Orchestrator", "model": {"label": "stub"}}

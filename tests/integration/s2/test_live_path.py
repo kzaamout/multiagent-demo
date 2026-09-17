@@ -137,7 +137,8 @@ async def test_roles_are_real_in_recorded_bundles(tmp_path: Path) -> None:
         if event.prompt_ref and isinstance(event.actor, dict) is False and hasattr(event.actor, "agent_id"):
             by_seat[event.actor.agent_id] = orchestrator.bundles[event.prompt_ref]  # type: ignore[union-attr]
     reviewer = by_seat["reviewer"].context_slice
-    assert "## Brief" in reviewer and "## Draft v1" in reviewer and "## Reviewer criteria" in reviewer
+    assert "## Brief" in reviewer and "## Page 1 text" in reviewer and "## Reviewer criteria" in reviewer
+    assert "## Draft v1" not in reviewer, "from S4 the Reviewer sees the compiled pages, never the markdown"
     for forbidden in [
         "Estimator output",
         "Pricing output",

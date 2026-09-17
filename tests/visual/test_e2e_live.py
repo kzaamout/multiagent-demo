@@ -67,11 +67,12 @@ def test_live_run_shows_tools_banner_and_draft_text(live_server: str) -> None:
         page.click("#banner-resume")
 
         page.wait_for_selector("#btn-approve:not([disabled])", timeout=30000)
-        page.wait_for_selector("#draft-scroll:not([hidden])", timeout=10000)
-        draft_text = page.inner_text("#draft-page")
-        assert "25 troffers" in draft_text and "{{" not in draft_text
-        assert page.inner_text("#artifact-version") == "v1 · markdown"
-        assert page.locator(".draft-page .prov").count() == 2
+        page.wait_for_selector("#pages-scroll:not([hidden])", timeout=10000)
+        page.wait_for_function("() => document.querySelector('img.page-img').naturalWidth > 0")
+        assert page.locator("figure.page").count() >= 1
+        assert page.inner_text("#artifact-version").startswith("v1 ·")
+        page.wait_for_selector(".marker", timeout=10000)
+        assert page.locator(".marker").count() == 2, "one marker per provenance tag in the draft"
         assert page.locator("article[data-card^='thread:assemble']").count() == 0, (
             "Writer activity folds into the draft card"
         )
