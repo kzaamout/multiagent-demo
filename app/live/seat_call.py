@@ -186,7 +186,9 @@ class SeatCall:
         requirement: Requirement | None = None,
         on_attempt: Callable[[int, bool, str, str], None] | None = None,
         images: list[bytes] | None = None,
+        corrections: int = 1,
     ) -> None:
+        self.corrections = max(0, corrections)
         self.agent_id = agent_id
         self.role = role
         self.instructions = instructions
@@ -306,32 +308,38 @@ class SeatCall:
                 return
             except ReplyError as first_error:
                 self._attempt(1, False, text, str(first_error))
-                correction = (
-                    "Your reply was not accepted: "
-                    f"{first_error}. Fix this, using your tools if needed, then reply again with only the corrected JSON object."
-                )
-                text = ""
-                try:
-                    async for item in self._invoke(agent, correction, queue):
-                        if isinstance(item, str):
-                            text = item
-                        else:
-                            if item.kind == "tool" and item.tool is not None:
-                                self.tools_used.append(item.tool.name)
-                            yield item
-                except Exception:  # noqa: BLE001
-                    raise AgentFailure(
-                        f"The {self.role} on {label} failed while correcting its reply, so the run stops."
-                    ) from None
-                try:
-                    reply = self._accept(text)
-                    self._attempt(2, True, text)
-                    yield CallItem("reply", reply=reply)
-                    return
-                except ReplyError as second_error:
-                    self._attempt(2, False, text, str(second_error))
-                    raise AgentFailure(
-                        f"The {self.role} on {label} returned an invalid reply twice, so the run stops.",
-                        invalid_reply=True,
-                    ) from None
+                last_error: ReplyError = first_error
+                # Each correction stays on the same agent, so tool results already read are kept. Most seats
+                # get one correction; a seat doing the whole job alone gets more (S5, the Single-model actor).
+                for number in range(2, self.corrections + 2):
+                    correction = (
+                        "Your reply was not accepted: "
+                        f"{last_error}. Fix this, using your tools if needed, then reply again with only the corrected JSON object."
+                    )
+                    text = ""
+                    try:
+                        async for item in self._invoke(agent, correction, queue):
+                            if isinstance(item, str):
+                                text = item
+                            else:
+                                if item.kind == "tool" and item.tool is not None:
+                                    self.tools_used.append(item.tool.name)
+                                yield item
+                    except Exception:  # noqa: BLE001
+                        raise AgentFailure(
+                            f"The {self.role} on {label} failed while correcting its reply, so the run stops."
+                        ) from None
+                    try:
+                        reply = self._accept(text)
+                        self._attempt(number, True, text)
+                        yield CallItem("reply", reply=reply)
+                        return
+                    except ReplyError as next_error:
+                        self._attempt(number, False, text, str(next_error))
+                        last_error = next_error
+                times = "twice" if self.corrections == 1 else f"{self.corrections + 1} times"
+                raise AgentFailure(
+                    f"The {self.role} on {label} returned an invalid reply {times}, so the run stops.",
+                    invalid_reply=True,
+                ) from None
         raise AgentFailure(f"The {self.role} on {label} produced no reply, so the run stops.")

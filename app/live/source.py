@@ -59,6 +59,9 @@ if TYPE_CHECKING:
     from app.orchestrator.orchestrator import Orchestrator
 
 SPECIALISTS = ("estimator", "pricing")
+CORRECTIONS = {"single": 3}
+"""Corrections a seat may receive after an invalid reply; one for every seat except the Single-model actor, which
+does the whole job in one call and stops to narrate more often (S5)."""
 TOOL_CONFIDENCE = {"price_list_lookup": 1.0, "quantity_calculate": 1.0, "vision_read_drawing": 0.8}
 _TASK_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,40}$")
 
@@ -275,6 +278,7 @@ class LiveAgentSource:
                 agent_id, bundle, attempt, accepted, text, error
             ),
             images=images,
+            corrections=CORRECTIONS.get(agent_id, 1),
         )
         return call.run()
 

@@ -129,10 +129,31 @@ def extract_json(text: str) -> dict[str, Any]:
 # Intake Analyst
 
 
+STATUS_SYNONYMS = {
+    "present": "pass",
+    "ok": "pass",
+    "present with concerns": "assumed",
+    "present with concern": "assumed",
+    "concern": "assumed",
+    "assumption": "assumed",
+    "missing": "fail",
+    "absent": "fail",
+}
+"""Grades a seat writes when it follows the checklist's prose ("present", "missing") rather than its shape."""
+
+
 class ChecklistGrade(BaseModel):
     item: str
     status: Literal["pass", "fail", "assumed"]
     note: str = ""
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def _status_synonyms(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            key = value.strip().lower()
+            return STATUS_SYNONYMS.get(key, key)
+        return value
 
     @field_validator("note", mode="before")
     @classmethod

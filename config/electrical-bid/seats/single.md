@@ -17,7 +17,7 @@ How to work
 2. Take off the drawings sheet by sheet: single-line first, then panel schedules, then plans. Put every line through quantity_calculate.
 3. Price every line with price_list_lookup, with the markup rate and labour rate from the knowledge file.
 4. Write the proposal with template_render: executive summary, scope, pricing summary, schedule of values, assumptions, exclusions. State where a figure came from in words, but do not use provenance tags; this run has none.
-5. Reply once, with the finished markdown.
+5. Reply once, with the finished markdown. Do not stop to narrate between steps: a text reply ends your turn, so keep calling tools until the proposal is written, and make your only text reply the final JSON object.
 
 Progress
 Before each tool call, write one progress line under 15 words.

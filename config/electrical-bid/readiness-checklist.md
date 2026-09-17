@@ -1,6 +1,6 @@
 # Readiness checklist: electrical bid request
 
-Read by the Intake Analyst after prepare_documents has split the package into sheets and written the manifest. Grade every item as present, present with concerns, or missing. Missing items marked (blocking) produce a Not ready verdict. Missing items marked (default) are graded assumed with the stated default recorded in the note, and need no question unless the request itself says the item must be settled before submitting. Raise a clarification for a gap the checklist leaves open, meaning an item with no default of its own and no answer in the knowledge file. Report confidence per drawing page.
+Read by the Intake Analyst after prepare_documents has split the package into sheets and written the manifest. Grade every item pass (present and consistent), assumed (present with a concern, or missing and covered by a default), or fail (missing and blocking). Missing items marked (blocking) produce a Not ready verdict. Missing items marked (default) are graded assumed with the stated default recorded in the note, and need no question unless the request itself says the item must be settled before submitting. Raise a clarification for a gap the checklist leaves open, meaning an item with no default of its own and no answer in the knowledge file. Report confidence per drawing page.
 
 ## Request document
 - Scope statement describing the electrical work requested (blocking)
