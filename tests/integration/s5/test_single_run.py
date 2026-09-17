@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import json
 from pathlib import Path
@@ -161,8 +162,6 @@ async def test_single_run_shape_recording_and_replay(tmp_path: Path) -> None:
 
 
 async def test_single_run_can_be_stopped(tmp_path: Path) -> None:
-    import asyncio
-
     from tests.support.scripted_model import HANG
 
     orchestrator = build_single(tmp_path, "50000000-0000-4000-8000-000000000522", turns=[HANG])
@@ -211,6 +210,20 @@ async def test_stub_single_runs_feed_the_comparison(tmp_path: Path) -> None:
         "team": None,
         "single": None,
     }
+    stopped = registry.build_orchestrator(
+        "clean-run", record=True, start=dt.datetime(2026, 9, 16, 9, 30, tzinfo=dt.UTC)
+    )
+    stopped_task = asyncio.create_task(drive(stopped, stopped.scenario.human_script))
+    for _ in range(400):
+        if any(e.type == "stage.changed" for e in stopped.events):
+            break
+        await asyncio.sleep(0.005)
+    stopped.stop()
+    await stopped_task
+    assert stopped.events[-1].payload["exit"] == "stopped"
+    assert comparison(settings.runs_dir, "clean-run")["team"]["run_id"] == team.run_id, (
+        "a newer stopped run does not displace the newest completed one"
+    )
 
 
 async def test_single_run_with_a_chosen_model_and_an_unknown_key(tmp_path: Path) -> None:

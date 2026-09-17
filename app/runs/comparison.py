@@ -45,9 +45,19 @@ def _figures(folder: Path, meta: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
+COMPLETED_EXITS = ("reviewer_pass", "retry_exhausted", "single_complete")
+
+
+def rank(meta: dict[str, Any]) -> tuple[int, str]:
+    """A run that finished its job outranks one that stopped early (not ready, a blocker, Stop, the ceiling);
+    within each group the newest wins. A comparison of a stopped Team run with a finished Single-model run
+    would say nothing about the team."""
+    return (1 if str(meta.get("exit", "")) in COMPLETED_EXITS else 0, str(meta.get("started_at", "")))
+
+
 def comparison(runs_dir: Path, dataset_id: str) -> dict[str, Any]:
-    """Newest terminated recording per mode for the dataset, by start time, from `meta.json`."""
-    best: dict[str, tuple[str, Path, dict[str, Any]]] = {}
+    """The recording per mode that best represents the dataset: newest completed, else newest terminated."""
+    best: dict[str, tuple[tuple[int, str], Path, dict[str, Any]]] = {}
     if runs_dir.exists():
         for folder in runs_dir.iterdir():
             if not folder.is_dir():
@@ -56,9 +66,9 @@ def comparison(runs_dir: Path, dataset_id: str) -> dict[str, Any]:
             if not meta or meta.get("dataset_id") != dataset_id or not meta.get("exit"):
                 continue
             mode = str(meta.get("mode") or "team")
-            started = str(meta.get("started_at", ""))
-            if mode not in best or started > best[mode][0]:
-                best[mode] = (started, folder, meta)
+            key = rank(meta)
+            if mode not in best or key > best[mode][0]:
+                best[mode] = (key, folder, meta)
     return {
         "dataset_id": dataset_id,
         "team": _figures(best["team"][1], best["team"][2]) if "team" in best else None,

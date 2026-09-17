@@ -19,12 +19,12 @@ from typing import Any
 
 import yaml
 
-from app.config import ROOT
+from app.config import ROOT, load_settings
 from app.live.providers import MODELS_PATH
 from app.runs.metrics import METRICS_FILE, run_metrics
 from app.runs.recorder import read_events
 
-RUNS = ROOT / "runs"
+RUNS = load_settings().runs_dir  # RUNS_DIR may point at another checkout (worktrees, rule 15)
 REPORT = ROOT / "docs" / "model-performance.md"
 
 
