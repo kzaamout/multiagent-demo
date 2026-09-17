@@ -8,11 +8,11 @@ import pytest
 
 from app.compile import compile_timeline
 from app.compile.timeline import timeline_markdown
+from app.config import load_settings
 from app.live.documents import parse_pdf
 from app.runs.recorder import read_events
 
-ROOT = Path(__file__).resolve().parents[3]
-GOLDEN = ROOT / "datasets" / "clean-run" / "golden-events.jsonl"
+GOLDEN = load_settings().datasets_dir / "clean-run" / "golden-events.jsonl"
 
 pytestmark = [pytest.mark.compiler, pytest.mark.dataset]
 

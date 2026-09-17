@@ -669,8 +669,8 @@
       nodes = [el('div', { class: 'compare-empty', text: 'No Single-model run yet. Switch the composer to Single model and run to fill this strip.' })];
     } else {
       var key = single.run_id + '/' + single.output_path;
-      var entry = single.output_path ? ui.drafts[key] : null;
-      if (single.output_path && !entry && ui.loadDraft) { ui.loadDraft(single.run_id, single.output_path); }
+      var entry = single.output_path ? (ctx.singleOutput || {})[key] : null;
+      if (single.output_path && !entry && ui.loadSingleOutput) { ui.loadSingleOutput(single.run_id, single.output_path); }
       var text = entry && entry.status === 'loaded' ? entry.text : (single.summary || '');
       nodes = [
         el('div', { class: 'compare-model', text: (single.model_label || 'Single model') + ' · ' + F.fmtUsd(single.est_cost) + ' · ' + F.fmtWall(single.elapsed_ms) + ' · 1 pass, no review' }),

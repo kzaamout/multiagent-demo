@@ -82,6 +82,18 @@
   }
 
   /* S5: the Compare strip and the comparison line read the newest recording of each mode (research D6). */
+  /* The Single-model output shown in the Compare strip, read once per run through the run files route. */
+  ui.loadSingleOutput = function (runId, path) {
+    ctx.singleOutput = ctx.singleOutput || {};
+    var key = runId + '/' + path;
+    if (ctx.singleOutput[key]) { return; }
+    ctx.singleOutput[key] = { status: 'loading' };
+    fetch('/api/runs/' + encodeURIComponent(runId) + '/files/' + path.split('/').map(encodeURIComponent).join('/'))
+      .then(function (response) { if (!response.ok) { throw new Error(String(response.status)); } return response.text(); })
+      .then(function (text) { ctx.singleOutput[key] = { status: 'loaded', text: text }; schedule(); })
+      .catch(function () { ctx.singleOutput[key] = { status: 'missing' }; schedule(); });
+  };
+
   function loadComparison() {
     if (!ctx.selectedDataset) { ctx.comparison = null; schedule(); return null; }
     return api('GET', '/api/datasets/' + encodeURIComponent(ctx.selectedDataset) + '/comparison')

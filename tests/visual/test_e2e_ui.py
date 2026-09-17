@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 import uvicorn
 
-from app.config import Settings
+from app.config import Settings, load_settings
 from app.main import create_app
 
 pytestmark = [pytest.mark.visual, pytest.mark.dataset]
@@ -563,8 +563,7 @@ def test_every_marker_highlights_its_source_message(page: Any, server: tuple[str
     )
     compiled_json = json.loads(
         (
-            ROOT
-            / "datasets"
+            load_settings().datasets_dir
             / "planted-inconsistency"
             / "golden-artifacts"
             / "artifacts"
