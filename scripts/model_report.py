@@ -99,7 +99,7 @@ CSV_COLUMNS: list[tuple[str, str]] = [
     ("replies", "structured replies the seat produced"),
     ("accepted_first_time", "replies accepted without a correction"),
     ("corrections", "replies accepted on the second attempt"),
-    ("invalid_twice", "replies refused twice, which stops the run"),
+    ("stopped_run", "1 when this seat ran out of attempts and the run ended because of it, else 0"),
     ("reasons", "refusal reasons by category, as name=count separated by semicolons"),
     ("checks_met", "correctness checks the seat met in the run"),
     ("checks_total", "correctness checks defined for the seat on the dataset"),
@@ -126,7 +126,7 @@ class Group:
     replies: int = 0
     accepted_first_time: int = 0
     corrections: int = 0
-    invalid_twice: int = 0
+    stopped_run: int = 0
     checks_met: int = 0
     checks_total: int = 0
     reasons: dict[str, int] = field(default_factory=dict)
@@ -176,7 +176,8 @@ def metrics_of(folder: Path) -> dict[str, Any] | None:
     path = folder / METRICS_FILE
     if path.exists():
         data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
-        if data.get("seats") and "golden_match" in data:
+        seats = data.get("seats") or []
+        if seats and "golden_match" in data and all("stopped_run" in row for row in seats):
             return data
     try:
         return run_metrics(read_events(events_path), folder)
@@ -236,7 +237,7 @@ def collect(runs_dir: Path = RUNS) -> tuple[list[Group], list[dict[str, Any]]]:
             group.replies += seat["replies"]
             group.accepted_first_time += seat["accepted_first_time"]
             group.corrections += seat["corrections"]
-            group.invalid_twice += seat["invalid_twice"]
+            group.stopped_run += seat["stopped_run"]
             group.role = group.role or seat["role"]
             group.provider = group.provider or seat.get("provider", "")
             checks = seat.get("checks") or {}
@@ -260,7 +261,7 @@ def table(groups: list[Group]) -> list[str]:
     for g in groups:
         first = f"{g.first_time_rate * 100:.0f}%" if g.replies else "n/a"
         lines.append(
-            f"| {g.agent_id} | {g.model} | {g.settings} | {g.runs} | {g.calls} | {g.invalid_twice} | "
+            f"| {g.agent_id} | {g.model} | {g.settings} | {g.runs} | {g.calls} | {g.stopped_run} | "
             f"{_accuracy(g)} | {first} | {g.corrections} | {g.tokens_in_per_call} | "
             f"{g.tokens_out_per_call} | {g.seconds_per_call:.1f} | ${g.cost_per_run:.2f} |"
         )
@@ -285,11 +286,43 @@ def reason_table(groups: list[Group]) -> list[str]:
 def rank_key(g: Group) -> tuple[int, float, float, float]:
     """Owner ranking (2026-09-17): fewest stopped runs, then accuracy, then first-time rate, then speed."""
     return (
-        g.invalid_twice,
+        g.stopped_run,
         -(g.accuracy if g.accuracy is not None else 0.0),
         -g.first_time_rate,
         g.seconds_per_call,
     )
+
+
+def merge_by_model(groups: list[Group]) -> list[Group]:
+    """One row per model for the ranking. Splitting by settings is right in the detail table, but it let a
+    model compete with itself when some of its runs predate settings capture."""
+    merged: dict[str, Group] = {}
+    for g in groups:
+        into = merged.get(g.model)
+        if into is None:
+            merged[g.model] = Group(**{k: v for k, v in vars(g).items()})
+            continue
+        for name in (
+            "runs",
+            "calls",
+            "tokens_in",
+            "tokens_out",
+            "wall_ms",
+            "tool_calls",
+            "replies",
+            "accepted_first_time",
+            "corrections",
+            "stopped_run",
+            "checks_met",
+            "checks_total",
+        ):
+            setattr(into, name, getattr(into, name) + getattr(g, name))
+        into.est_cost += g.est_cost
+        if into.settings == "not recorded" and g.settings != "not recorded":
+            into.settings = g.settings
+        for reason, count in g.reasons.items():
+            into.reasons[reason] = into.reasons.get(reason, 0) + count
+    return list(merged.values())
 
 
 def best_local_table(groups: list[Group]) -> list[str]:
@@ -298,7 +331,7 @@ def best_local_table(groups: list[Group]) -> list[str]:
         "|---|---|---|---|---|---|---|---|",
     ]
     for seat in SEAT_ORDER:
-        local = [g for g in groups if g.agent_id == seat and g.provider == "ollama"]
+        local = merge_by_model([g for g in groups if g.agent_id == seat and g.provider == "ollama"])
         if not local:
             continue
         qualified = sorted((g for g in local if g.runs >= MIN_RUNS_FOR_BEST), key=rank_key)
@@ -315,7 +348,7 @@ def best_local_table(groups: list[Group]) -> list[str]:
         )
         first = f"{best.first_time_rate * 100:.0f}%" if best.replies else "n/a"
         lines.append(
-            f"| {seat} | {best.model}, {best.settings} | {best.runs} | {best.invalid_twice} | {_accuracy(best)} | "
+            f"| {seat} | {best.model}, {best.settings} | {best.runs} | {best.stopped_run} | {_accuracy(best)} | "
             f"{first} | {best.seconds_per_call:.1f} | {runner} |"
         )
     return lines
@@ -360,7 +393,7 @@ def raw_rows(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "replies": seat["replies"],
                     "accepted_first_time": seat["accepted_first_time"],
                     "corrections": seat["corrections"],
-                    "invalid_twice": seat["invalid_twice"],
+                    "stopped_run": seat["stopped_run"],
                     "reasons": ";".join(f"{k}={v}" for k, v in sorted(seat["reasons"].items())),
                     "checks_met": sum(1 for met in checks.values() if met),
                     "checks_total": len(checks),

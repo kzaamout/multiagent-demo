@@ -47,7 +47,7 @@ Generated with `docs/model-performance.md` and `docs/model-performance-runs.csv`
 - **replies**: structured replies the seat produced
 - **accepted_first_time**: replies accepted without a correction
 - **corrections**: replies accepted on the second attempt
-- **invalid_twice**: replies refused twice, which stops the run
+- **stopped_run**: 1 when this seat ran out of attempts and the run ended because of it, else 0
 - **reasons**: refusal reasons by category, as name=count separated by semicolons
 - **checks_met**: correctness checks the seat met in the run
 - **checks_total**: correctness checks defined for the seat on the dataset

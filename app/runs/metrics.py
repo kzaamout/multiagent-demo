@@ -79,7 +79,8 @@ class SeatRow:
     replies: int = 0
     accepted_first_time: int = 0
     corrections: int = 0
-    invalid_twice: int = 0
+    stopped_run: int = 0
+    """Set when this seat ran out of attempts and the run ended because of it."""
     reasons: dict[str, int] = field(default_factory=dict)
     settings: dict[str, Any] = field(default_factory=dict)
     """The hyperparameters the seat ran with, from its attempt lines; empty when the run predates capture."""
@@ -214,7 +215,11 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
         elif event.type == "tool.called":
             seat.tool_calls += 1
 
+    last = events[-1] if events else None
+    exit_value = str((last.payload or {}).get("exit", "")) if last is not None else ""
+
     logged = (folder / ATTEMPTS_FILE).exists()
+    final_rejected: dict[str, bool] = {}
     for attempt in read_attempts(folder):
         agent_id = attempt.agent_id or _seat_of(attempt.prompt_ref, folder)
         seat = row(agent_id)
@@ -224,6 +229,7 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
             seat.model, seat.provider = attempt.model, attempt.provider
         if attempt.settings:
             seat.settings = dict(attempt.settings)
+        final_rejected[agent_id] = not attempt.accepted
         if attempt.accepted:
             seat.replies += 1
             if attempt.attempt == 1:
@@ -232,10 +238,17 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
                 seat.corrections += 1
         else:
             seat.add_reason(attempt.error)
-            if attempt.attempt == 2:
-                seat.invalid_twice += 1
-                if logged:
-                    seat.replies += 1
+
+    # A seat stopped the run when it ran out of attempts: its last attempt was refused and the run ended
+    # `stopped`. Counting the second refusal instead was right only while a seat had two attempts; three
+    # attempts (decision 2026-09-17) made a second refusal survivable, and runs that went on to pass were
+    # being charged with a stop. The failed final attempt still counts as a reply the seat produced.
+    for agent_id, rejected in final_rejected.items():
+        seat = row(agent_id)
+        if seat is not None and rejected and exit_value == "stopped":
+            seat.stopped_run += 1
+            if logged:
+                seat.replies += 1
 
     if not logged:
         # Before the attempt log, only the rejected replies were kept. One recorded bundle is one seat
@@ -246,12 +259,10 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
             if seat is None:
                 continue
             rejections = sum(seat.reasons.values())
-            seat.corrections = max(rejections - seat.invalid_twice * 2, 0)
+            seat.corrections = max(rejections - seat.stopped_run * 2, 0)
             seat.replies = bundles
-            seat.accepted_first_time = max(bundles - seat.corrections - seat.invalid_twice, 0)
+            seat.accepted_first_time = max(bundles - seat.corrections - seat.stopped_run, 0)
 
-    last = events[-1] if events else None
-    exit_value = str((last.payload or {}).get("exit", "")) if last is not None else ""
     from app.runs.expectations import golden_match, seat_checks
 
     for agent_id, checks in seat_checks(dataset, events, folder).items():

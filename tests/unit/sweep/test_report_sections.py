@@ -37,7 +37,7 @@ def group(
         wall_ms=ms * runs,
         replies=replies,
         accepted_first_time=first,
-        invalid_twice=stopped,
+        stopped_run=stopped,
         checks_met=met,
         checks_total=total,
     )
@@ -112,3 +112,36 @@ def test_settings_from_the_attempt_log_reach_the_metrics_and_the_csv(tmp_path: P
         "First time",
         "Corrections",
     }
+
+
+def test_a_seat_that_recovers_on_a_later_attempt_did_not_stop_the_run(tmp_path: Path) -> None:
+    """Three attempts made a second refusal survivable, so only an exhausted seat stops a run."""
+    from app.runs.metrics import run_metrics
+
+    def metrics(exit_value: str, attempts: list[tuple[int, bool]]) -> dict[str, Any]:
+        folder = tmp_path / exit_value
+        folder.mkdir(parents=True, exist_ok=True)
+        events = [started("clean-run"), terminated(2, exit_value)]
+        (folder / "events.jsonl").write_text("".join(e.to_line() + "\n" for e in events), encoding="utf-8")
+        for number, accepted in attempts:
+            append_attempt(
+                folder,
+                SeatAttempt(
+                    "pb-01",
+                    "writer",
+                    "qwen3.5 9b, local",
+                    "ollama",
+                    number,
+                    accepted,
+                    "" if accepted else "bad",
+                ),
+            )
+        data = run_metrics(events, folder)
+        return next(s for s in data["seats"] if s["agent_id"] == "writer")
+
+    recovered = metrics("reviewer_pass", [(1, False), (2, False), (3, True)])
+    assert recovered["stopped_run"] == 0, "it was refused twice, then accepted, so it stopped nothing"
+    assert recovered["corrections"] == 1 and recovered["replies"] == 1
+
+    exhausted = metrics("stopped", [(1, False), (2, False), (3, False)])
+    assert exhausted["stopped_run"] == 1 and exhausted["replies"] == 1
