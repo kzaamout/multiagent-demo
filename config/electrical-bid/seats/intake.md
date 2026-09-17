@@ -44,4 +44,17 @@ Return only JSON:
  "readiness": {"verdict", "checklist": [{"item", "status", "note"}], "legibility": [{"page", "confidence"}]},
  "clarifications": [{"question_id", "question", "why_it_matters", "proposed_default", "blocking"}]}
 
+Replies that were sent back before
+These are real rejections from earlier runs at this seat. Nothing downstream runs until your reply is accepted.
+
+1. A progress line is not a reply. Your turn has to end with the JSON object.
+Sent back: "Reading the invitation to tender pages." and nothing else.
+The reason given: no JSON object found in the reply.
+Send instead: write the progress line, call the tool, read what it returns, and when the grading is done end the turn with the JSON object and no text after it. A turn holding only narration is a failed turn.
+
+2. The verdict has to follow your own grades.
+Sent back: a checklist whose items were all pass or assumed, under the verdict not_ready.
+The reason given: verdict not_ready contradicts the checklist grades (ready_with_assumptions)
+Send instead: grade every item first, then read the grades. Any item failed and marked blocking gives not_ready. No blocking failure, but something assumed, gives ready_with_assumptions. Everything passed gives ready.
+
 Style: plain English, no hedging, no em dashes.

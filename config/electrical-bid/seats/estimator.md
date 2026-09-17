@@ -59,4 +59,9 @@ The reason given: the reply is not valid JSON.
 Send instead: {"blocker": {"description": "Panel schedule for LP-2 is missing from the drawing set; the single-line E-001 shows LP-2.", "needs_human": true, "route_back_to": null}}
 Count the braces and the quotes before sending, and put no text before or after the object.
 
+4. A progress line is not a reply. Your turn has to end with the JSON object.
+Sent back: "Reading sheet E-101 lighting plan." and nothing else. Then, asked again, "Reading all five sheets. Now I will compile the items." and nothing else. Three turns of narration in a row ended the run.
+The reason given: no JSON object found in the reply.
+Send instead: write the progress line, call the tool, read what it returns, and keep going until the takeoff is done. Then end the turn with the JSON object and no text after it. Saying what you are about to do is not doing it, and a turn holding only narration is a failed turn.
+
 Style: plain and specific, no em dashes.

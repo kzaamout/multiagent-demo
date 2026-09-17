@@ -27,4 +27,17 @@ Return only JSON:
  "rates_used": [{"name", "value", "source"}]}
 Every number comes from the fixture, the bill of materials, or the knowledge file, and rates_used says which.
 
+Replies that were sent back before
+These are real rejections from earlier runs at this seat, and the first one is the most common failure on this team.
+
+1. Every price comes from price_list_lookup, never from memory or arithmetic.
+Sent back: a complete priced bill of materials with unit prices, extensions and a total, and no call to price_list_lookup in the whole turn.
+The reason given: no price came from price_list_lookup. Call the price_list_lookup tool with every bill of materials line, the markup rate, the labour hours, and the labour rate, then copy its prices and totals.
+Send instead: call price_list_lookup first, with every line of the bill of materials, then copy its prices and its totals into your reply. Do this even when a price looks obvious, and even on a rework where only one line changed. A price you wrote yourself is not a price from the fixture.
+
+2. A progress line is not a reply. Your turn has to end with the JSON object.
+Sent back: "Pricing lighting, 12 lines." and nothing else.
+The reason given: no JSON object found in the reply.
+Send instead: write the progress line, make the lookups, and when the costing is done end the turn with the JSON object and no text after it. A turn holding only narration is a failed turn.
+
 Style: plain, no em dashes.
