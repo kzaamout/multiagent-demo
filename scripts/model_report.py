@@ -17,12 +17,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import httpx
 import yaml
 
 from app.config import ROOT, load_settings
-from app.live.providers import MODELS_PATH
+from app.live.providers import MODELS_PATH, ModelConfig, check_availability
 from app.runs.metrics import METRICS_FILE, run_metrics
 from app.runs.recorder import read_events
+from app.seats.definitions import DRAWING_PAGES, PAGE_TEXT, SEAT_DEFINITIONS
 
 RUNS = load_settings().runs_dir  # RUNS_DIR may point at another checkout (worktrees, rule 15)
 REPORT = ROOT / "docs" / "model-performance.md"
@@ -176,7 +178,108 @@ def reason_table(groups: list[Group]) -> list[str]:
     return lines
 
 
-def report(groups: list[Group], runs: list[dict[str, Any]]) -> str:
+SEAT_WHY: dict[str, str] = {
+    "orchestrator": "plans and routes from text; no tools on purpose",
+    "intake": "reads prepared document text and asks for what is unknown",
+    "estimator": "looks at drawing sheets as images through the drawing reader, then calls the calculator",
+    "pricing": "prices every line from the fixture through the lookup tool",
+    "writer": "assembles the specialists' text through the template tool",
+    "reviewer": "judges the compiled page images; a model without image input is refused",
+    "single": "does all of the above alone",
+}
+
+
+def _yes(flag: bool) -> str:
+    return "yes" if flag else "no"
+
+
+def _ollama_models(host: str) -> dict[str, dict[str, Any]] | None:
+    """Pulled models with Ollama's own capability list, or None when Ollama is not reachable."""
+    base = host.rstrip("/")
+    try:
+        tags = httpx.get(f"{base}/api/tags", timeout=2.0).json().get("models", [])
+        pulled: dict[str, dict[str, Any]] = {}
+        for entry in tags:
+            name = str(entry.get("name"))
+            show = httpx.post(f"{base}/api/show", json={"name": name}, timeout=5.0).json()
+            pulled[name] = {
+                "size": int(entry.get("size", 0)),
+                "capabilities": [str(c) for c in show.get("capabilities", [])],
+            }
+        return pulled
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def model_table(
+    config: ModelConfig, availability: dict[str, Any], pulled: dict[str, dict[str, Any]] | None
+) -> list[str]:
+    lines = [
+        "| Model | Where | Text | Vision | Audio | Tool calls | Available |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for spec in config.models.values():
+        where = str(config.providers.get(spec.provider, {}).get("label", spec.provider))
+        vision, audio, tools = _yes(spec.image_input), "no", "yes"
+        if spec.provider == "ollama":
+            entry = None
+            if pulled is not None:
+                entry = pulled.get(spec.model_id) or pulled.get(f"{spec.model_id}:latest")
+            if pulled is None:
+                available = "Ollama not reachable"
+            elif entry is None:
+                available = "not pulled"
+            else:
+                caps = entry["capabilities"]
+                available = f"pulled, {entry['size'] / 1e9:.1f} GB"
+                audio, tools = _yes("audio" in caps), _yes("tools" in caps)
+                if ("vision" in caps) != spec.image_input:
+                    vision = f"registry says {vision}, Ollama says {_yes('vision' in caps)}"
+        else:
+            state = availability.get(spec.provider)
+            available = str(state.reason) if state is not None else "not probed"
+        lines.append(f"| {spec.label} | {where} | yes | {vision} | {audio} | {tools} | {available} |")
+    return lines
+
+
+def seat_table() -> list[str]:
+    lines = ["| Seat | Text | Vision | Tool calls | Why |", "|---|---|---|---|---|"]
+    for agent_id, definition in SEAT_DEFINITIONS.items():
+        vision = agent_id == "single" or DRAWING_PAGES in definition.sees or PAGE_TEXT in definition.sees
+        tools = _yes(bool(definition.tools))
+        lines.append(f"| {agent_id} | yes | {_yes(vision)} | {tools} | {SEAT_WHY.get(agent_id, '')} |")
+    lines.append(
+        "| case, market (S8) | yes | no | yes | fixture lookups; the two seats arrive with the appraisal workflow |"
+    )
+    return lines
+
+
+def modality_section(probe: bool = True) -> list[str]:
+    """Which model takes what, and which seat needs what, so a seat is never given a model that cannot serve it."""
+    config = ModelConfig.load()
+    availability = check_availability(config) if probe else {}
+    host = str(config.providers.get("ollama", {}).get("host", "http://localhost:11434"))
+    pulled = _ollama_models(host) if probe else None
+    return [
+        "## Models and what they take",
+        "",
+        "Text, vision and tool calling come from `config/models.yaml` and, for a pulled local model, from Ollama's "
+        "own capability list; audio comes only from Ollama's list, since no seat sends audio. Available says what "
+        "this machine could reach when the report was written, never a credential.",
+        "",
+        *model_table(config, availability, pulled),
+        "",
+        "## Seats and what they need",
+        "",
+        "From the seat definitions in `app/seats/definitions.py`: a seat needs vision when drawing sheets or "
+        "compiled pages reach it as images, and tool calling when it has tools. A model is eligible for a seat "
+        "only when it takes everything the seat needs.",
+        "",
+        *seat_table(),
+    ]
+
+
+def report(groups: list[Group], runs: list[dict[str, Any]], probe: bool = True) -> str:
     live = [r for r in runs if any(s["calls"] for s in r["seats"])]
     spend = sum(s["est_cost"] for r in runs for s in r["seats"])
     body = [
@@ -198,6 +301,8 @@ def report(groups: list[Group], runs: list[dict[str, Any]]) -> str:
         "## Why replies were sent back",
         "",
         *reason_table(groups),
+        "",
+        *modality_section(probe),
         "",
     ]
     return "\n".join(body)
