@@ -107,6 +107,31 @@ SEAT_DEFINITIONS: dict[str, SeatDefinition] = {
         (),
         frozenset({BRIEF, PAGE_TEXT, REVIEWER_CRITERIA}),
     ),
+    # S5: the Single-model actor holds the team's deterministic tools and reads what Intake, the Estimator, and the
+    # Writer read. No review, no provenance.
+    "single": SeatDefinition(
+        "single",
+        "single.md",
+        (
+            "prepare_documents",
+            "document_parse_pdf",
+            "document_extract_attachments",
+            "vision_read_drawing",
+            "quantity_calculate",
+            "price_list_lookup",
+            "template_render",
+        ),
+        frozenset(
+            {
+                REQUEST_DOCUMENTS,
+                KNOWLEDGE_FILE,
+                READINESS_CHECKLIST,
+                DRAWING_PAGES,
+                ESTIMATING_CONVENTIONS,
+                TEMPLATE,
+            }
+        ),
+    ),
 }
 
 

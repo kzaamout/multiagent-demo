@@ -658,4 +658,38 @@ def test_handoff_edit_reject_and_downloads(page: Any, server: tuple[str, Path]) 
         page.is_disabled("#btn-edit") and page.is_disabled("#btn-reject") and page.is_disabled("#btn-approve")
     )
     assert page.get_attribute("#btn-download-pdf", "aria-disabled") == "false"
+
+
+def test_single_model_run_through_the_page(page: Any, server: tuple[str, Path]) -> None:
+    """S5: the composer switch starts a Single-model run; Plan and Review render bypassed; the Compare strip and
+    the meter detail row read from events and recordings only."""
+    page.goto(server[0] + "/demo?animate=0")
+    page.wait_for_selector("#dataset-value:not(:has-text('Loading'))")
+    choose_dataset(page, "01 · Clean run")
+    assert page.is_hidden("#single-model-select")
+    page.click("#mode-single")
+    page.wait_for_selector("#single-model-select:not([hidden])")
+    assert page.inner_text("#single-model-value") not in ("", "Choose a model")
+    page.click("#single-model-select")
+    page.wait_for_selector("#single-model-menu .menu-item")
+    page.click("#single-model-menu .menu-item[aria-selected='true']")
+    page.click("#btn-run")
+    page.wait_for_selector("article[data-kind='termination'][data-exit='single_complete']", timeout=30000)
+    assert page.get_attribute('.node[data-stage="plan"]', "data-state") == "bypassed"
+    assert page.get_attribute('.node[data-stage="review"]', "data-state") == "bypassed"
+    assert page.get_attribute('.node[data-stage="handoff"]', "data-state") == "complete"
+    roster = page.evaluate("() => window.__s1.events[0].payload.roster.map(a => a.agent_id)")
+    assert roster == ["orchestrator", "single"]
+    page.wait_for_function(
+        "() => document.getElementById('compare-summary').textContent !== 'no run yet'", timeout=10000
+    )
+    page.click("#compare-btn")
+    page.wait_for_selector(".compare-model")
+    assert "no review" in page.inner_text("#compare-content")
+    page.click("button[data-part='agent-meter'][data-agent='single']")
+    page.wait_for_selector("#meter-detail:not([hidden]) .stat-label")
+    labels = page.evaluate(
+        "() => Array.from(document.querySelectorAll('#meter-detail .stat-label')).map(n => n.textContent)"
+    )
+    assert labels == ["Calls", "Tokens in / out", "Cost", "Wall time", "Latency", "Last event"]
     assert page.errors == []

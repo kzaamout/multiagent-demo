@@ -98,3 +98,25 @@ async def test_swap_during_a_stub_run_emits_model_changed(client: httpx.AsyncCli
         == "gemini-2.5-pro via Google"
     )
     await client.post(f"/api/runs/{run_id}/stop")
+
+
+async def test_single_run_over_the_api_and_the_comparison_route(client: httpx.AsyncClient) -> None:
+    started = await client.post("/api/runs", json={"dataset_id": "clean-run", "mode": "single"})
+    assert started.status_code == 201 and started.json()["mode"] == "single"
+    run_id = started.json()["run_id"]
+    status = (await client.get(f"/api/runs/{run_id}")).json()
+    assert status["mode"] == "single" and [a["agent_id"] for a in status["roster"]] == [
+        "orchestrator",
+        "single",
+    ]
+    for _ in range(1000):
+        events = await events_of(client, run_id)
+        if events and events[-1]["type"] == "run.terminated":
+            break
+        await asyncio.sleep(0.02)
+    assert events[-1]["payload"]["exit"] == "single_complete"
+    figures = (await client.get("/api/datasets/clean-run/comparison")).json()
+    assert figures["single"]["run_id"] == run_id and figures["team"] is None
+    assert (await client.get("/api/datasets/nope/comparison")).status_code == 404
+    bad = await client.post("/api/runs", json={"dataset_id": "clean-run", "mode": "single", "model": "nope"})
+    assert bad.status_code == 400

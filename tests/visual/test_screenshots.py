@@ -79,6 +79,7 @@ def captures(base_url: str) -> dict[str, Path]:
         "demo-paused",
         "demo-running",
         "demo-terminated",
+        "demo-terminated-chat",
         "login",
         "settings",
         "settings-dropdown",

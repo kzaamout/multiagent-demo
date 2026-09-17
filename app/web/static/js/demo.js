@@ -13,9 +13,10 @@
     open: {}, seen: {}, promptOpen: {}, prompts: {}, mode: 'idle', speed: 1, submitting: false,
     meterOpen: null, rawOpen: false, compareOpen: false, animatedArrows: {}, animate: params.get('animate') !== '0',
     autoScroll: true, bannerAskId: null, dryIntake: false, following: false, markers: {},
-    editMode: null, editText: null, editError: '', editKey: null
+    editMode: null, editText: null, editError: '', editKey: null,
+    runMode: 'team', singleModel: null, modelMenuOpen: false
   };
-  var ctx = { datasets: [], selectedDataset: null, retryBudget: 2, costCeiling: 5, idleRoster: {} };
+  var ctx = { datasets: [], selectedDataset: null, retryBudget: 2, costCeiling: 5, idleRoster: {}, modelOptions: [], comparison: null };
   var scheduled = false;
 
   function api(method, path, body) {
@@ -48,6 +49,7 @@
 
   function onEvent(event) {
     events.push(event);
+    if (event.type === 'run.terminated') { loadComparison(); }
     if (event.type === 'clarification.answered' || event.type === 'human.approved' || event.type === 'run.terminated') {
       ui.submitting = false;
     }
@@ -79,13 +81,31 @@
     Array.prototype.forEach.call(feed.querySelectorAll('article.card'), function (n) { n.remove(); });
   }
 
+  /* S5: the Compare strip and the comparison line read the newest recording of each mode (research D6). */
+  function loadComparison() {
+    if (!ctx.selectedDataset) { ctx.comparison = null; schedule(); return null; }
+    return api('GET', '/api/datasets/' + encodeURIComponent(ctx.selectedDataset) + '/comparison')
+      .then(function (data) { ctx.comparison = data; schedule(); })
+      .catch(function () { ctx.comparison = null; schedule(); });
+  }
+
+  function loadModelOptions() {
+    return api('GET', '/api/seats').then(function (table) {
+      ctx.modelOptions = table.models.filter(function (o) { return o.available; });
+      var orchestrator = table.seats.filter(function (row) { return row.seat === 'orchestrator'; })[0];
+      if (!ui.singleModel && orchestrator && orchestrator.model_key) { ui.singleModel = orchestrator.model_key; }
+      schedule();
+    }).catch(function (error) { window.alertless(error); });
+  }
+
   function refreshDatasets() {
     return api('GET', '/api/datasets').then(function (list) { ctx.datasets = list; schedule(); });
   }
 
   function startRun() {
     if (!ctx.selectedDataset || isBusy()) { return; }
-    var body = { dataset_id: ctx.selectedDataset, dry_intake: ui.dryIntake };
+    var body = { dataset_id: ctx.selectedDataset, dry_intake: ui.dryIntake, mode: ui.runMode };
+    if (ui.runMode === 'single' && ui.singleModel) { body.model = ui.singleModel; }
     if (params.get('pin') === 'export') { body.names = EXPORT_NAMES; }
     api('POST', '/api/runs', body).then(function (data) {
       resetView('live');
@@ -149,9 +169,22 @@
       ctx.selectedDataset = item.getAttribute('data-dataset');
       try { window.localStorage.setItem('s1.dataset', ctx.selectedDataset); } catch (err) { /* private mode */ }
       menu.hidden = true;
+      loadComparison();
       schedule();
       return;
     }
+    var modelItem = target.closest('[data-model-key]');
+    if (modelItem) {
+      ui.singleModel = modelItem.getAttribute('data-model-key');
+      ui.modelMenuOpen = false;
+      schedule();
+      return;
+    }
+    if (target.closest('#single-model-select')) {
+      if (!isBusy()) { ui.modelMenuOpen = !ui.modelMenuOpen; schedule(); }
+      return;
+    }
+    ui.modelMenuOpen = false;
     if (target.closest('#dataset-select')) {
       if (!select.classList.contains('is-locked')) {
         menu.hidden = !menu.hidden;
@@ -191,6 +224,12 @@
       if (ui.mode !== 'live' || !ui.following || !runId) { return; }
       var route = action === 'control-pause' ? 'pause' : action === 'control-resume' ? 'resume' : 'stop';
       api('POST', '/api/runs/' + runId + '/' + route).catch(function (error) { window.alertless(error); });
+      return;
+    }
+    if (action === 'mode-team' || action === 'mode-single') {
+      if (isBusy()) { return; }
+      ui.runMode = action === 'mode-single' ? 'single' : 'team';
+      schedule();
       return;
     }
     if (action === 'dry-off' || action === 'dry-on') {
@@ -347,6 +386,8 @@
     ui.autoScroll = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 80;
   });
 
+  loadModelOptions();
+
   Promise.all([api('GET', '/api/meta'), api('GET', '/api/datasets')]).then(function (results) {
     var meta = results[0];
     ctx.datasets = results[1];
@@ -357,6 +398,7 @@
     try { stored = window.localStorage.getItem('s1.dataset'); } catch (err) { stored = null; }
     var wanted = params.get('dataset') || stored || 'planted-inconsistency';
     ctx.selectedDataset = ctx.datasets.some(function (d) { return d.id === wanted; }) ? wanted : (ctx.datasets[0] || {}).id;
+    if (!params.get('golden') && !params.get('run')) { loadComparison(); }
     var recordedRun = params.get('run');
     if (recordedRun) {
       /* A recorded run rendered from its event list, used to compare a replay with its source. */

@@ -491,12 +491,33 @@ class HeadlineProposal(BaseModel):
     headline: str = Field(max_length=120)
 
 
+class SingleReply(BaseModel):
+    """The Single-model actor's one reply (S5): the whole proposal in one pass, no tags, no review."""
+
+    headline: str
+    summary: str
+    markdown: str
+    total: str | None = None
+
+    @field_validator("total", mode="before")
+    @classmethod
+    def _total_as_text(cls, value: Any) -> Any:
+        return None if value is None else str(value)
+
+    def check(self) -> None:
+        if not self.markdown.strip():
+            raise ReplyError("markdown is empty; return the full proposal in markdown")
+        if not self.headline.strip():
+            raise ReplyError("headline is empty")
+
+
 REPLY_MODELS: dict[str, type[BaseModel]] = {
     "intake": IntakeReply,
     "estimator": EstimatorReply,
     "pricing": PricingReply,
     "writer": WriterReply,
     "reviewer": ReviewerReply,
+    "single": SingleReply,
 }
 
 

@@ -67,6 +67,7 @@ def states() -> list[AppState]:
         AppState("demo-paused", g + str(golden_seq("paused"))),
         AppState("demo-running", g + str(golden_seq("running"))),
         AppState("demo-terminated", g + str(golden_seq("terminated"))),
+        AppState("demo-terminated-chat", g + str(golden_seq("terminated"))),
         AppState("login", "/login"),
         AppState("settings", "/settings"),
         AppState("settings-dropdown", "/settings"),
@@ -97,7 +98,19 @@ def capture(browser: Browser, base_url: str, out: Path = OUT) -> dict[str, Path]
             page.click('.seat-row[data-seat="estimator"] .model-select')
             page.wait_for_selector('.seat-row[data-seat="estimator"] .menu')
             page.wait_for_timeout(200)
-        if state.name == "demo-terminated":
+        if state.name == "demo-terminated-chat":
+            # The export's chatOpen state: Elena's panel with the sample exchange. Seeded through the panel's
+            # capture hook so no model is called; the texts are the export's own.
+            page.evaluate(
+                "() => window.__s1chat.seed('estimator', ["
+                "{role: 'user', text: 'Why did you go with 225 A rather than 200 A?'},"
+                "{role: 'assistant', text: 'The single-line E-001 is the governing drawing for service size under the "
+                "estimating conventions I was given. The panel schedule E-101 is a derived sheet and was dated earlier. "
+                "I flagged the difference rather than choosing silently.'}])"
+            )
+            page.wait_for_selector("#chat-panel:not([hidden]) .chat-msg-agent")
+            page.wait_for_timeout(200)
+        if state.name.startswith("demo-terminated"):
             page.evaluate(
                 "() => { const f = document.getElementById('feed'); f.scrollTop = f.scrollHeight; }"
             )

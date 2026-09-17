@@ -4,7 +4,7 @@
 
   var SEAT_COLORS = {
     orchestrator: '#17171c', intake: '#003c33', estimator: '#b45309', pricing: '#1863dc',
-    writer: '#071829', reviewer: '#b30000', case: '#2f6b5e', market: '#4a4a8a', human: '#75758a'
+    writer: '#071829', reviewer: '#b30000', case: '#2f6b5e', market: '#4a4a8a', single: '#6b5e7a', human: '#75758a'
   };
   var STAGES = ['intake', 'plan', 'work', 'assemble', 'review', 'handoff'];
   var STAGE_LABEL = { intake: 'Intake', plan: 'Plan', work: 'Work', assemble: 'Assemble', review: 'Review', handoff: 'Handoff' };

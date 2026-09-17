@@ -92,6 +92,22 @@ MASKS: dict[str, list[Rect]] = {
         COMPARISON_LINE,
         HANDOFF_EYEBROW,
     ],
+    "demo-terminated-chat": [
+        HEADER_NAV,
+        LOOP_REASON,
+        DRY_INTAKE,
+        Rect(
+            1280,
+            316,
+            1479,
+            940,
+            "artifact panel placeholder left of the chat panel; compiled pages arrive in S4",
+            "S4",
+        ),
+        COMPARE_STRIP,
+        COMPARISON_LINE,
+        HANDOFF_EYEBROW,
+    ],
     "login": [],
     "settings": [
         Rect(

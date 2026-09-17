@@ -20,9 +20,11 @@ from app.agents.stubs import bundle_for
 from app.buildinfo import build_info
 from app.compile import CompileError, compile_timeline, tools_available
 from app.config import Settings, load_settings
+from app.live.chat import ChatRefused, chat, chat_allowed, find_bundle
 from app.live.providers import Availability, ModelConfig, SeatModelFactory, strands_model_for
 from app.orchestrator.orchestrator import Answer
 from app.runs.bus import StreamBus
+from app.runs.comparison import comparison
 from app.runs.recorder import read_events
 from app.runs.registry import LiveUnavailable, Registry
 from app.runs.replay import ReplaySession
@@ -34,7 +36,8 @@ KEEPALIVE_SECONDS = 15.0
 class RunRequest(BaseModel):
     dataset_id: str
     workflow: str = "electrical_rfp"
-    mode: Literal["team"] = "team"
+    mode: Literal["team", "single"] = "team"
+    model: str | None = None
     names: dict[str, str] | None = None
     dry_intake: bool = False
 
@@ -58,6 +61,17 @@ class DecisionRequest(BaseModel):
     notes: str = ""
     markdown: str = ""
     """The edited draft for `edit` (S4); ignored for approve and reject."""
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    text: str
+
+
+class ChatRequest(BaseModel):
+    run_id: str
+    agent_id: str
+    messages: list[ChatMessage]
 
 
 class ReplayRequest(BaseModel):
@@ -180,6 +194,13 @@ def create_app(
     async def datasets() -> list[dict[str, Any]]:
         return registry.dataset_listing()
 
+    @app.get("/api/datasets/{dataset_id}/comparison")
+    async def dataset_comparison(dataset_id: str) -> dict[str, Any]:
+        """The newest terminated Team and Single-model recordings for the dataset (S5). Recordings only."""
+        if dataset_id not in registry.datasets:
+            raise HTTPException(404, f"unknown dataset {dataset_id}")
+        return comparison(cfg.runs_dir, dataset_id)
+
     @app.get("/api/datasets/{dataset_id}/golden")
     async def golden(dataset_id: str, upto: int | None = None) -> list[dict[str, Any]]:
         """The committed golden log, optionally cut at a seq. Used to render a fixed state."""
@@ -204,13 +225,20 @@ def create_app(
         if registry.is_live():
             raise HTTPException(409, "a run is already in progress")
         try:
-            orchestrator = registry.start_run(body.dataset_id, names=body.names, dry_intake=body.dry_intake)
+            orchestrator = registry.start_run(
+                body.dataset_id,
+                names=body.names,
+                dry_intake=body.dry_intake,
+                mode=body.mode,
+                model_key=body.model,
+            )
         except LiveUnavailable as unavailable:
             raise HTTPException(409, "Live run unavailable: " + "; ".join(unavailable.problems)) from None
         except ValueError as error:
             raise HTTPException(400, str(error)) from error
         return {
             "run_id": orchestrator.run_id,
+            "mode": orchestrator.mode,
             "stream_url": f"/api/streams/{orchestrator.run_id}/events",
             "review_max_cycles": orchestrator.state.review_max_cycles,
             "retry_budget": orchestrator.state.retry_budget,
@@ -230,7 +258,7 @@ def create_app(
             "run_id": o.run_id,
             "dataset_id": o.dataset.dataset_id,
             "workflow": o.workflow,
-            "mode": "team",
+            "mode": o.mode,
             "status": o.status,
             "exit": o.state.exit,
             "review_max_cycles": o.state.review_max_cycles,
@@ -342,6 +370,42 @@ def create_app(
         data = found.model_dump()
         data["sections"] = [{"label": label, "text": text} for label, text in found.sections()]
         return data
+
+    # Chat (S5, spec 2.7): out of band, read-only, nothing recorded, nothing emitted.
+
+    @app.post("/api/chat")
+    async def chat_with_agent(body: ChatRequest) -> dict[str, Any]:
+        found = find_bundle(registry, body.run_id, body.agent_id)
+        if found is None:
+            raise HTTPException(404, f"no prompt bundle for {body.agent_id} in run {body.run_id}")
+        if not chat_allowed(registry, body.run_id):
+            raise HTTPException(409, "chat is available when the run is paused or finished")
+        bundle, card = found
+        config = registry.effective_config()
+        if body.agent_id == "single":
+            key = next((k for k, m in config.models.items() if m.model_id == card.model.model_id), None)
+            key = key or (config.seats["orchestrator"].model if "orchestrator" in config.seats else None)
+            if key is None:
+                raise HTTPException(404, "no model for the Single-model seat")
+            config = config.with_seat("single", key)
+        elif body.agent_id not in config.seats:
+            raise HTTPException(404, f"no model configured for seat {body.agent_id}")
+        factory = registry.seat_model_factory or (lambda seat: strands_model_for(config, seat))
+        try:
+            seat_model = factory(body.agent_id)
+            answer = await chat(seat_model, bundle, [m.model_dump() for m in body.messages])
+        except ChatRefused as refused:
+            raise HTTPException(refused.status, refused.reason) from None
+        except Exception as error:  # noqa: BLE001
+            raise HTTPException(502, f"The model could not be reached ({type(error).__name__}).") from None
+        return {
+            "text": answer.text,
+            "model": answer.model.model_dump(),
+            "tokens_in": answer.tokens_in,
+            "tokens_out": answer.tokens_out,
+            "est_cost": answer.est_cost,
+            "latency_ms": answer.latency_ms,
+        }
 
     # Replay
 

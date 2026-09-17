@@ -50,6 +50,15 @@ SEATS: tuple[Seat, ...] = (
     ),
     Seat("case", "Case Manager", ("Carlos", "Clara"), "#2f6b5e", BEDROCK_SONNET, ("appraisal",)),
     Seat("market", "Market Analyst", ("Marcus", "Maya"), "#4a4a8a", OLLAMA_LLAMA, ("appraisal",)),
+    # S5: the Single-model actor. One seat, both workflows, never part of a Team roster.
+    Seat(
+        "single",
+        "Single model",
+        ("Simon", "Sofia"),
+        "#6b5e7a",
+        BEDROCK_SONNET,
+        ("electrical_rfp", "appraisal"),
+    ),
 )
 
 SEAT_BY_ID: dict[str, Seat] = {seat.agent_id: seat for seat in SEATS}
@@ -64,11 +73,25 @@ EXPORT_NAMES: dict[str, str] = {
     "reviewer": "Rafael",
     "case": "Clara",
     "market": "Marcus",
+    "single": "Sofia",
 }
 
 
-def seats_for(workflow: str) -> list[Seat]:
-    return [seat for seat in SEATS if workflow in seat.workflows]
+def seats_for(workflow: str, include_single: bool = False) -> list[Seat]:
+    return [
+        seat for seat in SEATS if workflow in seat.workflows and (include_single or seat.agent_id != "single")
+    ]
+
+
+def single_agent(workflow: str, seed: int | None = None, name: str | None = None) -> Agent:
+    """The one actor of a Single-model run (S5, spec section 5), named like any seat."""
+    seat = SEAT_BY_ID["single"]
+    if workflow not in seat.workflows:
+        raise ValueError(f"no Single-model seat for workflow {workflow}")
+    if name is not None and name not in seat.names:
+        raise ValueError(f"{name} is not a name for seat single")
+    chosen = name or random.Random(seed).choice(seat.names)
+    return Agent(agent_id=seat.agent_id, name=chosen, role=seat.role, model=seat.default_model)
 
 
 def build_roster(

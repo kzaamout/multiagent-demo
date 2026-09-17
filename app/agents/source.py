@@ -79,6 +79,8 @@ class AgentSource(Protocol):
 
     def review(self, review_round: int, draft: Event | None) -> AsyncIterator[Emit]: ...
 
+    def single(self, subtask: Subtask) -> AsyncIterator[Emit]: ...
+
     async def headline(self, exit_value: str, default: str) -> HeadlineResult: ...
 
 
@@ -147,6 +149,9 @@ class StubAgentSource:
 
     def review(self, review_round: int, draft: Event | None) -> AsyncIterator[Emit]:
         return _each(self.scenario.review[min(review_round, len(self.scenario.review) - 1)])
+
+    def single(self, subtask: Subtask) -> AsyncIterator[Emit]:
+        raise RuntimeError("a Team stub has no Single-model step; use the single stub source")
 
     async def headline(self, exit_value: str, default: str) -> HeadlineResult:
         return HeadlineResult(None)

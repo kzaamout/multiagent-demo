@@ -32,6 +32,7 @@ from app.live.replies import (
     PricingReply,
     ReplyError,
     ReviewerReply,
+    SingleReply,
     WriterReply,
     blocker_payload,
     checklist_items,
@@ -415,14 +416,16 @@ class LiveAgentSource:
             for question in questions:
                 yield Emit("intake", "clarification.needed", 0, question, bundle)
 
-    def _tool_emit(self, bundle: PromptBundle, args: str, result: str, duration_ms: int) -> Emit:
+    def _tool_emit(
+        self, bundle: PromptBundle, args: str, result: str, duration_ms: int, seat: str = "intake"
+    ) -> Emit:
         return Emit(
-            "intake",
+            seat,
             "tool.called",
             0,
             {
-                "task_id": "intake",
-                "agent_id": "intake",
+                "task_id": seat,
+                "agent_id": seat,
                 "tool": "prepare_documents",
                 "args_summary": without_em_dashes(args)[:200],
                 "result_summary": without_em_dashes(result)[:200],
@@ -430,6 +433,71 @@ class LiveAgentSource:
             },
             bundle,
         )
+
+    async def single(self, subtask: Subtask) -> AsyncIterator[Emit]:
+        """A Single-model run (S5): prepare the documents, then one call that reads, takes off, prices, and
+        writes. The output markdown is committed under drafts/ and named in the result."""
+        prepared = await asyncio.to_thread(
+            prepare_documents,
+            self.ctx.files.request_files(),
+            self.ctx.files.drawing_files(),
+            self.run_folder / PREPARED_DIR,
+        )
+        bundle = self._bundle(
+            "single",
+            f"Sub-task {subtask.task_id}: {subtask.title}. Read prepared/manifest.md, take off the drawings with "
+            "quantity_calculate, price every line with price_list_lookup, write the proposal with template_render, "
+            "and reply once with headline, summary, markdown, and total.",
+        )
+        for prepared_file in prepared.files:
+            yield self._tool_emit(
+                bundle,
+                prepared_file.source,
+                prepared_file.summary(),
+                prepared_file.duration_ms,
+                seat="single",
+            )
+        yield self._tool_emit(
+            bundle,
+            "manifest.md",
+            f"{len(prepared.sheets)} sheets from {len(prepared.files)} files, "
+            f"{prepared.unknown_count()} title block fields unknown",
+            prepared.manifest_ms,
+            seat="single",
+        )
+        async for emit, reply, pending, tools_used in self._stream(
+            "single", subtask.task_id, bundle, lambda t: parse_reply("single", t)
+        ):
+            if emit is not None:
+                yield emit
+                continue
+            single = cast(SingleReply, reply)
+            relative = "drafts/single-v1.md"
+            target = self.run_folder / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(single.markdown, encoding="utf-8", newline="\n")
+            result = {
+                "headline": single.headline,
+                "summary": single.summary,
+                "total": single.total,
+                "output_path": relative,
+            }
+            provenance = [
+                {
+                    "tool": name,
+                    "source": f"{self.dataset_id} inputs",
+                    "confidence": TOOL_CONFIDENCE.get(name, 0.8),
+                }
+                for name in dict.fromkeys(tools_used)
+            ]
+            yield Emit(
+                "single",
+                "task.completed",
+                0,
+                completed_payload(subtask.task_id, "single", result, provenance),
+                bundle,
+                meters=tuple(pending),
+            )
 
     async def plan(self) -> PlanResult:
         bundle = self._bundle(

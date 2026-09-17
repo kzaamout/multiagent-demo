@@ -264,5 +264,13 @@ def build_tools(
         "estimator": [vision_read_drawing, quantity_calculate],
         "pricing": [price_list_lookup],
         "writer": [template_render, compile_trigger],
+        "single": [
+            document_parse_pdf,
+            document_extract_attachments,
+            vision_read_drawing,
+            quantity_calculate,
+            price_list_lookup,
+            template_render,
+        ],
     }
     return by_seat.get(agent_id, [])

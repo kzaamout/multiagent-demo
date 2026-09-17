@@ -15,6 +15,15 @@ SPEC_TOOLS = {
     "pricing": ("price_list_lookup",),
     "writer": ("template_render", "compile_trigger"),
     "reviewer": (),
+    "single": (
+        "prepare_documents",
+        "document_parse_pdf",
+        "document_extract_attachments",
+        "vision_read_drawing",
+        "quantity_calculate",
+        "price_list_lookup",
+        "template_render",
+    ),
 }
 
 

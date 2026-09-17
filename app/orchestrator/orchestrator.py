@@ -110,6 +110,11 @@ DEFAULT_REASONS: dict[str, str] = {
     "stopped": "The presenter stopped the run.",
     "paused": "The presenter paused the run; in-flight work completes and nothing new is dispatched.",
     "resumed": "The presenter resumed the run.",
+    "single_start": "One model takes the whole request, so it starts by reading the package itself.",
+    "single_work": "There is no plan and no team: one model does the takeoff, the pricing, and the writing in one call.",
+    "single_assemble": "The single model's reply is the proposal; nothing assembles it further.",
+    "single_handoff": "No Reviewer judges a Single-model run; the output goes to you for comparison only.",
+    "single_done": "The Single-model run is complete; compare it with the team on cost, time, review, and sources.",
 }
 
 
@@ -132,7 +137,9 @@ class Orchestrator:
         id_factory: Callable[[int], str] | None = None,
         knowledge_store: KnowledgeStore | None = None,
         run_folder: Path | None = None,
+        mode: Literal["team", "single"] = "team",
     ) -> None:
+        self.mode = mode
         self._id_factory = id_factory or (lambda _seq: str(uuid.uuid4()))
         self.run_id = run_id
         self.workflow = workflow
@@ -369,6 +376,9 @@ class Orchestrator:
         self._started = True
         try:
             await self._start()
+            if self.mode == "single":
+                await self._run_single()
+                return
             await self._intake_stage()
             if self.state.terminated:
                 return
@@ -406,6 +416,28 @@ class Orchestrator:
 
     # Stages
 
+    async def _run_single(self) -> None:
+        """A Single-model run (spec section 5): four stage changes, one dispatch, one completion, exit
+        single_complete. Pause, Stop, and the cost ceiling work through the same gates as a Team run."""
+        await self._change_stage("intake", self._reason("single_start"), mark="intake_enter")
+        subtask = Subtask(
+            task_id="single",
+            title="The whole bid response in one call",
+            agent_id="single",
+            depends_on=[],
+            scope=["request", "drawing set", "supplier price fixture", "template"],
+        )
+        self.plan = [subtask]
+        await self._change_stage("work", self._reason("single_work"), mark="work_enter")
+        await self._dispatch(subtask, mark="dispatch", inputs=self.scenario.dispatch_summaries.get("single"))
+        task_run = _TaskRun(subtask=subtask)
+        await self._run_task_steps(task_run, self.scenario.single(subtask))
+        if self.state.terminated:
+            return
+        await self._change_stage("assemble", self._reason("single_assemble"), mark="assemble_enter")
+        await self._change_stage("handoff", self._reason("single_handoff"), mark="handoff_enter")
+        await self._terminate("single_complete", self._reason("single_done"))
+
     async def _start(self) -> None:
         if self.recorder is not None:
             self.recorder.start(
@@ -413,7 +445,7 @@ class Orchestrator:
                     "run_id": self.run_id,
                     "dataset_id": self.dataset.dataset_id,
                     "workflow": self.workflow,
-                    "mode": "team",
+                    "mode": self.mode,
                     "started_at": self.clock.ts(0),
                     "roster": {k: v.model_dump() for k, v in self.roster.items()},
                     "review_max_cycles": self.state.review_max_cycles,
@@ -429,7 +461,7 @@ class Orchestrator:
             payload={
                 "workflow": self.workflow,
                 "dataset_id": self.dataset.dataset_id,
-                "mode": "team",
+                "mode": self.mode,
                 "roster": [a.model_dump() for a in self.roster.values()],
             },
         )

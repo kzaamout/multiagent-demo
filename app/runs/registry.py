@@ -30,7 +30,8 @@ from app.live.source import LiveAgentSource, LiveContext
 from app.orchestrator.clock import Clock
 from app.orchestrator.knowledge_store import KnowledgeStore
 from app.orchestrator.orchestrator import DatasetRef, Orchestrator
-from app.orchestrator.roster import EXPORT_NAMES, SEATS, build_roster
+from app.agents.stubs.single_run import StubSingleSource
+from app.orchestrator.roster import EXPORT_NAMES, SEATS, build_roster, single_agent
 from app.runs.bus import StreamBus
 from app.runs.recorder import Recorder, read_events, read_meta
 from app.schema.events import Agent, Event, Model
@@ -352,7 +353,14 @@ class Registry:
         run_id: str | None = None,
         clock: Clock | None = None,
         id_factory: Callable[[int], str] | None = None,
+        mode: str = "team",
+        model_key: str | None = None,
     ) -> Orchestrator:
+        if mode == "single":
+            return self._build_single(
+                dataset_id, names=names, seed=seed, start=start, pace=pace, record=record, run_id=run_id,
+                clock=clock, id_factory=id_factory, model_key=model_key,
+            )
         info = self.dataset(dataset_id)
         missing = [name for name, version in tools_available().items() if version is None]
         if missing:
@@ -422,15 +430,104 @@ class Registry:
             run_folder=run_folder,
         )
 
+    def _build_single(
+        self,
+        dataset_id: str,
+        *,
+        names: dict[str, str] | None,
+        seed: int | None,
+        start: dt.datetime | None,
+        pace: float | None,
+        record: bool,
+        run_id: str | None,
+        clock: Clock | None,
+        id_factory: Callable[[int], str] | None,
+        model_key: str | None,
+    ) -> Orchestrator:
+        """A Single-model run (S5): one actor on the chosen model, the Orchestrator's effective model by default."""
+        info = self.dataset(dataset_id)
+        rid = run_id or str(uuid.uuid4())
+        base = self.effective_config()
+        key = model_key or (base.seats["orchestrator"].model if "orchestrator" in base.seats else None)
+        if key is None:
+            raise ValueError("no model chosen for the Single-model run")
+        config = base.with_seat("single", key)
+        agent = single_agent(self.settings.workflow, seed=seed, name=(names or {}).get("single"))
+        team_roster = self.roster_with_config(build_roster(self.settings.workflow, seed=seed, names=names), config)
+        agent = agent.model_copy(update={"model": config.seat_spec("single").model_object()})
+        recorder = Recorder(self.settings.runs_dir, rid) if record else None
+        knowledge_path = (
+            recorder.knowledge_path if recorder else self.settings.runs_dir / "_ephemeral" / rid / "knowledge.md"
+        )
+        run_folder = recorder.folder if recorder else knowledge_path.parent
+        scenario: Any
+        knowledge_store: KnowledgeStore | None = None
+        if self.mode_for(dataset_id) == "live":
+            if self.seat_model_factory is None:
+                problems = [p for p in unavailable_seats(config, self.availability) if p.startswith("single")]
+                if problems:
+                    raise LiveUnavailable(problems)
+            factory = self.seat_model_factory or (lambda seat: strands_model_for(config, seat))
+            seat_model = factory("single")
+            agent = agent.model_copy(update={"model": seat_model.model})
+            knowledge_store = KnowledgeStore(self.settings.knowledge_dir)
+            knowledge_store.ensure(info.client_id, info.knowledge_seed)
+            scenario = LiveAgentSource(
+                dataset_id=info.id,
+                client_id=info.client_id,
+                context=LiveContext(
+                    files=DatasetFiles(info.folder),
+                    knowledge=knowledge_store,
+                    prospect_name=str(info.brand.get("prospect_name") or "the prospect"),
+                    project=f"Electrical bid response, {info.label}",
+                    supplier_order=supplier_order_from(knowledge_store.read(info.client_id)),
+                    long_lead_days=self.settings.long_lead_days,
+                    review_max_cycles=self.settings.review_max_cycles,
+                ),
+                seat_models={"single": seat_model},
+                knowledge_seed=info.knowledge_seed,
+            )
+            clock = clock or Clock(start or dt.datetime.now(dt.UTC), 1.0)
+        else:
+            scenario = StubSingleSource(info.id, info.client_id)
+            clock = clock or Clock(start or dt.datetime.now(dt.UTC), pace or self.settings.stub_pace)
+        return Orchestrator(
+            run_id=rid,
+            workflow=self.settings.workflow,
+            dataset=DatasetRef(
+                dataset_id=info.id, label=info.display, client_id=info.client_id, knowledge_seed=info.knowledge_seed
+            ),
+            scenario=scenario,
+            # The Orchestrator seat is the run engine's voice (stage changes, dispatch, termination) in every mode.
+            roster={"orchestrator": team_roster["orchestrator"], "single": agent},
+            review_max_cycles=self.settings.review_max_cycles,
+            cost_ceiling=self.settings.cost_ceiling,
+            clock=clock,
+            bus=self.bus,
+            recorder=recorder,
+            knowledge_path=knowledge_path,
+            event_log_path=f"runs/{rid}/events.jsonl",
+            id_factory=id_factory,
+            knowledge_store=knowledge_store,
+            run_folder=run_folder,
+            mode="single",
+        )
+
     def start_run(
-        self, dataset_id: str, names: dict[str, str] | None = None, *, dry_intake: bool = False
+        self,
+        dataset_id: str,
+        names: dict[str, str] | None = None,
+        *,
+        dry_intake: bool = False,
+        mode: str = "team",
+        model_key: str | None = None,
     ) -> Orchestrator:
         import asyncio
 
         if self.is_live():
             raise RuntimeError("a run is already in progress")
-        orchestrator = self.build_orchestrator(dataset_id, names=names)
-        if dry_intake:
+        orchestrator = self.build_orchestrator(dataset_id, names=names, mode=mode, model_key=model_key)
+        if dry_intake and mode == "team":
             orchestrator.scenario.dry_intake = True
         self.live = orchestrator
         self.runs[orchestrator.run_id] = orchestrator

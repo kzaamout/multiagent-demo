@@ -5,7 +5,7 @@
   var F = global.S1Format;
   var el = F.el;
 
-  var ROSTER_ORDER = ['orchestrator', 'intake', 'estimator', 'pricing', 'writer', 'reviewer'];
+  var ROSTER_ORDER = ['orchestrator', 'intake', 'estimator', 'pricing', 'writer', 'reviewer', 'single'];
   var HUMAN = { agent_id: 'human', name: 'You', role: '', model: { label: 'human' } };
 
   function clock(view, event) { return F.fmtClock(F.tsMs(event.ts) - view.startMs); }
@@ -645,6 +645,7 @@
       ['Tokens in / out', md.tokens ? F.fmtTok(md.tokensIn) + ' / ' + F.fmtTok(md.tokensOut) : '0 / 0'],
       ['Cost', F.fmtUsd(md.cost) + (md.cost === 0 && md.tokens ? ' (local)' : '')],
       ['Wall time', F.fmtWall(md.wallMs)],
+      ['Latency', F.fmtSeconds(md.latencyMs || 0)],
       ['Last event', md.lastEvent]
     ];
     var dnodes = [agentCard(roster[ui.meterOpen])].concat(stats.map(function (s) {
@@ -653,6 +654,38 @@
     var dhtml = dnodes.map(function (n) { return n.outerHTML; }).join('');
     if (detail.__html !== dhtml) { detail.innerHTML = dhtml; detail.__html = dhtml; }
     detail.hidden = false;
+  }
+
+  /* S5: the Compare strip and the comparison line, from the comparison route (recordings only). */
+  function renderComparison(view, ui, ctx) {
+    var c = ctx.comparison || {};
+    var single = c.single || null;
+    var team = c.team || null;
+    var summary = document.getElementById('compare-summary');
+    var content = document.getElementById('compare-content');
+    summary.textContent = single ? F.fmtUsd(single.est_cost) + ' · ' + F.fmtWall(single.elapsed_ms) : 'no run yet';
+    var nodes;
+    if (!single) {
+      nodes = [el('div', { class: 'compare-empty', text: 'No Single-model run yet. Switch the composer to Single model and run to fill this strip.' })];
+    } else {
+      var key = single.run_id + '/' + single.output_path;
+      var entry = single.output_path ? ui.drafts[key] : null;
+      if (single.output_path && !entry && ui.loadDraft) { ui.loadDraft(single.run_id, single.output_path); }
+      var text = entry && entry.status === 'loaded' ? entry.text : (single.summary || '');
+      nodes = [
+        el('div', { class: 'compare-model', text: (single.model_label || 'Single model') + ' · ' + F.fmtUsd(single.est_cost) + ' · ' + F.fmtWall(single.elapsed_ms) + ' · 1 pass, no review' }),
+        el('p', { class: 'compare-text', text: text }),
+        el('div', { class: 'compare-note', text: 'No sources tagged, no review. ' + (single.total ? 'Lump sum $' + single.total + '.' : '') })
+      ];
+    }
+    var html = nodes.map(function (n) { return n.outerHTML; }).join('');
+    if (content.__html !== html) { content.innerHTML = html; content.__html = html; }
+    var line = document.getElementById('comparison-line') || document.querySelector('[data-part="comparison-line"]');
+    if (line) {
+      line.textContent = team && single
+        ? 'Team ' + F.fmtUsd(team.est_cost) + ' in ' + F.fmtWall(team.elapsed_ms) + ' · Single model ' + F.fmtUsd(single.est_cost) + ' in ' + F.fmtWall(single.elapsed_ms) + ', no review, no sources'
+        : 'Team vs Single model: run both on this dataset to compare.';
+    }
   }
 
   function renderRaw(view, ui) {
@@ -879,6 +912,27 @@
       btn.disabled = dryLocked;
       btn.setAttribute('aria-pressed', String(id === 'dry-on' ? ui.dryIntake : !ui.dryIntake));
     });
+    /* S5: run mode switch and the model menu shown only in Single mode (spec 2.2). */
+    var single = ui.runMode === 'single';
+    var modeTeam = document.getElementById('mode-team');
+    var modeSingle = document.getElementById('mode-single');
+    modeTeam.setAttribute('aria-pressed', String(!single));
+    modeSingle.setAttribute('aria-pressed', String(single));
+    modeTeam.disabled = busy;
+    modeSingle.disabled = busy;
+    var modelSelect = document.getElementById('single-model-select');
+    modelSelect.hidden = !single;
+    modelSelect.classList.toggle('is-locked', busy);
+    var chosen = (ctx.modelOptions || []).filter(function (o) { return o.key === ui.singleModel; })[0];
+    document.getElementById('single-model-value').textContent = chosen ? chosen.label : 'Choose a model';
+    var modelMenu = document.getElementById('single-model-menu');
+    modelMenu.hidden = !ui.modelMenuOpen || busy;
+    if (!modelMenu.hidden) {
+      var html = (ctx.modelOptions || []).map(function (o) {
+        return el('button', { class: 'menu-item', type: 'button', role: 'option', 'data-model-key': o.key, 'aria-selected': String(o.key === ui.singleModel) }, [o.label, el('span', { class: 'menu-note', text: o.note || o.provider_label })]).outerHTML;
+      }).join('');
+      if (modelMenu.__html !== html) { modelMenu.innerHTML = html; modelMenu.__html = html; }
+    }
     document.getElementById('speed-1').setAttribute('aria-pressed', String(ui.speed === 1));
     document.getElementById('speed-4').setAttribute('aria-pressed', String(ui.speed === 4));
   }
@@ -891,6 +945,7 @@
     renderFeed(view, ui, ctx);
     renderArtifact(view, ui);
     renderMeters(view, ui, ctx);
+    renderComparison(view, ui, ctx);
     renderRaw(view, ui);
   }
 

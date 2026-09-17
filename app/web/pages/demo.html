@@ -58,9 +58,10 @@
   <section class="composer" data-part="composer">
     <div class="select select-lg" data-part="dataset-select" id="dataset-select" role="button" tabindex="0" aria-haspopup="listbox"><span class="select-label">Dataset</span><span id="dataset-value">Loading</span><span class="select-chev">▾</span><div class="menu" id="dataset-menu" role="listbox" hidden></div></div>
     <div class="seg" data-part="mode-switch">
-      <button class="seg-btn" type="button" aria-pressed="true" disabled>Team</button>
-      <button class="seg-btn is-unbuilt" type="button" aria-pressed="false" disabled title="Single-model mode arrives in slice S5">Single model</button>
+      <button class="seg-btn" type="button" id="mode-team" data-action="mode-team" aria-pressed="true">Team</button>
+      <button class="seg-btn" type="button" id="mode-single" data-action="mode-single" aria-pressed="false" title="One model does the whole job alone, for comparison">Single model</button>
     </div>
+    <div class="select select-lg" data-part="model-select" id="single-model-select" role="button" tabindex="0" aria-haspopup="listbox" hidden><span class="select-label">Model</span><span id="single-model-value">Choose a model</span><span class="select-chev">▾</span><div class="menu" id="single-model-menu" role="listbox" hidden></div></div>
     <div class="seg" data-part="dry-intake-toggle" id="dry-intake" title="Dry intake stops the run after Intake and shows the readiness verdict">
       <span class="seg-label">Dry intake</span>
       <button class="seg-btn" type="button" id="dry-off" data-action="dry-off" aria-pressed="true">Off</button>
@@ -86,7 +87,7 @@
     <aside class="aside" data-part="artifact">
       <div class="compare" data-part="compare-strip">
         <button class="compare-btn" id="compare-btn" type="button"><span>Compare · Single model</span><span class="compare-side"><span id="compare-summary">no run yet</span> <span id="compare-chev">▸</span></span></button>
-        <div class="compare-body" id="compare-body" hidden><div class="compare-empty">No Single-model run yet. Switch the composer to Single model and run to fill this strip.</div></div>
+        <div class="compare-body" id="compare-body" hidden><div id="compare-content"><div class="compare-empty">No Single-model run yet. Switch the composer to Single model and run to fill this strip.</div></div></div>
       </div>
       <div class="artifact-panel" data-part="artifact-panel">
         <div class="artifact-head"><span class="artifact-title" id="artifact-title">Deliverable</span><span class="version-label" data-part="version-label" id="artifact-version"></span></div>
@@ -129,7 +130,12 @@
     <pre class="raw-pre" id="raw-pre" hidden></pre>
   </section>
 
-  <aside class="chat" data-part="chat-panel" id="chat-panel" hidden aria-disabled="true"></aside>
+  <aside class="chat" data-part="chat-panel" id="chat-panel" hidden>
+    <div class="chat-head"><div id="chat-card"></div><button class="icon-btn" type="button" id="chat-close" aria-label="Close">✕</button></div>
+    <div class="chat-note" id="chat-note">Read-only with respect to the run. Cleared when this run closes.</div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <form class="chat-input" id="chat-form"><input type="text" id="chat-text" autocomplete="off" placeholder="Ask about this run"><button class="btn-dark" type="submit" id="chat-send">Send</button></form>
+  </aside>
 </div>
 
 <script src="/static/js/format.js"></script>
@@ -137,5 +143,6 @@
 <script src="/static/js/reducer.js"></script>
 <script src="/static/js/render.js"></script>
 <script src="/static/js/demo.js"></script>
+<script src="/static/js/chat.js"></script>
 </body>
 </html>

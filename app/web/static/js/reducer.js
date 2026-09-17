@@ -253,6 +253,7 @@
           m.cost += p.est_cost;
           m.calls += 1;
           m.wallMs += p.wall_ms;
+          m.latencyMs = (m.latencyMs || 0) + (p.latency_ms || 0);
           view.totalCost += p.est_cost;
           break;
         }
