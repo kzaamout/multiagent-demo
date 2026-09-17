@@ -42,6 +42,7 @@
       raw: events,
       latestDraft: null,
       latestCompiled: null,
+      draftTags: {},
       eventCount: events.length
     };
     if (!events.length) {
@@ -208,6 +209,9 @@
         case 'draft.committed':
           drafts[p.version] = addCard({ id: 'draft:' + p.version + ':' + event.event_id, kind: 'draft-committed', event: event, replies: draftReplies[p.version] || [] });
           view.latestDraft = { version: p.version, path: p.markdown_path, runId: event.run_id, eventId: event.event_id };
+          /* Marker n on the compiled pages is tag t<nn>; the commit says which message each tag came from. */
+          view.draftTags[p.version] = {};
+          (p.provenance_tags || []).forEach(function (tag) { view.draftTags[p.version][tag.tag_id] = tag.source_event_id; });
           break;
         case 'artifact.compiled':
           /* Pages exist only when the compile named them; an S3 recording carries none (S4). */

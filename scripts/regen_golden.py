@@ -55,7 +55,7 @@ async def main(argv: list[str]) -> int:
             return 1
         write_golden(info.golden_path, events)
         path = " ".join(f"{t[0]}>{t[1]}" for t in transitions(events))
-        pages = len(list(artifacts.glob("v*/page-*.png")))
+        pages = len(list(artifacts.glob("artifacts/v*/page-*.png")))
         print(f"{info.id:24} {len(events):3} events  exit {terminal_exit(events):18} {pages:2} pages  {path}")
     return 0
 

@@ -67,11 +67,12 @@ async def deterministic_run(
         )
         await drive(orchestrator, script or orchestrator.scenario.human_script)
         if artifacts_to is not None:
+            # Mirrors the run folder's layout, so the paths the golden log names resolve under it.
             produced = Path(tmp) / "_ephemeral" / golden_run_id(dataset_id) / "artifacts"
             if artifacts_to.exists():
                 shutil.rmtree(artifacts_to)
             if produced.is_dir():
-                shutil.copytree(produced, artifacts_to)
+                shutil.copytree(produced, artifacts_to / "artifacts")
         return list(orchestrator.events)
 
 

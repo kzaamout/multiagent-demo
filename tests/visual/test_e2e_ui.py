@@ -4,6 +4,7 @@ Run with: uv run pytest -m visual"""
 
 from __future__ import annotations
 
+import json
 import socket
 import threading
 import time
@@ -18,6 +19,8 @@ from app.config import Settings
 from app.main import create_app
 
 pytestmark = [pytest.mark.visual, pytest.mark.dataset]
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def free_port() -> int:
@@ -561,3 +564,54 @@ def test_recording_without_pages_says_so(page: Any, server: tuple[str, Path]) ->
     assert text[0] is None and text[1] == 1
     assert text[2] == "This recording predates compiled pages."
     assert page.locator("figure.page").count() == 0
+
+
+@pytest.mark.compiler
+def test_every_marker_highlights_its_source_message(page: Any, server: tuple[str, Path]) -> None:
+    """US2: hovering a marker highlights exactly the message whose event id the draft's tag names; the
+    golden replay serves its pages from the dataset's golden-artifacts folder (SC-002)."""
+    base, _ = server
+    page.goto(base + "/demo")
+    choose_dataset(page, "02 · Planted inconsistency")
+    page.click("#speed-4")
+    page.click("#btn-replay")
+    page.wait_for_function(TERMINATED, timeout=180000)
+    page.wait_for_function(
+        "() => window.__s1.view.latestCompiled && window.__s1.view.latestCompiled.version === 2"
+    )
+    compiled_json = json.loads(
+        (
+            ROOT
+            / "datasets"
+            / "planted-inconsistency"
+            / "golden-artifacts"
+            / "artifacts"
+            / "v2"
+            / "compiled.json"
+        ).read_text(encoding="utf-8")
+    )
+    figures = page.locator("#pages figure.page")
+    total = 0
+    for i in range(figures.count()):
+        figure = figures.nth(i)
+        figure.scroll_into_view_if_needed()
+        page.wait_for_function(
+            "(i) => { const img = document.querySelectorAll('#pages figure.page img')[i]; return img.complete && img.naturalWidth > 0; }",
+            arg=i,
+        )
+        page.wait_for_timeout(100)
+        markers = figure.locator(".marker")
+        for j in range(markers.count()):
+            marker = markers.nth(j)
+            assert marker.get_attribute("data-unresolved") is None
+            source = marker.get_attribute("data-source-event")
+            marker.hover()
+            page.wait_for_selector("article.card.is-source", timeout=5000)
+            highlighted = page.locator("article.card.is-source")
+            assert highlighted.count() == 1
+            assert highlighted.get_attribute("data-event-id") == source
+            page.mouse.move(0, 0)
+            page.wait_for_selector("article.card.is-source", state="detached", timeout=5000)
+            total += 1
+    assert total == compiled_json["marker_count"] >= 8
+    assert page.errors == []

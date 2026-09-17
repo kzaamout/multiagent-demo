@@ -462,6 +462,7 @@
       case 'orchestrator-note': children = noteCard(card, view, ui, ctx); break;
       case 'agent-message':
         if (card.role === 'intake') { attrs['data-live'] = String(!!card.live); }
+        attrs['data-event-id'] = card.event.event_id;
         children = intakeCard(card, view, ui);
         break;
       case 'assumption': children = assumptionCard(card, view, ui); break;
@@ -471,6 +472,8 @@
         attrs['data-agent'] = card.agentId;
         attrs['data-status'] = card.status;
         attrs['data-live'] = String(!!card.live);
+        /* A provenance marker points at the specialist's completed output (spec 2.6). */
+        if (card.completed) { attrs['data-event-id'] = card.completed.event_id; }
         children = threadCard(card, view, ui);
         break;
       case 'draft-committed': children = draftCard(card, view, ui); break;
@@ -710,8 +713,65 @@
     scroll.scrollTop = top;
   }
 
+  /* Provenance markers over the page images (spec 2.6, S4 decision 2a). markers.json beside the pages
+     carries each marker's page and pixel position at 150 ppi; the overlay places it as a percentage
+     of the image's natural size, so it stays put at any panel width. Hover is wired in demo.js. */
+  function loadMarkers(compiled, ui) {
+    var key = compiled.runId + '/' + compiled.eventId;
+    var entry = ui.markers[key];
+    if (entry) { return entry; }
+    entry = ui.markers[key] = { status: 'loading', list: [] };
+    var folder = compiled.pageImages[0].split('/').slice(0, -1).join('/');
+    fetch(runFileUrl(compiled.runId, folder + '/markers.json'))
+      .then(function (response) { if (!response.ok) { throw new Error(String(response.status)); } return response.json(); })
+      .then(function (list) { entry.status = 'loaded'; entry.list = list; if (ui.schedule) { ui.schedule(); } })
+      .catch(function () { entry.status = 'missing'; if (ui.schedule) { ui.schedule(); } });
+    return entry;
+  }
+
+  function placeMarkers(figure, img, markers, tags) {
+    var layer = figure.querySelector('.marker-layer');
+    if (!layer) { layer = el('div', { class: 'marker-layer', 'data-part': 'marker-layer' }); figure.appendChild(layer); }
+    var key = markers.length + ':' + img.naturalWidth + ':' + Object.keys(tags).length;
+    if (layer.__key === key) { return; }
+    layer.__key = key;
+    layer.textContent = '';
+    if (!img.naturalWidth || !img.naturalHeight) { layer.__key = null; return; }
+    markers.forEach(function (m) {
+      var source = tags[m.tag_id] || null;
+      var attrs = {
+        class: 'marker', type: 'button', 'data-part': 'marker', 'data-marker': String(m.n), 'data-tag': m.tag_id,
+        title: source ? 'Source of this figure' : 'Unresolved source',
+        style: 'left:' + (m.x / img.naturalWidth * 100).toFixed(3) + '%;top:' + (m.y / img.naturalHeight * 100).toFixed(3) + '%',
+        text: String(m.n)
+      };
+      if (source) { attrs['data-source-event'] = source; } else { attrs['data-unresolved'] = 'true'; }
+      layer.appendChild(el('button', attrs));
+    });
+  }
+
+  function renderMarkers(view, ui) {
+    var compiled = view.latestCompiled;
+    if (!compiled || !compiled.pageImages.length) { return; }
+    var entry = loadMarkers(compiled, ui);
+    if (entry.status !== 'loaded') { return; }
+    var tags = view.draftTags[compiled.version] || {};
+    document.querySelectorAll('#pages figure.page').forEach(function (figure) {
+      var pageNo = Number(figure.getAttribute('data-page'));
+      var img = figure.querySelector('img');
+      var mine = entry.list.filter(function (m) { return m.page === pageNo; });
+      if (img.complete && img.naturalWidth) {
+        placeMarkers(figure, img, mine, tags);
+      } else if (!img.__markerHook) {
+        img.__markerHook = true;
+        img.addEventListener('load', function () { placeMarkers(figure, img, mine, tags); });
+      }
+    });
+  }
+
   function renderArtifact(view, ui) {
     renderPages(view, ui);
+    renderMarkers(view, ui);
     var actions = document.getElementById('handoff-actions');
     var term = view.cards.filter(function (c) { return c.kind === 'termination' && c.handoff; })[0];
     actions.hidden = !term;

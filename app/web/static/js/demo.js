@@ -12,7 +12,7 @@
   var ui = {
     open: {}, seen: {}, promptOpen: {}, prompts: {}, mode: 'idle', speed: 1, submitting: false,
     meterOpen: null, rawOpen: false, compareOpen: false, animatedArrows: {}, animate: params.get('animate') !== '0',
-    autoScroll: true, bannerAskId: null, dryIntake: false, following: false
+    autoScroll: true, bannerAskId: null, dryIntake: false, following: false, markers: {}
   };
   var ctx = { datasets: [], selectedDataset: null, retryBudget: 2, costCeiling: 5, idleRoster: {} };
   var scheduled = false;
@@ -65,6 +65,7 @@
     ui.seen = {};
     ui.promptOpen = {};
     ui.animatedArrows = {};
+    ui.markers = {};
     ui.bannerAskId = null;
     ui.meterOpen = null;
     ui.submitting = false;
@@ -219,6 +220,36 @@
       }, [d.label, F.el('span', { class: 'menu-note', text: d.replay_source === 'recording' ? 'recorded' : d.replay_source === 'golden' ? 'golden log' : '' })]));
     });
   }
+
+  ui.schedule = schedule;
+
+  /* Provenance hover (spec 2.6): a marker on a page highlights the message it came from and
+     scrolls the feed to it; leaving the marker clears it. Nothing beyond hover. */
+  function clearSourceHighlight() {
+    document.querySelectorAll('.card.is-source').forEach(function (n) { n.classList.remove('is-source'); });
+    document.querySelectorAll('.marker.is-hover').forEach(function (n) { n.classList.remove('is-hover'); });
+  }
+
+  function highlightSource(marker) {
+    clearSourceHighlight();
+    marker.classList.add('is-hover');
+    var eventId = marker.getAttribute('data-source-event');
+    if (!eventId) { return; }
+    var card = document.querySelector('article.card[data-event-id="' + eventId + '"]');
+    if (!card) { return; }
+    card.classList.add('is-source');
+    card.scrollIntoView({ block: 'center', behavior: ui.animate ? 'smooth' : 'auto' });
+  }
+
+  var pagesRoot = document.getElementById('pages');
+  pagesRoot.addEventListener('mouseover', function (e) {
+    var marker = e.target.closest('.marker');
+    if (marker) { highlightSource(marker); }
+  });
+  pagesRoot.addEventListener('mouseout', function (e) {
+    var marker = e.target.closest('.marker');
+    if (marker && !marker.contains(e.relatedTarget)) { clearSourceHighlight(); }
+  });
 
   document.getElementById('banner-resume').addEventListener('click', function () {
     var inputs = document.querySelectorAll('#banner-questions input[data-question]');
