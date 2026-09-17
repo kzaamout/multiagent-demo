@@ -92,12 +92,20 @@
         <div class="artifact-head"><span class="artifact-title" id="artifact-title">Deliverable</span><span class="version-label" data-part="version-label" id="artifact-version"></span></div>
         <div class="artifact-empty" id="artifact-empty">Deliverable appears here after the first draft.</div>
         <div class="pages-scroll" data-part="pages" id="pages-scroll" hidden><div class="pages" id="pages"></div></div>
+        <div class="edit-area" data-part="edit-area" id="edit-area" hidden>
+          <div class="edit-head"><span class="edit-title" id="edit-title">Edit the draft</span><span class="edit-error" id="edit-error" data-part="edit-error"></span></div>
+          <textarea class="edit-text" id="edit-text" data-part="edit-text" spellcheck="false"></textarea>
+          <div class="edit-actions">
+            <button class="btn-pill-dark" id="btn-edit-save" type="button">Save and recompile</button>
+            <button class="btn-outline" id="btn-edit-cancel" type="button">Cancel</button>
+          </div>
+        </div>
         <div class="handoff-actions" data-part="handoff-actions" id="handoff-actions" hidden>
           <button class="btn-approve" id="btn-approve" type="button">Approve</button>
-          <button class="btn-outline" type="button" disabled title="Edit arrives in slice S4">Edit</button>
-          <button class="btn-outline" type="button" disabled title="Reject arrives in slice S4">Reject</button>
-          <button class="btn-outline" type="button" disabled title="The compiled PDF arrives in slice S4">Download PDF</button>
-          <button class="btn-outline" type="button" disabled title="The run timeline arrives in slice S4">Download run timeline</button>
+          <button class="btn-outline" id="btn-edit" type="button" disabled>Edit</button>
+          <button class="btn-outline" id="btn-reject" type="button" disabled>Reject</button>
+          <a class="btn-outline" id="btn-download-pdf" href="#" download aria-disabled="true">Download PDF</a>
+          <a class="btn-outline" id="btn-download-timeline" href="#" download aria-disabled="true">Download run timeline</a>
         </div>
       </div>
     </aside>

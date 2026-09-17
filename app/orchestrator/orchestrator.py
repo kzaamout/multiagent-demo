@@ -14,7 +14,7 @@ from typing import Any, Literal
 
 from app.agents.base import Emit, MeterDelta, StubScenario
 from app.agents.source import AgentFailure, AgentSource, as_source
-from app.compile import Brand, Compiled, compile_draft, read_brand
+from app.compile import Brand, Compiled, CompileError, compile_draft, read_brand
 from app.compile.brand import DEFAULT_COLOUR
 from app.compile.pipeline import read_compiled
 from app.orchestrator.clock import Clock
@@ -149,6 +149,7 @@ class Orchestrator:
         self.knowledge = KnowledgeFile(knowledge_path, dataset.knowledge_seed, dataset.client_id)
         self.event_log_path = event_log_path
         self.latest_compiled: Compiled | None = None
+        self._edit: tuple[int, str, str] | None = None
         self._lock = asyncio.Lock()
         self._last_offset = 0
         self._shift_ms = 0
@@ -207,13 +208,74 @@ class Orchestrator:
         self._answers = list(answers)
         self._human_gate.set()
 
-    def submit_decision(self, decision: str, notes: str = "") -> None:
+    def submit_decision(self, decision: str, notes: str = "", markdown: str = "") -> None:
+        """The human's decision at Handoff (spec stage 6). Edit compiles the human's markdown first, so
+        a version that does not compile never reaches the run: the caller gets the compiler's message
+        and the run stays at Handoff."""
         if self.state.pending_human != "handoff":
             raise ValueError("the run is not at Handoff")
-        if decision != "approve":
-            raise ValueError(f"{decision} arrives in S4; only approve is available in this slice")
+        if decision not in ("approve", "edit", "reject"):
+            raise ValueError(f"unknown decision {decision}")
+        if decision == "edit":
+            if not markdown.strip():
+                raise ValueError("an edit needs the draft markdown")
+            version = self.state.draft_version + 1
+            folder = self._artifact_folder
+            path = folder / "drafts" / f"draft-v{version}.md"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(markdown, encoding="utf-8", newline="\n")
+            try:
+                compile_draft(
+                    folder,
+                    version,
+                    markdown,
+                    self.brand(),
+                    sources=self._short_sources(),
+                    headlines=self.source_headlines(),
+                )
+            except CompileError as error:
+                path.unlink(missing_ok=True)
+                raise ValueError(f"the edit does not compile: {error}") from None
+            self._edit = (version, f"drafts/draft-v{version}.md", markdown)
         self._decision = (decision, notes)
         self._human_gate.set()
+
+    def _short_sources(self) -> dict[str, str]:
+        """Short source id to the completed event it names, for the tags in a human edit."""
+        sources: dict[str, str] = {}
+        for event in self.events:
+            if event.type == "task.completed":
+                short = SHORT_SOURCE_BY_SEAT.get(str(event.payload.get("agent_id", "")))
+                if short:
+                    sources[short] = event.event_id
+        return sources
+
+    async def _commit_edit(self) -> None:
+        """The human's one recompile at Handoff: a commit with the human as actor, then its pages."""
+        from app.tools.template import find_tags
+
+        if self._edit is None:
+            return
+        version, relative, markdown = self._edit
+        sources = self._short_sources()
+        tags = [
+            {"tag_id": t.tag_id, "source_event_id": sources.get(t.source_id, t.source_id)}
+            for t in find_tags(markdown)
+        ]
+        event = await self._emit_human(
+            "draft.committed",
+            stage="handoff",
+            payload={
+                "version": version,
+                "markdown_path": relative,
+                "provenance_tags": tags,
+                "note": "edited at Handoff",
+            },
+            mark="approve",
+        )
+        self.state.draft_version = version
+        self.latest_draft = event
+        await self._emit_compiled(event)
 
     def attach_task(self, task: asyncio.Task[Any]) -> None:
         """The task running this Orchestrator, so Stop can cancel work in flight."""
@@ -804,6 +866,8 @@ class Orchestrator:
         if self._terminating or self.state.stopped:
             raise RunStopped()
         decision, notes = self._decision or ("approve", "")
+        if decision == "edit":
+            await self._commit_edit()
         await self._emit_human(
             "human.approved", stage="handoff", payload={"decision": decision, "notes": notes}, mark="approve"
         )

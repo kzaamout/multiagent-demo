@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 from app.agents.stubs import bundle_for
 from app.buildinfo import build_info
+from app.compile import CompileError, compile_timeline, tools_available
 from app.config import Settings, load_settings
 from app.live.providers import ModelConfig, SeatModelFactory
 from app.orchestrator.orchestrator import Answer
@@ -53,6 +54,8 @@ class AnswersRequest(BaseModel):
 class DecisionRequest(BaseModel):
     decision: Literal["approve", "edit", "reject"]
     notes: str = ""
+    markdown: str = ""
+    """The edited draft for `edit` (S4); ignored for approve and reject."""
 
 
 class ReplayRequest(BaseModel):
@@ -228,10 +231,33 @@ def create_app(
     async def decision(run_id: str, body: DecisionRequest) -> dict[str, str]:
         o = get_orchestrator(run_id)
         try:
-            o.submit_decision(body.decision, body.notes)
+            o.submit_decision(body.decision, body.notes, markdown=body.markdown)
         except ValueError as error:
             raise HTTPException(400, str(error)) from error
         return {"status": "accepted"}
+
+    @app.get("/api/runs/{run_id}/timeline.pdf")
+    async def run_timeline(run_id: str) -> FileResponse:
+        """The run timeline as a PDF rendered from the event log (S4 decision 5a), for a run that has
+        ended, a recording, or a golden log."""
+        o = registry.get_run(run_id)
+        if o is not None and not o.state.terminated:
+            raise HTTPException(409, "the run has not ended")
+        events = o.events if o is not None else registry.events_for(run_id)
+        if not events:
+            raise HTTPException(404, f"unknown run {run_id}")
+        missing = [name for name, version in tools_available().items() if version is None]
+        if missing:
+            raise HTTPException(503, "compiler missing (" + ", ".join(missing) + ")")
+        folder = cfg.runs_dir / run_id
+        if not folder.is_dir():
+            folder = cfg.runs_dir / "_golden" / run_id
+            folder.mkdir(parents=True, exist_ok=True)
+        try:
+            pdf = await asyncio.to_thread(compile_timeline, folder, events)
+        except CompileError as error:
+            raise HTTPException(500, f"the timeline did not compile: {error}") from None
+        return FileResponse(pdf, media_type="application/pdf", filename=f"run-{run_id[:8]}-timeline.pdf")
 
     @app.post("/api/runs/{run_id}/pause", status_code=202)
     async def pause(run_id: str) -> dict[str, str]:

@@ -305,6 +305,19 @@ class Registry:
             return read_events(path)
         return None
 
+    def events_for(self, run_id: str) -> list[Event]:
+        """Every event of a run that is not live: its recording, else the golden log with that run id."""
+        recorded = self.read_recording(run_id)
+        if recorded is not None:
+            return recorded
+        for info in self.datasets.values():
+            if not info.golden_path.exists():
+                continue
+            first = info.golden_path.read_text(encoding="utf-8").splitlines()[0]
+            if Event.from_line(first).run_id == run_id:
+                return read_events(info.golden_path)
+        return []
+
     def golden_folder(self, run_id: str) -> Path | None:
         """The folder holding a golden run's compiled artifacts (`datasets/<id>/golden-artifacts/`),
         when `run_id` is the run id a dataset's golden log carries. Golden logs name page images

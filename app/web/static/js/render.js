@@ -769,13 +769,67 @@
     });
   }
 
-  function renderArtifact(view, ui) {
-    renderPages(view, ui);
-    renderMarkers(view, ui);
+  /* Handoff actions (spec stage 6, S4): Approve, Edit and Reject while the run waits at Handoff in a
+     live run; the two downloads once a compiled version exists, for the exits that pass through
+     Handoff. The edit area replaces the pages while the presenter edits. */
+  function renderHandoffActions(view, ui) {
     var actions = document.getElementById('handoff-actions');
     var term = view.cards.filter(function (c) { return c.kind === 'termination' && c.handoff; })[0];
     actions.hidden = !term;
-    document.getElementById('btn-approve').disabled = !(view.handoffPending && ui.mode === 'live') || ui.submitting;
+    var deciding = view.handoffPending && ui.mode === 'live';
+    var editing = ui.editMode === 'edit' || ui.editMode === 'reject';
+    document.getElementById('btn-approve').disabled = !deciding || ui.submitting || editing;
+    document.getElementById('btn-edit').disabled = !deciding || ui.submitting || editing || !view.latestDraft;
+    document.getElementById('btn-reject').disabled = !deciding || ui.submitting || editing;
+    var compiled = view.latestCompiled;
+    var pdf = document.getElementById('btn-download-pdf');
+    var timeline = document.getElementById('btn-download-timeline');
+    if (compiled && compiled.pdfPath) {
+      pdf.setAttribute('href', runFileUrl(compiled.runId, compiled.pdfPath));
+      pdf.setAttribute('aria-disabled', 'false');
+    } else {
+      pdf.setAttribute('href', '#');
+      pdf.setAttribute('aria-disabled', 'true');
+    }
+    if (compiled && view.terminated) {
+      timeline.setAttribute('href', '/api/runs/' + encodeURIComponent(compiled.runId) + '/timeline.pdf');
+      timeline.setAttribute('aria-disabled', 'false');
+    } else {
+      timeline.setAttribute('href', '#');
+      timeline.setAttribute('aria-disabled', 'true');
+    }
+    var area = document.getElementById('edit-area');
+    var scroll = document.getElementById('pages-scroll');
+    var title = document.getElementById('edit-title');
+    var text = document.getElementById('edit-text');
+    var error = document.getElementById('edit-error');
+    var save = document.getElementById('btn-edit-save');
+    if (!editing || !deciding) {
+      if (!area.hidden) { area.hidden = true; if (compiled) { scroll.hidden = false; } }
+      if (ui.editMode && !deciding) { ui.editMode = null; }
+      return;
+    }
+    area.hidden = false;
+    scroll.hidden = true;
+    title.textContent = ui.editMode === 'edit' ? 'Edit the draft, then save to recompile once' : 'Reject: say why';
+    save.textContent = ui.editMode === 'edit' ? 'Save and recompile' : 'Reject and end the run';
+    save.disabled = ui.submitting || (ui.editMode === 'edit' && ui.editText === null);
+    error.textContent = ui.editError || '';
+    if (ui.editMode === 'edit' && ui.editText !== null && text.__loaded !== ui.editKey) {
+      text.value = ui.editText;
+      text.__loaded = ui.editKey;
+    }
+    if (ui.editMode === 'reject' && text.__loaded !== 'reject') {
+      text.value = '';
+      text.__loaded = 'reject';
+    }
+    text.placeholder = ui.editMode === 'edit' ? (ui.editText === null ? 'Loading the draft' : '') : 'Notes for the record';
+  }
+
+  function renderArtifact(view, ui) {
+    renderPages(view, ui);
+    renderMarkers(view, ui);
+    renderHandoffActions(view, ui);
     document.getElementById('compare-chev').textContent = ui.compareOpen ? '▾' : '▸';
     document.getElementById('compare-body').hidden = !ui.compareOpen;
     document.getElementById('raw-btn').setAttribute('aria-expanded', String(ui.rawOpen));

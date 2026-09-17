@@ -597,3 +597,65 @@ def test_every_marker_highlights_its_source_message(page: Any, server: tuple[str
             total += 1
     assert total == compiled_json["marker_count"] >= 8
     assert page.errors == []
+
+
+@pytest.mark.compiler
+def test_handoff_edit_reject_and_downloads(page: Any, server: tuple[str, Path]) -> None:
+    """US4: Edit commits once as the human and ends the run; Reject records notes; the PDF and the
+    timeline download after termination; Edit and Reject are not offered in replay."""
+    base, _ = server
+    page.goto(base + "/demo")
+    choose_dataset(page, "01 · Clean run")
+    page.click("#btn-run")
+    _answer_banner_if_shown(page)
+    page.wait_for_selector("#btn-edit:not([disabled])", timeout=180000)
+    assert page.get_attribute("#btn-download-pdf", "aria-disabled") == "false"
+    assert page.get_attribute("#btn-download-timeline", "aria-disabled") == "true", (
+        "no timeline before the end"
+    )
+    page.click("#btn-edit")
+    page.wait_for_function("() => document.getElementById('edit-text').value.length > 100")
+    assert page.locator("#pages-scroll").is_hidden() and page.locator("#edit-area").is_visible()
+    text = page.input_value("#edit-text")
+    page.fill("#edit-text", text.replace("## Scope", "## Scope\n\nEdited on stage before approval.", 1))
+    page.click("#btn-edit-save")
+    page.wait_for_function(TERMINATED, timeout=60000)
+    tail = page.evaluate("() => window.__s1.events.slice(-4).map(e => e.type)")
+    assert tail == ["draft.committed", "artifact.compiled", "human.approved", "run.terminated"]
+    assert page.evaluate("() => window.__s1.events.slice(-2)[0].payload.decision") == "edit"
+    assert page.evaluate("() => window.__s1.events.slice(-4)[0].actor") == "human"
+    page.wait_for_function("() => document.getElementById('artifact-version').textContent.startsWith('v2')")
+    assert page.locator("#edit-area").is_hidden() and page.locator("#pages-scroll").is_visible()
+    assert page.get_attribute("#btn-download-timeline", "aria-disabled") == "false"
+    for link in ("#btn-download-pdf", "#btn-download-timeline"):
+        href = page.get_attribute(link, "href")
+        status, kind = page.evaluate(
+            "(href) => fetch(href).then(r => [r.status, r.headers.get('content-type')])", href
+        )
+        assert status == 200 and kind.startswith("application/pdf"), link
+    run_id = page.evaluate("() => window.__s1.view.runId")
+
+    # Reject on a second run.
+    page.goto(base + "/demo")
+    choose_dataset(page, "01 · Clean run")
+    page.click("#btn-run")
+    _answer_banner_if_shown(page)
+    page.wait_for_selector("#btn-reject:not([disabled])", timeout=180000)
+    page.click("#btn-reject")
+    page.fill("#edit-text", "Not this week; the prospect changed the deadline.")
+    page.click("#btn-edit-save")
+    page.wait_for_function(TERMINATED, timeout=60000)
+    assert page.evaluate("() => window.__s1.events.slice(-2)[0].payload") == {
+        "decision": "reject",
+        "notes": "Not this week; the prospect changed the deadline.",
+    }
+    assert page.evaluate("() => window.__s1.events.slice(-1)[0].payload.exit") == "reviewer_pass"
+
+    # In replay the human's controls are not offered; the downloads are.
+    page.goto(base + f"/demo?run={run_id}")
+    page.wait_for_function("() => window.__s1 && window.__s1.view.terminated")
+    assert (
+        page.is_disabled("#btn-edit") and page.is_disabled("#btn-reject") and page.is_disabled("#btn-approve")
+    )
+    assert page.get_attribute("#btn-download-pdf", "aria-disabled") == "false"
+    assert page.errors == []

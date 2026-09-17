@@ -311,6 +311,15 @@ a:hover { color: #17171c; }
 .marker.is-hover { background: #1863dc; }
 .marker[data-unresolved="true"] { background: #93939f; }
 .card.is-source { border-color: #1863dc; box-shadow: 0 0 0 3px rgba(24,99,220,0.18); }
+.edit-area { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: #eeece7; }
+.edit-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.edit-title { font-size: 15px; color: #17171c; }
+.edit-error { font-size: 13px; color: #b42318; }
+.edit-text { flex: 1; min-height: 0; width: 100%; resize: none; border: 1px solid #d9d9dd; border-radius: 12px; padding: 12px 14px; font-family: var(--mono); font-size: 13px; line-height: 1.45; color: #17171c; background: #ffffff; }
+.edit-text:focus { outline: none; border-color: #17171c; }
+.edit-actions { display: flex; gap: 8px; }
+.handoff-actions a.btn-outline { text-decoration: none; display: inline-flex; align-items: center; }
+.handoff-actions a[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
 .handoff-actions { flex: none; display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid #d9d9dd; }
 .btn-approve { flex: 1; min-height: 44px; border: none; border-radius: 32px; background: #17171c; color: #ffffff; font: inherit; font-size: 15px; font-weight: 500; cursor: pointer; transition: filter 120ms ease-out; }
 .btn-approve:hover { filter: brightness(0.92); }

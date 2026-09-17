@@ -12,7 +12,8 @@
   var ui = {
     open: {}, seen: {}, promptOpen: {}, prompts: {}, mode: 'idle', speed: 1, submitting: false,
     meterOpen: null, rawOpen: false, compareOpen: false, animatedArrows: {}, animate: params.get('animate') !== '0',
-    autoScroll: true, bannerAskId: null, dryIntake: false, following: false, markers: {}
+    autoScroll: true, bannerAskId: null, dryIntake: false, following: false, markers: {},
+    editMode: null, editText: null, editError: '', editKey: null
   };
   var ctx = { datasets: [], selectedDataset: null, retryBudget: 2, costCeiling: 5, idleRoster: {} };
   var scheduled = false;
@@ -66,6 +67,9 @@
     ui.promptOpen = {};
     ui.animatedArrows = {};
     ui.markers = {};
+    ui.editMode = null;
+    ui.editText = null;
+    ui.editError = '';
     ui.bannerAskId = null;
     ui.meterOpen = null;
     ui.submitting = false;
@@ -267,6 +271,64 @@
       ui.submitting = false;
       schedule();
       window.alertless(error);
+    });
+  });
+
+  /* Edit and Reject at Handoff (spec stage 6, S4). Edit loads the latest draft into the text area;
+     Save posts it as the decision and the Orchestrator commits it once as the human. Reject posts
+     the notes. Neither re-enters the loop. */
+  function openEdit() {
+    var view = window.__s1 && window.__s1.view;
+    if (!view || !view.latestDraft || ui.mode !== 'live' || !runId) { return; }
+    ui.editMode = 'edit';
+    ui.editText = null;
+    ui.editError = '';
+    ui.editKey = view.latestDraft.runId + '/' + view.latestDraft.path;
+    schedule();
+    fetch('/api/runs/' + encodeURIComponent(view.latestDraft.runId) + '/files/' + view.latestDraft.path.split('/').map(encodeURIComponent).join('/'))
+      .then(function (response) { if (!response.ok) { throw new Error(String(response.status)); } return response.text(); })
+      .then(function (text) { ui.editText = text; schedule(); })
+      .catch(function (error) { ui.editError = 'The draft could not be loaded: ' + error.message; ui.editText = ''; schedule(); });
+  }
+
+  function closeEdit() {
+    ui.editMode = null;
+    ui.editText = null;
+    ui.editError = '';
+    schedule();
+  }
+
+  function submitDecision(body) {
+    ui.submitting = true;
+    schedule();
+    return api('POST', '/api/runs/' + runId + '/decision', body).then(function () {
+      closeEdit();
+    }).catch(function (error) {
+      ui.submitting = false;
+      ui.editError = error.message;
+      schedule();
+    });
+  }
+
+  document.getElementById('btn-edit').addEventListener('click', openEdit);
+  document.getElementById('btn-reject').addEventListener('click', function () {
+    if (ui.mode !== 'live' || !runId) { return; }
+    ui.editMode = 'reject';
+    ui.editError = '';
+    schedule();
+  });
+  document.getElementById('btn-edit-cancel').addEventListener('click', closeEdit);
+  document.getElementById('btn-edit-save').addEventListener('click', function () {
+    var text = document.getElementById('edit-text').value;
+    if (ui.editMode === 'edit') {
+      submitDecision({ decision: 'edit', notes: '', markdown: text });
+    } else if (ui.editMode === 'reject') {
+      submitDecision({ decision: 'reject', notes: text.trim() });
+    }
+  });
+  ['btn-download-pdf', 'btn-download-timeline'].forEach(function (id) {
+    document.getElementById(id).addEventListener('click', function (e) {
+      if (e.currentTarget.getAttribute('aria-disabled') === 'true') { e.preventDefault(); }
     });
   });
 

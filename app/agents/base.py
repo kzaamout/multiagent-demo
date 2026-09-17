@@ -48,6 +48,8 @@ class HumanScript:
     """What the presenter is expected to do, used by tests and the golden regenerator."""
 
     answers: dict[str, str] = field(default_factory=dict)
+    edit_markdown: str = ""
+    """The markdown the human saves when `decision` is edit (S4); ignored otherwise."""
     blocker_action: Literal["answer", "escalate"] | None = None
     blocker_answer: str = ""
     decision: Literal["approve", "edit", "reject"] | None = "approve"

@@ -36,7 +36,7 @@ async def drive(orchestrator: Orchestrator, script: HumanScript) -> None:
                     [Answer(question_id=blocker["blocker_id"], answer=script.blocker_answer, action=action)]
                 )
             elif pending["kind"] == "handoff":
-                orchestrator.submit_decision(script.decision or "approve")
+                orchestrator.submit_decision(script.decision or "approve", markdown=script.edit_markdown)
             await asyncio.sleep(0)
     finally:
         await run_task
