@@ -12,7 +12,7 @@
   var ui = {
     open: {}, seen: {}, promptOpen: {}, prompts: {}, mode: 'idle', speed: 1, submitting: false,
     meterOpen: null, rawOpen: false, compareOpen: false, animatedArrows: {}, animate: params.get('animate') !== '0',
-    autoScroll: true, bannerAskId: null, drafts: {}, loadDraft: null, dryIntake: false, following: false
+    autoScroll: true, bannerAskId: null, dryIntake: false, following: false
   };
   var ctx = { datasets: [], selectedDataset: null, retryBudget: 2, costCeiling: 5, idleRoster: {} };
   var scheduled = false;
@@ -44,19 +44,6 @@
        is right the moment the projector window is shown. */
     if (document.hidden) { window.setTimeout(render, 50); } else { window.requestAnimationFrame(render); }
   }
-
-  ui.loadDraft = function (runId, path) {
-    var key = runId + '/' + path;
-    if (ui.drafts[key]) { return; }
-    ui.drafts[key] = { status: 'loading' };
-    fetch('/api/runs/' + encodeURIComponent(runId) + '/files/' + path.split('/').map(encodeURIComponent).join('/'))
-      .then(function (response) {
-        if (!response.ok) { throw new Error(String(response.status)); }
-        return response.text();
-      })
-      .then(function (text) { ui.drafts[key] = { status: 'loaded', text: text }; schedule(); })
-      .catch(function () { ui.drafts[key] = { status: 'missing' }; schedule(); });
-  };
 
   function onEvent(event) {
     events.push(event);

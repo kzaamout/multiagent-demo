@@ -41,6 +41,7 @@
       ceilingPct: '0%',
       raw: events,
       latestDraft: null,
+      latestCompiled: null,
       eventCount: events.length
     };
     if (!events.length) {
@@ -207,6 +208,12 @@
         case 'draft.committed':
           drafts[p.version] = addCard({ id: 'draft:' + p.version + ':' + event.event_id, kind: 'draft-committed', event: event, replies: draftReplies[p.version] || [] });
           view.latestDraft = { version: p.version, path: p.markdown_path, runId: event.run_id, eventId: event.event_id };
+          break;
+        case 'artifact.compiled':
+          /* Pages exist only when the compile named them; an S3 recording carries none (S4). */
+          if (p.page_images && p.page_images.length) {
+            view.latestCompiled = { version: p.version, pdfPath: p.pdf_path, pageImages: p.page_images.slice(), runId: event.run_id, eventId: event.event_id };
+          }
           break;
         case 'review.verdict':
           addCard({ id: 'verdict:' + event.event_id, kind: 'verdict', event: event, draftVersion: Object.keys(drafts).length });

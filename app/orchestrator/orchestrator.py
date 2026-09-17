@@ -14,6 +14,9 @@ from typing import Any, Literal
 
 from app.agents.base import Emit, MeterDelta, StubScenario
 from app.agents.source import AgentFailure, AgentSource, as_source
+from app.compile import Brand, Compiled, compile_draft, read_brand
+from app.compile.brand import DEFAULT_COLOUR
+from app.compile.pipeline import read_compiled
 from app.orchestrator.clock import Clock
 from app.orchestrator.knowledge import KnowledgeFile
 from app.orchestrator.knowledge_store import KnowledgeStore
@@ -59,6 +62,11 @@ class DatasetRef:
     label: str
     client_id: str
     knowledge_seed: Path | None = None
+    folder: Path | None = None
+
+
+SHORT_SOURCE_BY_SEAT = {"estimator": "takeoff", "pricing": "pricing"}
+"""The short source id a seat's output is tagged with (roadmap decision 17), for the printed appendix."""
 
 
 @dataclass
@@ -140,6 +148,7 @@ class Orchestrator:
         self.bundles: dict[str, PromptBundle] = {}
         self.knowledge = KnowledgeFile(knowledge_path, dataset.knowledge_seed, dataset.client_id)
         self.event_log_path = event_log_path
+        self.latest_compiled: Compiled | None = None
         self._lock = asyncio.Lock()
         self._last_offset = 0
         self._shift_ms = 0
@@ -689,12 +698,69 @@ class Orchestrator:
             if event.type == "draft.committed":
                 self.state.draft_version = event.payload["version"]
                 self.latest_draft = event
-                await self._emit_system(
-                    "artifact.compiled",
-                    stage="assemble",
-                    offset=self._after(500),
-                    payload={"version": event.payload["version"], "pdf_path": None, "page_images": []},
-                )
+                await self._emit_compiled(event)
+
+    # Compile (spec 0.7 section 8): the pages exist before the Reviewer is dispatched.
+
+    @property
+    def _artifact_folder(self) -> Path:
+        return self.run_folder or self.knowledge.path.parent
+
+    def source_headlines(self) -> dict[str, str]:
+        """Short source id to the headline of the specialist output it names, for the printed appendix."""
+        headlines: dict[str, str] = {}
+        for event in self.events:
+            if event.type != "task.completed":
+                continue
+            short = SHORT_SOURCE_BY_SEAT.get(str(event.payload.get("agent_id", "")))
+            result = event.payload.get("result")
+            if short and isinstance(result, dict) and isinstance(result.get("headline"), str):
+                headlines[short] = result["headline"]
+        return headlines
+
+    def brand(self) -> Brand:
+        folder = self.dataset.folder
+        if folder is not None and (folder / "brand.yaml").is_file():
+            return read_brand(folder)
+        return Brand(prospect_name=self.dataset.label, logo_path=None, primary_colour=DEFAULT_COLOUR)
+
+    def _compile_stub_draft(self, version: int, markdown_path: str, note: str) -> Compiled:
+        """A stub cannot write files: write its fixture draft into the run folder and compile it."""
+        from app.agents.stubs.fixture import fixture_draft
+
+        folder = self._artifact_folder
+        path = folder / markdown_path
+        if not path.is_file():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(fixture_draft(version, note), encoding="utf-8", newline="\n")
+        return compile_draft(
+            folder, version, path.read_text(encoding="utf-8"), self.brand(), headlines=self.source_headlines()
+        )
+
+    async def _emit_compiled(self, draft_event: Event) -> Event:
+        """Emit `artifact.compiled` for a committed draft from the record its compile left, compiling
+        the fixture draft first when the source could not (stubs). Live sources compile before they
+        commit, so a draft that does not compile never becomes a version."""
+        version = int(draft_event.payload["version"])
+        compiled = read_compiled(self._artifact_folder, version)
+        if compiled is None:
+            compiled = await asyncio.to_thread(
+                self._compile_stub_draft,
+                version,
+                str(draft_event.payload["markdown_path"]),
+                str(draft_event.payload.get("note", "")),
+            )
+        self.latest_compiled = compiled
+        return await self._emit_system(
+            "artifact.compiled",
+            stage="assemble",
+            offset=self._after(500),
+            payload={
+                "version": version,
+                "pdf_path": compiled.pdf_path,
+                "page_images": list(compiled.page_images),
+            },
+        )
 
     async def _review(self, review_round: int) -> Event:
         verdict: Event | None = None
@@ -711,9 +777,10 @@ class Orchestrator:
     ) -> None:
         reason = self._reason("handoff_enter" if exit_value == "reviewer_pass" else "handoff_exhausted")
         await self._change_stage("handoff", reason, mark="handoff_enter")
+        compiled = self.latest_compiled
         package = {
-            "pdf_path": None,
-            "page_images": [],
+            "pdf_path": compiled.pdf_path if compiled else None,
+            "page_images": list(compiled.page_images) if compiled else [],
             "verdict_event_id": verdict_event.event_id,
             "unresolved_findings": list(self.state.unresolved_findings),
             "assumptions": list(self.state.assumptions),

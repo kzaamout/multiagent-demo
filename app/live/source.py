@@ -20,6 +20,7 @@ from pydantic import BaseModel
 from app.agents.base import Emit, HumanScript, Marks, MeterDelta
 from app.agents.source import AgentFailure, HeadlineResult, PlanResult, Timing
 from app.agents.stubs._common import rfp_plan
+from app.compile import CompileError, compile_draft
 from app.live.context import build_context
 from app.live.materials import CONFIG_DIR, DatasetFiles, build_materials
 from app.live.replies import (
@@ -522,9 +523,27 @@ class LiveAgentSource:
             task += " Fix only the Reviewer findings routed to you."
         bundle = self._bundle("writer", task, findings or None)
 
+        folder = self.o.run_folder or self.o.knowledge.path.parent
+
         def provenance_checked(reply: BaseModel, _tools: list[str]) -> str | None:
-            problems = provenance_problems(cast(WriterReply, reply).markdown, bundle.context_slice)
-            return "; ".join(problems) if problems else None
+            markdown = cast(WriterReply, reply).markdown
+            problems = provenance_problems(markdown, bundle.context_slice)
+            if problems:
+                return "; ".join(problems)
+            # The draft compiles before it becomes a version (spec FR-015): a compile failure is a
+            # rejected reply carrying the compiler's message, and the second failure ends the run.
+            try:
+                compile_draft(
+                    folder,
+                    version,
+                    markdown,
+                    self.o.brand(),
+                    sources=self._sources,
+                    headlines=self.o.source_headlines(),
+                )
+            except CompileError as error:
+                return f"the draft does not compile: {error}"
+            return None
 
         async for emit, reply, pending, _ in self._stream(
             "writer", f"assemble-v{version}", bundle, lambda t: parse_reply("writer", t), provenance_checked
@@ -533,7 +552,6 @@ class LiveAgentSource:
                 yield emit
                 continue
             writer = cast(WriterReply, reply)
-            folder = self.o.run_folder or self.o.knowledge.path.parent
             path = commit_draft(folder, version, writer.markdown)
             sources = self._sources
             tags = [(t.tag_id, sources.get(t.source_id, t.source_id)) for t in find_tags(writer.markdown)]

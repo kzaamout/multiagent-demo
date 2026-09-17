@@ -253,8 +253,16 @@ def create_app(
         """A file a run's events refer to, such as a committed draft. Read-only, inside the run folder."""
         runs_root = cfg.runs_dir.resolve()
         folder = (runs_root / run_id).resolve()
+        if folder.parent != runs_root:
+            raise HTTPException(404, "file not found")
+        if not folder.is_dir():
+            # A golden log's run never existed under runs/; its compiled pages live with the dataset.
+            golden = registry.golden_folder(run_id)
+            if golden is None:
+                raise HTTPException(404, "file not found")
+            folder = golden.resolve()
         target = (folder / path).resolve()
-        if folder.parent != runs_root or not target.is_relative_to(folder) or not target.is_file():
+        if not target.is_relative_to(folder) or not target.is_file():
             raise HTTPException(404, "file not found")
         if target.suffix not in {".md", ".png", ".pdf", ".json"}:
             raise HTTPException(404, "file not found")

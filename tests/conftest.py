@@ -45,7 +45,19 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 def _skip_without_compiler(items: list[pytest.Item]) -> None:
     """Typst and pandoc are external tools (docs/dependencies.md). Tests that compile a document skip,
     naming the missing tool, so a machine without them still runs the rest of the suite."""
-    if not any("compiler" in item.keywords for item in items):
+
+    def needs_compiler(item: pytest.Item) -> bool:
+        # Every stub run compiles its draft (spec FR-014), so the end-to-end suites need the tools too.
+        item_path = getattr(item, "path", None)
+        path = item_path.as_posix() if item_path else ""
+        return (
+            "compiler" in item.keywords
+            or "/tests/integration/" in path
+            or "/tests/visual/" in path
+            or path.endswith("/tests/lint/test_env_leak.py")
+        )
+
+    if not any(needs_compiler(item) for item in items):
         return
     from app.compile.pipeline import tools_available
 
@@ -54,7 +66,7 @@ def _skip_without_compiler(items: list[pytest.Item]) -> None:
         return
     skip = pytest.mark.skip(reason="compiler missing: " + ", ".join(missing))
     for item in items:
-        if "compiler" in item.keywords:
+        if needs_compiler(item):
             item.add_marker(skip)
 
 

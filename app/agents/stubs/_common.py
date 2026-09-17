@@ -138,6 +138,11 @@ def completed(
 def draft(
     offset: int, version: int, tags: int, source_task: str, note: str, b: PromptBundle, m: MeterDelta
 ) -> Emit:
+    """A stub draft commit. The tags are the fixture draft's real tags (app/agents/stubs/fixture.py),
+    so the compiled pages' markers resolve; `tags` is kept for the callers and is not used."""
+    from app.agents.stubs.fixture import fixture_tags
+
+    del tags
     return Emit(
         "writer",
         "draft.committed",
@@ -146,8 +151,7 @@ def draft(
             "version": version,
             "markdown_path": f"drafts/draft-v{version}.md",
             "provenance_tags": [
-                {"tag_id": f"e{i:02d}", "source_event_id": f"$event:{source_task}"}
-                for i in range(1, tags + 1)
+                {"tag_id": t.tag_id, "source_event_id": f"$event:{source_task}"} for t in fixture_tags()
             ],
             "note": note,
         },

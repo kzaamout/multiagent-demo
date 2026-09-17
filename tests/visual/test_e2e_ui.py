@@ -387,3 +387,177 @@ def test_reducer_marks_skipped_stages_bypassed(page: Any, server: tuple[str, Pat
         "a bypassed stage that is later entered is complete, not bypassed"
     )
     assert page.errors == []
+
+
+# S4: compiled pages in the artifact panel (spec 0.7 section 2.2; specs/005-compiled-deliverable).
+
+TERMINATED = (
+    "() => window.__s1 && window.__s1.events.length && "
+    "window.__s1.events[window.__s1.events.length - 1].type === 'run.terminated'"
+)
+
+
+def _answer_banner_if_shown(page: Any) -> None:
+    """The stub scenarios pause Intake on a question set; resume on the proposed defaults."""
+    from playwright.sync_api import TimeoutError as PlaywrightTimeout
+
+    try:
+        page.wait_for_selector("#banner:not([hidden])", timeout=8000)
+    except PlaywrightTimeout:
+        return
+    page.click("#banner-resume")
+    page.wait_for_selector("#banner", state="hidden", timeout=20000)
+
+
+def _approve(page: Any) -> None:
+    page.wait_for_selector("#btn-approve:not([disabled])", timeout=180000)
+    page.click("#btn-approve")
+    page.wait_for_function(TERMINATED, timeout=60000)
+
+
+def _serve(settings: Settings) -> tuple[str, Any, Any]:
+    port = free_port()
+    app = create_app(settings)
+    srv = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
+    thread = threading.Thread(target=srv.run, daemon=True)
+    thread.start()
+    deadline = time.time() + 20
+    while not srv.started and time.time() < deadline:
+        time.sleep(0.05)
+    return f"http://127.0.0.1:{port}", srv, thread
+
+
+@pytest.mark.compiler
+def test_pages_appear_for_a_stub_run_and_replay_without_datasets(
+    page: Any, server: tuple[str, Path], tmp_path: Path
+) -> None:
+    """US1: pages with a version label after the first commit; a recorded run shows them again with
+    no datasets folder and no dataset registry (SC-008)."""
+    base, runs = server
+    page.goto(base + "/demo")
+    choose_dataset(page, "01 · Clean run")
+    page.click("#btn-run")
+    _answer_banner_if_shown(page)
+    page.wait_for_selector("figure.page img.page-img", timeout=180000)
+    _approve(page)
+    count = page.evaluate("() => window.__s1.view.latestCompiled.pageImages.length")
+    assert count >= 2 and page.locator("figure.page").count() == count
+    assert page.inner_text("#artifact-version").startswith("v1 ·")
+    page.wait_for_function("() => document.querySelector('img.page-img').naturalWidth > 0")
+    assert page.locator("#artifact-empty").is_hidden()
+    run_id = page.evaluate("() => window.__s1.view.runId")
+
+    import shutil
+
+    other_runs = tmp_path / "runs"
+    shutil.copytree(runs / run_id, other_runs / run_id)
+    empty_datasets = tmp_path / "datasets"
+    empty_datasets.mkdir()
+    base2, srv2, thread2 = _serve(
+        Settings(runs_dir=other_runs, datasets_dir=empty_datasets, stub_pace=120.0, agent_mode="stub")
+    )
+    try:
+        page.goto(base2 + f"/demo?run={run_id}")
+        page.wait_for_selector("figure.page img.page-img", timeout=60000)
+        page.wait_for_function("() => document.querySelector('img.page-img').naturalWidth > 0")
+        assert page.locator("figure.page").count() == count
+        assert page.locator("#artifact-empty").is_hidden()
+    finally:
+        srv2.should_exit = True
+        thread2.join(timeout=5)
+    assert page.errors == []
+
+
+@pytest.mark.compiler
+def test_version_swap_keeps_scroll_and_never_blanks(page: Any, server: tuple[str, Path]) -> None:
+    """US1: v2 replaces v1 in place, the panel keeps its scroll, and the empty message never shows."""
+    base, _ = server
+    page.goto(base + "/demo")
+    choose_dataset(page, "02 · Planted inconsistency")
+    page.click("#btn-run")
+    _answer_banner_if_shown(page)
+    page.wait_for_function(
+        "() => window.__s1.view.latestCompiled && window.__s1.view.latestCompiled.version === 1",
+        timeout=180000,
+    )
+    page.wait_for_function("() => document.querySelector('img.page-img').naturalWidth > 0")
+    page.evaluate(
+        "() => { const s = document.getElementById('pages-scroll'); s.scrollTop = 300; window.__s4flash = 0;"
+        " const e = document.getElementById('artifact-empty');"
+        " new MutationObserver(() => { if (!e.hidden) { window.__s4flash += 1; } })"
+        ".observe(e, { attributes: true, attributeFilter: ['hidden'] }); }"
+    )
+    page.wait_for_function("() => window.__s1.view.latestCompiled.version === 2", timeout=180000)
+    page.wait_for_timeout(200)
+    assert page.evaluate("() => document.getElementById('pages-scroll').scrollTop") == 300
+    assert page.evaluate("() => window.__s4flash") == 0
+    assert page.inner_text("#artifact-version").startswith("v2 ·")
+    _approve(page)
+    assert page.errors == []
+
+
+def test_recording_without_pages_says_so(page: Any, server: tuple[str, Path]) -> None:
+    """US1 edge case: an S3 recording has a draft but no compiled pages; the panel says so, never compiles."""
+    base, _ = server
+    page.goto(base + "/demo")
+    page.wait_for_function("() => window.S1Reducer && window.S1Render && window.__s1")
+    actor = {"agent_id": "writer", "name": "Willa", "role": "Writer", "model": {"label": "stub"}}
+    events = [
+        {
+            "event_id": "e0",
+            "run_id": "r",
+            "seq": 1,
+            "ts": "2026-09-16T10:00:00.000Z",
+            "type": "run.started",
+            "stage": None,
+            "actor": {
+                "agent_id": "orchestrator",
+                "name": "Oscar",
+                "role": "Orchestrator",
+                "model": {"label": "stub"},
+            },
+            "reason": "start",
+            "payload": {
+                "workflow": "electrical_rfp",
+                "dataset_id": "clean-run",
+                "mode": "team",
+                "roster": [],
+            },
+        },
+        {
+            "event_id": "e1",
+            "run_id": "r",
+            "seq": 2,
+            "ts": "2026-09-16T10:00:01.000Z",
+            "type": "draft.committed",
+            "stage": "assemble",
+            "actor": actor,
+            "reason": "",
+            "payload": {
+                "version": 1,
+                "markdown_path": "drafts/draft-v1.md",
+                "provenance_tags": [],
+                "note": "",
+            },
+        },
+        {
+            "event_id": "e2",
+            "run_id": "r",
+            "seq": 3,
+            "ts": "2026-09-16T10:00:02.000Z",
+            "type": "artifact.compiled",
+            "stage": "assemble",
+            "actor": "system",
+            "reason": "",
+            "payload": {"version": 1, "pdf_path": None, "page_images": []},
+        },
+    ]
+    text = page.evaluate(
+        "(events) => { const v = window.S1Reducer.reduce(events, window.__s1.ctx);"
+        " window.S1Render.renderAll(v, window.__s1.ui, window.__s1.ctx);"
+        " return [v.latestCompiled, v.latestDraft.version, document.getElementById('artifact-empty').textContent]; }",
+        events,
+    )
+    assert text[0] is None and text[1] == 1
+    assert text[2] == "This recording predates compiled pages."
+    assert page.locator("figure.page").count() == 0

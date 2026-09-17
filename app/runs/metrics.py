@@ -26,6 +26,7 @@ MANIFEST_FILE = "run.json"
 CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("json_shape", ("is not valid json", "no json object", "expected", "field required", "input should")),
     ("checklist_grading", ("checklist", "verdict", "clarification")),
+    ("compile_failed", ("does not compile",)),
     ("provenance_tags", ("provenance", "src:", "source id")),
     ("tool_not_used", ("price_list_lookup", "quantity_calculate", "as text instead of calling")),
     ("blocker_as_concern", ("blocker, not a concern",)),

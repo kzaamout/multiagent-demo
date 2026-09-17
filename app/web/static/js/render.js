@@ -660,37 +660,58 @@
     }
   }
 
-  function renderDraft(view, ui) {
+  function runFileUrl(runId, path) {
+    return '/api/runs/' + encodeURIComponent(runId) + '/files/' + path.split('/').map(encodeURIComponent).join('/');
+  }
+
+  /* The compiled pages of the latest artifact.compiled (S4). Images are replaced in place by index,
+     so a new version swaps under the presenter's eyes without an empty frame and keeps the scroll. */
+  function renderPages(view, ui) {
     var empty = document.getElementById('artifact-empty');
-    var scroll = document.getElementById('draft-scroll');
-    var page = document.getElementById('draft-page');
+    var scroll = document.getElementById('pages-scroll');
+    var list = document.getElementById('pages');
     var title = document.getElementById('artifact-title');
     var version = document.getElementById('artifact-version');
-    var draft = view.latestDraft;
-    var key = draft ? draft.runId + '/' + draft.path : null;
-    var entry = key ? ui.drafts[key] : null;
-    if (!draft || !entry || entry.status !== 'loaded') {
-      if (draft && !entry && ui.loadDraft) { ui.loadDraft(draft.runId, draft.path); }
+    var compiled = view.latestCompiled;
+    if (!compiled) {
       scroll.hidden = true;
       empty.hidden = false;
+      empty.textContent = view.latestDraft
+        ? 'This recording predates compiled pages.'
+        : 'Deliverable appears here after the first draft.';
       title.textContent = 'Deliverable';
       version.textContent = '';
+      if (list.__key) { list.__key = null; list.textContent = ''; }
       return;
     }
     empty.hidden = true;
     scroll.hidden = false;
-    title.textContent = 'Deliverable · draft text';
-    version.textContent = 'v' + draft.version + ' · markdown';
-    if (page.__key !== key) {
-      var top = scroll.scrollTop;
-      page.innerHTML = global.S1Draft.renderMarkdown(entry.text);
-      page.__key = key;
-      scroll.scrollTop = top;
-    }
+    title.textContent = 'Deliverable · pages';
+    version.textContent = 'v' + compiled.version + ' · ' + compiled.pageImages.length + ' ' + F.plural(compiled.pageImages.length, 'page');
+    var key = compiled.runId + '/' + compiled.eventId;
+    if (list.__key === key) { return; }
+    list.__key = key;
+    var top = scroll.scrollTop;
+    var figures = list.querySelectorAll('figure.page');
+    compiled.pageImages.forEach(function (path, i) {
+      var figure = figures[i];
+      if (!figure) {
+        figure = el('figure', { class: 'page', 'data-part': 'page', 'data-page': String(i + 1) }, [
+          el('img', { class: 'page-img', loading: i < 2 ? 'eager' : 'lazy', alt: 'Page ' + (i + 1) }),
+          el('figcaption', { class: 'page-num', text: 'Page ' + (i + 1) })
+        ]);
+        list.appendChild(figure);
+      }
+      var img = figure.querySelector('img');
+      var url = runFileUrl(compiled.runId, path);
+      if (img.getAttribute('src') !== url) { img.setAttribute('src', url); }
+    });
+    for (var j = compiled.pageImages.length; j < figures.length; j += 1) { figures[j].remove(); }
+    scroll.scrollTop = top;
   }
 
   function renderArtifact(view, ui) {
-    renderDraft(view, ui);
+    renderPages(view, ui);
     var actions = document.getElementById('handoff-actions');
     var term = view.cards.filter(function (c) { return c.kind === 'termination' && c.handoff; })[0];
     actions.hidden = !term;

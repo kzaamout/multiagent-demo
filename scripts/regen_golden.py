@@ -47,14 +47,16 @@ async def main(argv: list[str]) -> int:
     for info in discover_datasets(settings.datasets_dir):
         if wanted and info.id not in wanted:
             continue
-        events = await deterministic_run(settings, info.id)
+        artifacts = info.folder / "golden-artifacts"
+        events = await deterministic_run(settings, info.id, artifacts_to=artifacts)
         problems = validate_run(events)
         if problems:
             print(f"{info.id}: invalid run: {problems}")
             return 1
         write_golden(info.golden_path, events)
         path = " ".join(f"{t[0]}>{t[1]}" for t in transitions(events))
-        print(f"{info.id:24} {len(events):3} events  exit {terminal_exit(events):18} {path}")
+        pages = len(list(artifacts.glob("v*/page-*.png")))
+        print(f"{info.id:24} {len(events):3} events  exit {terminal_exit(events):18} {pages:2} pages  {path}")
     return 0
 
 

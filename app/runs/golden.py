@@ -7,6 +7,7 @@ Golden logs are compared on the ordered stage.changed transitions and the termin
 from __future__ import annotations
 
 import datetime as dt
+import shutil
 import tempfile
 import uuid
 from dataclasses import dataclass
@@ -36,9 +37,14 @@ def golden_event_id(dataset_id: str, seq: int) -> str:
 
 
 async def deterministic_run(
-    settings: Settings, dataset_id: str, script: HumanScript | None = None
+    settings: Settings,
+    dataset_id: str,
+    script: HumanScript | None = None,
+    artifacts_to: Path | None = None,
 ) -> list[Event]:
-    """Run a stub scenario with the virtual clock, fixed names, ids, and start time."""
+    """Run a stub scenario with the virtual clock, fixed names, ids, and start time. With
+    `artifacts_to`, the run's compiled artifacts are copied there (the golden run's pages, which
+    Replay serves from the dataset folder because the run itself is never kept under runs/)."""
     with tempfile.TemporaryDirectory() as tmp:
         scratch = Settings(
             root=settings.root,
@@ -60,6 +66,12 @@ async def deterministic_run(
             id_factory=lambda seq: golden_event_id(dataset_id, seq),
         )
         await drive(orchestrator, script or orchestrator.scenario.human_script)
+        if artifacts_to is not None:
+            produced = Path(tmp) / "_ephemeral" / golden_run_id(dataset_id) / "artifacts"
+            if artifacts_to.exists():
+                shutil.rmtree(artifacts_to)
+            if produced.is_dir():
+                shutil.copytree(produced, artifacts_to)
         return list(orchestrator.events)
 
 

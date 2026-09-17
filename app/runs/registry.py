@@ -12,6 +12,7 @@ from typing import Any
 import yaml
 
 from app.agents.stubs import scenario_for
+from app.compile.pipeline import tools_available
 from app.config import Settings
 from app.live.materials import DatasetFiles, supplier_order_from
 from app.live.providers import (
@@ -215,6 +216,10 @@ class Registry:
         id_factory: Callable[[int], str] | None = None,
     ) -> Orchestrator:
         info = self.dataset(dataset_id)
+        missing = [name for name, version in tools_available().items() if version is None]
+        if missing:
+            # Every run compiles its drafts (spec FR-014, FR-016), so a missing tool stops it here.
+            raise LiveUnavailable([f"compiler missing ({name})" for name in missing])
         rid = run_id or str(uuid.uuid4())
         roster = build_roster(self.settings.workflow, seed=seed, names=names)
         recorder = Recorder(self.settings.runs_dir, rid) if record else None
@@ -257,7 +262,11 @@ class Registry:
             run_id=rid,
             workflow=self.settings.workflow,
             dataset=DatasetRef(
-                dataset_id=info.id, label=info.display, client_id=info.client_id, knowledge_seed=info.knowledge_seed
+                dataset_id=info.id,
+                label=info.display,
+                client_id=info.client_id,
+                knowledge_seed=info.knowledge_seed,
+                folder=info.folder,
             ),
             scenario=scenario,
             roster=roster,
@@ -298,4 +307,16 @@ class Registry:
         path = self.settings.runs_dir / run_id / "events.jsonl"
         if path.exists():
             return read_events(path)
+        return None
+
+    def golden_folder(self, run_id: str) -> Path | None:
+        """The folder holding a golden run's compiled artifacts (`datasets/<id>/golden-artifacts/`),
+        when `run_id` is the run id a dataset's golden log carries. Golden logs name page images
+        relative to a run folder that never existed under `runs/`, so Replay reads them from here."""
+        for info in self.datasets.values():
+            if not info.golden_path.exists():
+                continue
+            first = info.golden_path.read_text(encoding="utf-8").splitlines()[0]
+            if Event.from_line(first).run_id == run_id:
+                return info.folder / "golden-artifacts"
         return None
