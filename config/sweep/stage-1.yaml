@@ -7,7 +7,10 @@ datasets: [clean-run]
 repeats: 1
 ceiling: 1.00
 max_minutes: 30
-blocker: escalate          # what the sweep does when a blocker needs a human: escalate (the presenter's choice on Missing sheet) or answer
+blocker: answer            # escalate ends the run, and stage 1 holds no scenario with a real blocker, so a
+                           # blocker here is the seat inventing one. Answering is what a presenter would do when
+                           # they judge it spurious, and it keeps the later seats running. The invented blocker is
+                           # still recorded: the Clean run check `no_blocker` fails for that Estimator.
 # Temperature per seat comes from config/models.yaml and cannot be set here. The Estimator's line carries
 # no temperature (Bedrock's sonnet-5 rejects a non-default one), so a local model in that seat runs at the
 # model default while the other seats run at 0.1. Every run records what it used, and the report groups by
