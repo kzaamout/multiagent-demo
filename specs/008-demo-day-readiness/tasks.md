@@ -111,7 +111,7 @@ Single web application: `app/` (engine, API, static pages), `scripts/` (presente
 - [x] T030 In `docs/roadmap.md` S7 add the status entry: what was built, the ten defaults, the live pre-flight on the reference laptop with its rows, the deferred leave-behind and avatars, and the open tunnel values
 - [x] T031 Run `uv run python scripts/check.py` (capture the exit code separately) and `uv run pytest -m visual`; fix until green
 - [x] T032 On the reference laptop with `.env` complete, run the pre-flight live from the page, record the row details and time in the roadmap status, and note any check that could not be exercised (the tunnel until the owner supplies its values)
-- [ ] T033 Check `git status` shows only S7 files, stage them by name, commit, push only `008-demo-day-readiness`, and message `multiagent-demo-aa` with the public route allow-list, the header placeholders S6's Introduction page may adopt, and the `public_run_id` read
+- [x] T033 Check `git status` shows only S7 files, stage them by name, commit, push only `008-demo-day-readiness`, and message `multiagent-demo-aa` with the public route allow-list, the header placeholders S6's Introduction page may adopt, and the `public_run_id` read
 
 ---
 
