@@ -37,9 +37,7 @@ def test_override_changes_the_effective_configuration_only(tmp_path: Path) -> No
     swap = r.set_seat_model("estimator", "export-opus")
     assert swap.applied == "next-run" and swap.model.label == "claude-opus via Bedrock"
     assert r.effective_config().seat_spec("estimator").label == "claude-opus via Bedrock"
-    assert r.model_config.seat_spec("estimator").label == "claude-sonnet via Bedrock", (
-        "the file's config"
-    )
+    assert r.model_config.seat_spec("estimator").label == "claude-sonnet via Bedrock", "the file's config"
     assert hashlib.sha256(MODELS_PATH.read_bytes()).hexdigest() == before
 
 
