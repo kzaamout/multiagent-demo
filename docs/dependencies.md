@@ -26,6 +26,7 @@ Required by constitution XV. One entry per major dependency, stating the problem
 | Typst (runtime) | 0.15.1 (2026-09-17) | Compiles every committed draft to the PDF and the page images the artifact panel and the Reviewer use, reports each provenance marker's page and position through `typst query`, and renders the run timeline PDF (spec 0.7 section 8, S4). `typst query` is marked deprecated in 0.15 in favour of `typst eval 'query(<label>)'`, which the pipeline falls back to | A browser-based renderer for pages and a second layout pass to find marker positions; no PDF fidelity | S4 |
 | pandoc | 3.10.2 (2026-09-17) | Turns the Writer's markdown (tables, lists, headings, raw Typst inlines for the markers) into Typst source with the response template; the first half of the career-hub `compile-to-pdf` pipeline the owner asked S4 to reuse (decision 1b) | A hand-written markdown to Typst converter, weakest on tables, which the schedule of values depends on | S4 |
 | Career-hub compile pipeline (shape, not code) | `compile-to-pdf.sh` and `.ps1` in the owner's career-hub project, read 2026-09-17 | The two-step shape (pandoc to a retained `.typ`, Typst to PDF, Typst to PNG at 150 ppi) is reused as `app/compile/`; the script's resume contract and signal vocabulary are not | Designing the pipeline afresh | S4 |
+| cloudflared (Cloudflare Tunnel connector, external binary) | 2026.9.1 (2026-09-17), winget package `Cloudflare.cloudflared` at the same version, or the GitHub release; cloudflared does not update itself on Windows | Exposes the presenter laptop at the Sterling AI subdomain in Laptop mode (spec 2.9) without opening a port or holding a public IP: a remotely managed tunnel whose hostname routing lives in the Cloudflare dashboard, started by `scripts/tunnel.ps1` or `.sh` with the token from `.env` through the `TUNNEL_TOKEN` environment variable, and TLS terminated by Cloudflare | Port forwarding on a venue network the presenter does not control, or hosting the demo elsewhere for every meeting; neither works from a laptop on a prospect's wifi | S7 |
 
 Not adopted, with reason:
 
@@ -37,5 +38,8 @@ Not adopted, with reason:
 | PyMuPDF 1.28.2 | AGPL licence; pypdfium2 covers the same need under permissive licences |
 | Strands native Gemini provider (`google-genai`) | The stack names LiteLLM for Gemini; one provider path for Gemini and Grok |
 | Frontend framework or bundler | Spec 2.10: static HTML, one stylesheet, vanilla scripts; the export runtime and React are not shipped |
+| Locally managed Cloudflare Tunnel (`config.yml` with ingress rules and a credentials file) | The hostname would live in a second place beside `.env`, and the credentials file is one more secret to keep out of git; the dashboard-managed tunnel needs only the token (S7 research D8) |
+| Cloudflare quick tunnel (`cloudflared tunnel --url`) | A random hostname on every start; the login link the sales team sends must stay fixed |
+| HTTP Basic authentication for the shared login | The browser's own dialog is not the export's login page; a session cookie set by the form is (owner decision 2, S7) |
 
-Later slices append here: Typst 0.15.1 and the career-hub compile script (S4), Cloudflare Tunnel (S7).
+Later slices append here as they add dependencies.

@@ -50,6 +50,12 @@ class Settings:
     public_run_id: str = "f2dda488-0a2f-457a-9ef1-33fcac05fa70"
     """The one recorded run the public Introduction replay serves (spec 2.1, 6; S6 decision 1a).
     The default is the S4 Planted inconsistency run of 2026-09-17; PUBLIC_RUN_ID overrides it."""
+    # S7 (spec 2.8, 2.9): the shared login pair, the run mode, and the tunnel hostname, all from .env.
+    # The pair is compared in constant time by app.auth and never serialized; both empty means no login.
+    run_mode: str = "laptop"  # laptop: local models through Ollama; cloud: cloud providers only
+    demo_username: str = ""
+    demo_password: str = ""
+    tunnel_hostname: str = ""
 
     @property
     def retry_budget(self) -> int:
@@ -66,7 +72,14 @@ def load_settings(env_file: Path | None = None) -> Settings:
     mode = os.environ.get("AGENT_MODE", "auto")
     if mode not in ("auto", "stub"):
         raise ValueError("AGENT_MODE must be auto or stub")
+    run_mode = os.environ.get("RUN_MODE", "laptop").strip() or "laptop"
+    if run_mode not in ("laptop", "cloud"):
+        raise ValueError("RUN_MODE must be laptop or cloud")
     return Settings(
+        run_mode=run_mode,
+        demo_username=os.environ.get("DEMO_USERNAME", ""),
+        demo_password=os.environ.get("DEMO_PASSWORD", ""),
+        tunnel_hostname=os.environ.get("TUNNEL_HOSTNAME", "").strip(),
         runs_dir=Path(runs) if runs else ROOT / "runs",
         knowledge_dir=Path(knowledge) if knowledge else ROOT / "knowledge",
         long_lead_days=_int("LONG_LEAD_DAYS", 28),

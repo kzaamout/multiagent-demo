@@ -159,4 +159,24 @@ MASKS: dict[str, list[Rect]] = {
             "S7",
         )
     ],
+    "preflight-all-pass": [
+        Rect(
+            1300,
+            8,
+            1910,
+            48,
+            "nav order (spec 0.7, S3b), build stamp and pre-flight dot added to the header (decision)",
+            "S7",
+        )
+    ],
+    "preflight-one-fail": [
+        Rect(
+            1300,
+            8,
+            1910,
+            48,
+            "nav order (spec 0.7, S3b), build stamp and pre-flight dot added to the header (decision)",
+            "S7",
+        )
+    ],
 }

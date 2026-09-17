@@ -95,6 +95,41 @@ uv run uvicorn app.main:app --port 8000
 
 Open http://localhost:8000/demo. The server reads `.env` when it starts, so restart it after changing `.env`.
 
+### The shared login
+
+Set `DEMO_USERNAME` and `DEMO_PASSWORD` in `.env` and the Demo, Settings, and Pre-flight pages ask for them; the Introduction page stays public. There is one pair for everyone, kept in `.env` only, and a sign-in lasts until the server restarts. Leave both empty on a laptop that is not exposed and nothing asks. The pre-flight reports the pair as missing until it is set.
+
+### Run modes
+
+`RUN_MODE=laptop` (the default) runs everything on this machine with the local models through Ollama, exposed on demo day through the tunnel below. `RUN_MODE=cloud` is for an always-on cloud host with cloud providers only: local models are greyed in Settings and in the composer, a seat still on one refuses a live run, and the pre-flight says so. Move those seats in Settings or in `config/models.yaml` before running in Cloud mode.
+
+### The tunnel
+
+The demo answers at the Sterling AI subdomain from the presenter laptop through a Cloudflare Tunnel.
+
+1. Install cloudflared: `winget install Cloudflare.cloudflared` on Windows, or the release from GitHub. It does not update itself on Windows.
+2. In the Cloudflare dashboard, create a remotely managed tunnel and route the public hostname to `http://localhost:8000`.
+3. Put the hostname in `.env` as `TUNNEL_HOSTNAME` and the tunnel token as `CLOUDFLARE_TUNNEL_TOKEN`.
+4. Start the app, then run `scripts/tunnel.ps1` (or `scripts/tunnel.sh`) in a second terminal. It stays in the foreground; Ctrl+C stops it.
+
+The hostname and the tunnel are still to be supplied by the owner. Until then the pre-flight's tunnel row reads "No tunnel hostname in .env" and counts for nothing.
+
+### Pre-flight
+
+Open http://localhost:8000/preflight before every meeting and press **Run pre-flight**. Each row turns green with one line, or red with what failed:
+
+| Row | What it checks |
+|---|---|
+| A provider responds (one row per cloud provider a seat uses, or whose key is present) | One minimal model call through the seat's model; a fraction of a cent on a cloud provider |
+| Ollama reachable, models present | Ollama answers and every local seat model is pulled |
+| Typst present, test compile | pandoc and Typst compile a fixture proposal under `runs/preflight/` |
+| Page PNG export | The same compile wrote its page images |
+| Tunnel reachable from outside | The login page answers through the public hostname |
+| Disk space | At least 5 GB free on the drive holding the runs folder |
+| .env completeness | The login pair and the credentials of every cloud provider a seat uses |
+
+The dot beside Pre-flight in every header shows the last result: grey means not run yet, green means every check passed, orange means only a non-essential check failed (the tunnel, or a provider no seat uses), red means an essential check failed. It is stored in `runs/preflight.json` and survives a restart; nothing re-runs by itself.
+
 ### A live run
 
 1. Choose **01 · Clean run** in the composer and press **Run**. The Estimator's call costs a few tens of cents; the other seats are free. The first call to each local model waits while Ollama loads it.

@@ -8,7 +8,7 @@
 </head>
 <body>
 <div class="login-wrap">
-  <form class="login-form" action="/demo" method="get" data-part="login">
+  <form class="login-form" action="/login" method="post" data-part="login">
     <div class="login-brand-row">
       <div class="login-brand">Sterling AI <span class="muted">· Multi-agent demo</span></div>
     </div>
@@ -18,7 +18,9 @@
     <label class="field">Password
       <input class="text-input" type="password" name="password" autocomplete="current-password">
     </label>
-    <a class="btn-signin" href="/demo" title="The shared login is enforced from slice S7">Sign in</a>
+    {{LOGIN_ERROR}}
+    <input type="hidden" name="next" value="{{LOGIN_NEXT}}">
+    <button class="btn-signin" type="submit">Sign in</button>
   </form>
 </div>
 </body>

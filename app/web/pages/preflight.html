@@ -11,7 +11,7 @@
   <header class="hdr" data-part="header">
     <div class="brand-wrap"><span class="brand">Sterling AI <span class="muted">· Multi-agent demo</span></span></div>
     <nav class="nav">
-      <span class="nav-current nav-pf">Pre-flight<span class="pf-dot" data-part="preflight-indicator" data-status="pending" title="Pre-flight: not run yet">○</span></span>
+      <span class="nav-current nav-pf">Pre-flight<span class="pf-dot" data-part="preflight-indicator" data-status="{{PREFLIGHT_STATUS}}" title="{{PREFLIGHT_TITLE}}">{{PREFLIGHT_GLYPH}}</span></span>
       <a href="/introduction">Introduction</a>
       <a href="/demo">Demo</a>
       <a href="/settings">Settings</a>
@@ -21,19 +21,19 @@
   <main class="pf-main">
     <div class="pf-head">
       <h1 class="page-title">Pre-flight</h1>
-      <button class="btn-pf" type="button" disabled title="Live pre-flight checks arrive in slice S7">Run pre-flight</button>
+      <button class="btn-pf" id="run-preflight" type="button">Run pre-flight</button>
     </div>
-    <div class="pf-rows">
-      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Amazon Bedrock responds</div><div class="check-detail">○ Pending</div></div>
-      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Google Gemini responds</div><div class="check-detail">○ Pending</div></div>
-      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Ollama reachable, models present</div><div class="check-detail">○ Pending</div></div>
-      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Typst present, test compile</div><div class="check-detail">○ Pending</div></div>
-      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Page PNG export</div><div class="check-detail">○ Pending</div></div>
-      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Tunnel reachable from outside</div><div class="check-detail">○ Pending</div></div>
-      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">Disk space</div><div class="check-detail">○ Pending</div></div>
-      <div class="check-row" data-part="check-row"><div class="check-dot"></div><div class="check-name">.env completeness</div><div class="check-detail">○ Pending</div></div>
+    <div class="pf-confirmation" id="pf-confirmation" data-part="confirmation" hidden>
+      <div class="pf-confirmation-mark">✓</div>
+      <div>
+        <div class="pf-confirmation-title">All checks pass</div>
+        <div class="pf-confirmation-line" id="pf-confirmation-line"></div>
+      </div>
     </div>
+    <div class="pf-rows" id="pf-rows" data-part="check-rows"></div>
+    <p class="pf-note" id="pf-note" data-part="preflight-note"></p>
   </main>
 </div>
+<script src="/static/js/preflight.js"></script>
 </body>
 </html>

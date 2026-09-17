@@ -7,9 +7,10 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from typing import Any, Literal
+from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
@@ -17,6 +18,16 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app.agents.stubs import bundle_for
+from app.auth import (
+    COOKIE,
+    ERROR_LINE,
+    LoginGuard,
+    SessionStore,
+    credentials_match,
+    login_enabled,
+    parse_form,
+    safe_next,
+)
 from app.buildinfo import build_info
 from app.compile import CompileError, compile_timeline, tools_available
 from app.config import Settings, load_settings
@@ -25,6 +36,14 @@ from app.intro.pdf import missing_tools, render_pdf
 from app.live.chat import ChatRefused, chat, chat_allowed, find_bundle
 from app.live.providers import Availability, ModelConfig, SeatModelFactory, strands_model_for
 from app.orchestrator.orchestrator import Answer
+from app.preflight import (
+    CheckContext,
+    header_state,
+    load_result,
+    pending_payload,
+    result_payload,
+    run_preflight,
+)
 from app.runs.bus import StreamBus
 from app.runs.comparison import comparison
 from app.runs.recorder import read_events
@@ -34,6 +53,11 @@ from app.schema.bundles import PromptBundle
 from app.schema.events import Event
 
 KEEPALIVE_SECONDS = 15.0
+
+
+def _attr(value: str) -> str:
+    """A value safe inside a double-quoted HTML attribute."""
+    return value.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 class RunRequest(BaseModel):
@@ -87,13 +111,25 @@ def create_app(
     seat_model_factory: SeatModelFactory | None = None,
     model_config: ModelConfig | None = None,
     availability: dict[str, Availability] | None = None,
+    preflight_context: Callable[[], CheckContext] | None = None,
 ) -> FastAPI:
+    """`preflight_context` lets a test inject scripted checks (S7); production builds the context
+    from the registry's effective configuration and the real probes."""
     cfg = settings or load_settings()
     bus = StreamBus()
     registry = Registry(
         cfg, bus, seat_model_factory=seat_model_factory, model_config=model_config, availability=availability
     )
     replays: dict[str, ReplaySession] = {}
+    sessions = SessionStore()
+    preflight_lock = asyncio.Lock()
+
+    def build_preflight_context() -> CheckContext:
+        if preflight_context is not None:
+            return preflight_context()
+        return CheckContext(
+            settings=cfg, config=registry.effective_config(), availability=dict(registry.availability)
+        )
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -107,15 +143,31 @@ def create_app(
     app.state.registry = registry
     app.state.bus = bus
     app.state.replays = replays
+    app.state.sessions = sessions
+    app.state.preflight_running = False
+
+    # The shared login (S7, app.auth): inert until both credentials are set in .env.
+    app.add_middleware(LoginGuard, settings=cfg, store=sessions)
 
     app.mount("/static", StaticFiles(directory=cfg.static_dir), name="static")
 
-    def page(name: str) -> HTMLResponse:
+    def page(name: str, extra: dict[str, str] | None = None) -> HTMLResponse:
         path = cfg.pages_dir / f"{name}.html"
         if not path.exists():
             raise HTTPException(404, f"page {name} not found")
         info = build_info(cfg.root)
-        html = path.read_text(encoding="utf-8").replace("{{BUILD_STAMP}}", info.stamp)
+        # The pre-flight dot in every header renders from the stored result alone (S7 research D1).
+        dot = header_state(load_result(cfg.runs_dir))
+        substitutions = {
+            "{{BUILD_STAMP}}": info.stamp,
+            "{{PREFLIGHT_STATUS}}": dot.status,
+            "{{PREFLIGHT_GLYPH}}": dot.glyph,
+            "{{PREFLIGHT_TITLE}}": dot.title,
+            **(extra or {}),
+        }
+        html = path.read_text(encoding="utf-8")
+        for placeholder, value in substitutions.items():
+            html = html.replace(placeholder, value)
         return HTMLResponse(html)
 
     @app.get("/", include_in_schema=False)
@@ -127,8 +179,24 @@ def create_app(
         return page("demo")
 
     @app.get("/login", response_class=HTMLResponse)
-    async def login_page() -> HTMLResponse:
-        return page("login")
+    async def login_page(request: Request) -> HTMLResponse:
+        error = request.query_params.get("error") == "1"
+        line = f'<p class="login-error" data-part="login-error">{ERROR_LINE}</p>' if error else ""
+        target = safe_next(request.query_params.get("next"))
+        return page("login", {"{{LOGIN_ERROR}}": line, "{{LOGIN_NEXT}}": _attr(target)})
+
+    @app.post("/login", include_in_schema=False)
+    async def login_submit(request: Request) -> RedirectResponse:
+        """The shared pair from .env, compared in constant time; a session token in memory (S7 research D5)."""
+        form = parse_form(await request.body())
+        target = safe_next(form.get("next"))
+        if not login_enabled(cfg):
+            return RedirectResponse("/demo", status_code=303)
+        if not credentials_match(cfg, form.get("username", ""), form.get("password", "")):
+            return RedirectResponse(f"/login?error=1&next={quote(target, safe='')}", status_code=303)
+        response = RedirectResponse(target, status_code=303)
+        response.set_cookie(COOKIE, sessions.create(), httponly=True, samesite="lax", path="/")
+        return response
 
     @app.get("/settings", response_class=HTMLResponse)
     async def settings_page() -> HTMLResponse:
@@ -212,6 +280,30 @@ def create_app(
         data["sections"] = [{"label": label, "text": text} for label, text in found.sections()]
         return data
 
+    # Pre-flight (S7, contracts/http-api-s7.md)
+
+    @app.get("/api/preflight")
+    async def preflight_status() -> dict[str, Any]:
+        """The stored result, or every check pending. Never a credential value."""
+        stored = load_result(cfg.runs_dir)
+        body = result_payload(stored) if stored is not None else pending_payload(build_preflight_context())
+        body["running"] = bool(app.state.preflight_running)
+        return body
+
+    @app.post("/api/preflight/run")
+    async def preflight_run() -> dict[str, Any]:
+        if preflight_lock.locked():
+            raise HTTPException(409, "a pre-flight is already running")
+        async with preflight_lock:
+            app.state.preflight_running = True
+            try:
+                result = await run_preflight(build_preflight_context())
+            finally:
+                app.state.preflight_running = False
+        body = result_payload(result)
+        body["running"] = False
+        return body
+
     # Metadata and datasets
 
     @app.get("/api/meta")
@@ -219,7 +311,8 @@ def create_app(
         info = build_info(cfg.root)
         return {
             "build": {"hash": info.hash, "date": info.date},
-            "preflight": "pending",
+            "preflight": header_state(load_result(cfg.runs_dir)).status,
+            "run_mode": cfg.run_mode,
             "stub_pace": cfg.stub_pace,
             "workflow": cfg.workflow,
             "review_max_cycles": cfg.review_max_cycles,

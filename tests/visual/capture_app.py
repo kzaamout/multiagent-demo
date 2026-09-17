@@ -8,6 +8,7 @@ directly for inspection: uv run python tests/visual/capture_app.py http://127.0.
 from __future__ import annotations
 
 import sys
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -15,6 +16,9 @@ from playwright.sync_api import Browser, sync_playwright
 
 OUT = Path(__file__).resolve().parent / "output"
 FREEZE = "*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}"
+
+Prepare = Callable[[], Callable[[], None] | None]
+"""A hook run before a state is captured; it may return the cleanup to run after (S7 research D10)."""
 
 
 @dataclass(frozen=True)
@@ -73,14 +77,21 @@ def states() -> list[AppState]:
         AppState("settings", "/settings"),
         AppState("settings-dropdown", "/settings"),
         AppState("preflight-pending", "/preflight"),
+        # The stored result the page renders is seeded by the screenshot test through `prepare`
+        # (a fixture file in the app's runs folder), never by a switch on the page (S7 research D10).
+        AppState("preflight-all-pass", "/preflight"),
+        AppState("preflight-one-fail", "/preflight"),
     ]
 
 
-def capture(browser: Browser, base_url: str, out: Path = OUT) -> dict[str, Path]:
+def capture(
+    browser: Browser, base_url: str, out: Path = OUT, prepare: Mapping[str, Prepare] | None = None
+) -> dict[str, Path]:
     out.mkdir(parents=True, exist_ok=True)
     context = browser.new_context(viewport={"width": 1920, "height": 1080}, device_scale_factor=1)
     results: dict[str, Path] = {}
     for state in states():
+        cleanup = prepare[state.name]() if prepare and state.name in prepare else None
         page = context.new_page()
         page.goto(base_url + state.path)
         page.wait_for_load_state("networkidle")
@@ -115,10 +126,14 @@ def capture(browser: Browser, base_url: str, out: Path = OUT) -> dict[str, Path]
             page.evaluate(
                 "() => { const f = document.getElementById('feed'); f.scrollTop = f.scrollHeight; }"
             )
+        if state.name.startswith("preflight"):
+            page.wait_for_selector("#pf-rows .check-row")
         path = out / f"{state.name}.png"
         page.screenshot(path=str(path))
         results[state.name] = path
         page.close()
+        if cleanup is not None:
+            cleanup()
     context.close()
     return results
 

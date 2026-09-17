@@ -101,3 +101,16 @@ Reviewed against the export's artifact panel, its outlined and pill button famil
 5. **The Introduction link is live in every header.** The Demo, Settings and Pre-flight headers link to `/introduction`; before S6 the link pointed nowhere. The Introduction header has no workflow selector, as in the export.
 6. **One line of copy differs from the export.** The export says "an electrical RFP"; the content file says "an electrical bid request" under the S3b vocabulary decision. The screenshot comparison masks those two lines with that reason and compares the rest of the first screen.
 7. **The PDF.** The export has no download; the page's PDF comes from a second Typst template in the product's ink colour, single column, Letter, with the three SVGs placed as figures, from a script and from `/introduction.pdf` (owner decision 7a). The route names a missing tool instead of failing silently.
+
+## Slice S7 (2026-09-17)
+
+### Owner decisions, from the ten defaults of 2026-09-17 (specs/008-demo-day-readiness/spec.md, Assumptions)
+
+1. **Login is a form post.** The export's Sign in control is a link to Demo; the wired page posts the shared pair to `/login` and lands on the page that was asked for. A wrong pair re-renders the page with one line, "Wrong username or password.", in the meta text style under the password field; the export has no error state. A hidden `next` field carries the requested path and changes nothing on screen.
+2. **Pre-flight rows come from the seats.** The export shows a fixed Bedrock and Gemini pair. The page shows one row per cloud provider a seat uses, or whose key is present, named "<provider> responds", so on the reference laptop it reads Amazon Bedrock only while the Reviewer is on Gemma (constitution V). The screenshot comparison seeds the export's two rows through a stored-result fixture, as the Settings comparison seeds its labels (S5 deviation 1).
+3. **A not-applicable row.** The export has pending, pass, and fail. A check that cannot apply (the tunnel with no hostname, Ollama in Cloud mode) keeps the pending grey dot and glyph with its own line, and counts for neither the confirmation nor the header dot.
+4. **The confirmation names the run mode.** "Laptop mode" in the export's confirmation line is the value of `RUN_MODE`, so a cloud host reads "Cloud mode".
+5. **The header dot is substituted server-side** from the stored result on every page load, in the three states the export defines plus the S1 pending state, so Demo and Settings carry no script for it and the dot survives a restart.
+6. **Run pre-flight reads "Running"** while the checks run and is disabled, in the export's disabled treatment; a refusal or a network error shows as one red line under the rows. The export has no running state.
+7. **Cloud mode greys local models** in Settings and the composer with the note "not offered in Cloud mode", the same greyed treatment the export uses for a provider without credentials.
+8. **Introduction link** in every header is live from S6. The Introduction page is served by its own route rather than the page helper, so its header dot is substituted there from the same stored result.

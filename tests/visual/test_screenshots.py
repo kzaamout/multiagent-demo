@@ -3,10 +3,11 @@ including the Introduction since S6). Run with: uv run pytest -m visual"""
 
 from __future__ import annotations
 
+import shutil
 import socket
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
@@ -31,12 +32,17 @@ def free_port() -> int:
 
 
 @pytest.fixture(scope="module")
-def base_url(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
+def runs_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return tmp_path_factory.mktemp("runs")
+
+
+@pytest.fixture(scope="module")
+def base_url(runs_dir: Path) -> Iterator[str]:
     port = free_port()
     # The registry fixture carries the export's labels and greyed entries, so Settings compares against the
     # references while the real page shows the live models (S5 research D8, design deviations S5).
     app = create_app(
-        Settings(runs_dir=tmp_path_factory.mktemp("runs"), agent_mode="stub"),
+        Settings(runs_dir=runs_dir, agent_mode="stub"),
         model_config=ModelConfig.load(ROOT / "tests" / "fixtures" / "models-export.yaml"),
         availability={
             "bedrock": Availability("bedrock", True, "credentials resolved"),
@@ -57,17 +63,33 @@ def base_url(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
     thread.join(timeout=5)
 
 
+def seeded_result(runs_dir: Path, fixture: str) -> Callable[[], Callable[[], None] | None]:
+    """Seed the stored pre-flight result the page renders from, and remove it after the capture
+    (S7 research D10). The fixtures carry the export's detail texts and stamp."""
+
+    def prepare() -> Callable[[], None]:
+        target = runs_dir / "preflight.json"
+        shutil.copy(ROOT / "tests" / "fixtures" / f"{fixture}.json", target)
+        return lambda: target.unlink(missing_ok=True)
+
+    return prepare
+
+
 @pytest.fixture(scope="module")
-def captures(base_url: str) -> dict[str, Path]:
+def captures(base_url: str, runs_dir: Path) -> dict[str, Path]:
     playwright = pytest.importorskip("playwright.sync_api")
     from tests.visual.capture_app import capture
 
+    prepare = {
+        "preflight-all-pass": seeded_result(runs_dir, "preflight-all-pass"),
+        "preflight-one-fail": seeded_result(runs_dir, "preflight-one-fail"),
+    }
     with playwright.sync_playwright() as p:
         try:
             browser = p.chromium.launch()
         except Exception as error:  # noqa: BLE001
             pytest.skip(f"Chromium not installed: {error}")
-        result = capture(browser, base_url, OUTPUT)
+        result = capture(browser, base_url, OUTPUT, prepare=prepare)
         browser.close()
     return result
 
@@ -85,6 +107,8 @@ def captures(base_url: str) -> dict[str, Path]:
         "settings",
         "settings-dropdown",
         "preflight-pending",
+        "preflight-all-pass",
+        "preflight-one-fail",
     ],
 )
 def test_page_matches_export(name: str, captures: dict[str, Path]) -> None:

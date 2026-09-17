@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import datetime as dt
 import uuid
 from collections.abc import Callable
@@ -130,6 +131,10 @@ class ReplaySource:
     run_id: str
 
 
+CLOUD_MODE_REASON = "not offered in Cloud mode"
+"""Why every local model is greyed and a local seat refuses a live run in Cloud mode (S7 research D7)."""
+
+
 class Registry:
     def __init__(
         self,
@@ -193,9 +198,18 @@ class Registry:
 
     @property
     def availability(self) -> dict[str, Availability]:
-        """Provider availability, checked once and cached (S5 research D2). Tests inject it."""
+        """Provider availability, checked once and cached (S5 research D2). Tests inject it.
+        In Cloud mode local models are not offered, so Ollama is unavailable by the mode, not by a probe
+        (S7 research D7); every consumer of availability follows."""
         if self._availability is None:
-            self._availability = check_availability(self.model_config)
+            if self.settings.run_mode == "cloud":
+                cloud_only = {k: v for k, v in self.model_config.providers.items() if k != "ollama"}
+                checked = check_availability(dataclasses.replace(self.model_config, providers=cloud_only))
+            else:
+                checked = check_availability(self.model_config)
+            self._availability = checked
+        if self.settings.run_mode == "cloud":
+            self._availability["ollama"] = Availability("ollama", False, CLOUD_MODE_REASON)
         return self._availability
 
     def effective_config(self) -> ModelConfig:
@@ -246,6 +260,8 @@ class Registry:
             if available:
                 reason = ""
                 note = f"{provider_label}, detected" if spec.provider == "ollama" else provider_label
+            elif spec.provider == "ollama" and self.settings.run_mode == "cloud":
+                reason = note = CLOUD_MODE_REASON
             elif spec.provider == "ollama":
                 reason = note = "Ollama not detected at startup"
             else:

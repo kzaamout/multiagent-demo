@@ -499,3 +499,19 @@ body[data-public="1"] .frame { min-height: 0; }
 .replay-viewport { position: relative; overflow: hidden; width: 100%; height: 620px; background: #ffffff; }
 .replay-viewport .replay-iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
 .team-card .agent-model { white-space: normal; }
+
+/* S7: pre-flight states, the confirmation, and the login form (export Preflight.html and Login.html) */
+.check-dot[data-status="pass"] { background: #003c33; }
+.check-dot[data-status="fail"] { background: #b30000; }
+.check-detail[data-status="pass"] { color: #212121; }
+.check-detail[data-status="fail"] { color: #b30000; }
+.pf-confirmation { display: flex; align-items: center; gap: 20px; padding: 28px 32px; background: #003c33; color: #ffffff; border-radius: 16px; }
+.pf-confirmation[hidden] { display: none; }
+.pf-confirmation-mark { width: 56px; height: 56px; border-radius: 999px; background: #003c33; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 500; flex: none; }
+.pf-confirmation-title { font-size: 32px; font-weight: 500; line-height: 1.1; font-family: var(--display); }
+.pf-confirmation-line { color: #d9d9dd; font-size: 16px; margin-top: 4px; }
+.pf-note { margin: 0; font-size: 13px; color: #b30000; min-height: 0; }
+.pf-note:empty { display: none; }
+.btn-pf:disabled:hover { filter: none; }
+button.btn-signin { border: none; width: 100%; font: inherit; font-size: 16px; font-weight: 500; cursor: pointer; }
+.login-error { margin: 0; font-size: 13px; color: #b30000; }
