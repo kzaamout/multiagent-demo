@@ -132,8 +132,8 @@ description: "Task list for slice S4, compiled deliverable and provenance"
 
 ## Phase 9: Closeout
 
-- [ ] T042 Gates: `uv run python scripts/check.py`, `uv run pytest -m visual`, `uv run pytest -m compiler`; fix anything red
-- [ ] T043 Publication check on the branch (no prospect names, no client files, no credentials), push `005-compiled-deliverable`, and message the S5 session (multiagent-demo-6c) that 005 is pushed and lists the shared-file functions it added, so 006 can rebase
+- [x] T042 Gates: `uv run python scripts/check.py`, `uv run pytest -m visual`, `uv run pytest -m compiler`; fix anything red
+- [x] T043 Publication check on the branch (no prospect names, no client files, no credentials), push `005-compiled-deliverable`, and message the S5 session (multiagent-demo-6c) that 005 is pushed and lists the shared-file functions it added, so 006 can rebase
 
 ---
 
