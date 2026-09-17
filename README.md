@@ -130,6 +130,17 @@ Open http://localhost:8000/preflight before every meeting and press **Run pre-fl
 
 The dot beside Pre-flight in every header shows the last result: grey means not run yet, green means every check passed, orange means only a non-essential check failed (the tunnel, or a provider no seat uses), red means an essential check failed. It is stored in `runs/preflight.json` and survives a restart; nothing re-runs by itself.
 
+### The leave-behind
+
+After the meeting, one command writes what the prospect keeps:
+
+```
+uv run python scripts/leave_behind.py            # the newest run that finished its job
+uv run python scripts/leave_behind.py --run <id> --out <folder>
+```
+
+It writes `proposal.pdf` (the run's last compiled version), `run-timeline.pdf` (rendered from the event log) with the run's `metrics.json` beside it, and `introduction.pdf` (the Introduction page) to `runs/<run id>/leave-behind/` unless `--out` says otherwise, and prints the paths. Sending them is by hand; the command only produces the files.
+
 ### A live run
 
 1. Choose **01 · Clean run** in the composer and press **Run**. The Estimator's call costs a few tens of cents; the other seats are free. The first call to each local model waits while Ollama loads it.

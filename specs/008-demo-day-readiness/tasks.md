@@ -112,6 +112,7 @@ Single web application: `app/` (engine, API, static pages), `scripts/` (presente
 - [x] T031 Run `uv run python scripts/check.py` (capture the exit code separately) and `uv run pytest -m visual`; fix until green
 - [x] T032 On the reference laptop with `.env` complete, run the pre-flight live from the page, record the row details and time in the roadmap status, and note any check that could not be exercised (the tunnel until the owner supplies its values)
 - [x] T033 Check `git status` shows only S7 files, stage them by name, commit, push only `008-demo-day-readiness`, and message `multiagent-demo-aa` with the public route allow-list, the header placeholders S6's Introduction page may adopt, and the `public_run_id` read
+- [x] T034 After S6 merged: `app/leave_behind.py` and `scripts/leave_behind.py` produce the proposal PDF, the run timeline PDF with `metrics.json` beside it, and the Introduction PDF in one command (criterion 10), with `tests/unit/s7/test_leave_behind.py` and `tests/integration/s7/test_leave_behind_build.py`
 
 ---
 
