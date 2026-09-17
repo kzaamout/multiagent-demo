@@ -187,7 +187,7 @@ def _architecture_body(ox: float, badges: dict[str, str] | None, aws: bool, widt
     ay = 208
     parts.append(_t(x0, ay + 30, "AGENTS", 11, GREY, mono=True))
     card_w = (inner - 110) / 6 - 8
-    for i, (agent_id, role, initial, colour) in enumerate(SEATS):
+    for i, (_agent_id, role, initial, colour) in enumerate(SEATS):
         cx = x0 + 110 + i * (card_w + 8)
         parts.append(_box(cx, ay, card_w, 56))
         parts.append(f'<circle cx="{cx + 22}" cy="{ay + 28}" r="14" fill="{colour}"/>')

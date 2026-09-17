@@ -20,6 +20,8 @@ from app.agents.stubs import bundle_for
 from app.buildinfo import build_info
 from app.compile import CompileError, compile_timeline, tools_available
 from app.config import Settings, load_settings
+from app.intro.page import pinned_run, render_page
+from app.intro.pdf import missing_tools, render_pdf
 from app.live.chat import ChatRefused, chat, chat_allowed, find_bundle
 from app.live.providers import Availability, ModelConfig, SeatModelFactory, strands_model_for
 from app.orchestrator.orchestrator import Answer
@@ -29,6 +31,7 @@ from app.runs.recorder import read_events
 from app.runs.registry import LiveUnavailable, Registry
 from app.runs.replay import ReplaySession
 from app.schema.bundles import PromptBundle
+from app.schema.events import Event
 
 KEEPALIVE_SECONDS = 15.0
 
@@ -134,6 +137,80 @@ def create_app(
     @app.get("/preflight", response_class=HTMLResponse)
     async def preflight_page() -> HTMLResponse:
         return page("preflight")
+
+    # Introduction (public, spec 2.1) and the public replay of one pinned run (spec 6)
+
+    def public_events(run_id: str) -> list[Event]:
+        """The pinned run's events; any other id is refused before the disk is touched."""
+        if run_id != cfg.public_run_id:
+            raise HTTPException(404, "not a public run")
+        live = registry.get_run(run_id)
+        events = live.events if live is not None else registry.events_for(run_id)
+        if not events:
+            raise HTTPException(404, "the pinned recording is not on this machine")
+        return events
+
+    @app.get("/introduction", response_class=HTMLResponse)
+    async def introduction_page() -> HTMLResponse:
+        events = registry.events_for(cfg.public_run_id)
+        info = build_info(cfg.root)
+        html = render_page(cfg, registry.seat_table(), events).replace("{{BUILD_STAMP}}", info.stamp)
+        return HTMLResponse(html)
+
+    @app.get("/introduction.pdf")
+    async def introduction_pdf() -> FileResponse:
+        missing = missing_tools()
+        if missing:
+            raise HTTPException(503, "compiler missing (" + ", ".join(missing) + ")")
+        try:
+            pdf = await asyncio.to_thread(render_pdf, cfg)
+        except CompileError as error:
+            raise HTTPException(500, f"the Introduction did not compile: {error}") from None
+        return FileResponse(pdf, media_type="application/pdf", filename="sterling-ai-introduction.pdf")
+
+    @app.get("/public/run/{run_id}/meta")
+    async def public_meta(run_id: str) -> dict[str, Any]:
+        events = public_events(run_id)
+        pinned = pinned_run(cfg, events)
+        return {
+            "run_id": pinned.run_id,
+            "dataset_id": pinned.dataset_id,
+            "exit": pinned.exit,
+            "has_pages": pinned.has_pages,
+        }
+
+    @app.get("/public/run/{run_id}/events")
+    async def public_run_events(run_id: str) -> list[dict[str, Any]]:
+        return [e.model_dump(mode="json", by_alias=True) for e in public_events(run_id)]
+
+    @app.get("/public/run/{run_id}/files/{path:path}")
+    async def public_run_file(run_id: str, path: str) -> FileResponse:
+        public_events(run_id)
+        folder = (cfg.runs_dir / run_id).resolve()
+        if not folder.is_dir():
+            golden = registry.golden_folder(run_id)
+            if golden is None:
+                raise HTTPException(404, "file not found")
+            folder = golden.resolve()
+        target = (folder / path).resolve()
+        if not target.is_relative_to(folder) or not target.is_file():
+            raise HTTPException(404, "file not found")
+        if target.suffix not in {".md", ".png", ".pdf", ".json"}:
+            raise HTTPException(404, "file not found")
+        return FileResponse(target)
+
+    @app.get("/public/run/{run_id}/prompts/{prompt_ref}")
+    async def public_prompt(run_id: str, prompt_ref: str) -> dict[str, Any]:
+        public_events(run_id)
+        path = cfg.runs_dir / run_id / "prompts" / f"{prompt_ref}.json"
+        found = bundle_for(prompt_ref)
+        if found is None and path.is_file():
+            found = PromptBundle.model_validate_json(path.read_text(encoding="utf-8"))
+        if found is None:
+            raise HTTPException(404, "unknown prompt")
+        data = found.model_dump()
+        data["sections"] = [{"label": label, "text": text} for label, text in found.sections()]
+        return data
 
     # Metadata and datasets
 

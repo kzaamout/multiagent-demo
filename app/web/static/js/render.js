@@ -700,7 +700,8 @@
   }
 
   function runFileUrl(runId, path) {
-    return '/api/runs/' + encodeURIComponent(runId) + '/files/' + path.split('/').map(encodeURIComponent).join('/');
+    var base = global.S1Public && global.S1Public.run === runId ? '/public/run/' : '/api/runs/';
+    return base + encodeURIComponent(runId) + '/files/' + path.split('/').map(encodeURIComponent).join('/');
   }
 
   /* The compiled pages of the latest artifact.compiled (S4). Images are replaced in place by index,

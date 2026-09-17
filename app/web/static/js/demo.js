@@ -6,6 +6,11 @@
   var EXPORT_NAMES = { orchestrator: 'Oscar', intake: 'Anna', estimator: 'Elena', pricing: 'Pavel', writer: 'Willa', reviewer: 'Rafael' };
 
   var params = new URLSearchParams(window.location.search);
+  /* Public mode (S6): the Introduction's read-only frame. Events, files and prompts come from the
+     public routes, which serve one pinned run; the page shows the run and offers nothing else. */
+  var publicRun = params.get('public') === '1' ? params.get('run') : null;
+  window.S1Public = publicRun ? { run: publicRun } : null;
+  if (publicRun) { document.body.setAttribute('data-public', '1'); }
   var events = [];
   var stream = null;
   var runId = null;
@@ -218,7 +223,10 @@
       var ref = actionNode.getAttribute('data-ref');
       ui.promptOpen[id] = !ui.promptOpen[id];
       if (ui.promptOpen[id] && !ui.prompts[ref]) {
-        api('GET', '/api/prompts/' + encodeURIComponent(ref)).then(function (bundle) { ui.prompts[ref] = bundle; schedule(); })
+        var promptPath = publicRun
+          ? '/public/run/' + encodeURIComponent(publicRun) + '/prompts/' + encodeURIComponent(ref)
+          : '/api/prompts/' + encodeURIComponent(ref);
+        api('GET', promptPath).then(function (bundle) { ui.prompts[ref] = bundle; schedule(); })
           .catch(function (error) { window.alertless(error); });
       }
       schedule();
@@ -397,6 +405,38 @@
     var feed = e.currentTarget;
     ui.autoScroll = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 80;
   });
+
+  function playPublic(list, speed) {
+    /* Play a recording client side at 1x or 4x: the recorded gaps between events, scaled, with
+       long pauses capped so a live run's minutes become a demo's seconds. */
+    resetView('replay');
+    ui.animate = true;
+    ui.autoScroll = true;
+    ctx.retryBudget = list.reduce(function (budget, e) {
+      return e.type === 'retry.incremented' && e.payload && e.payload.budget ? e.payload.budget : budget;
+    }, ctx.retryBudget);
+    events = [];
+    var index = 0;
+    function step() {
+      if (index >= list.length) { return; }
+      events.push(list[index]);
+      schedule();
+      index += 1;
+      if (index >= list.length) { return; }
+      var gap = F.tsMs(list[index].ts) - F.tsMs(list[index - 1].ts);
+      var wait = Math.min(Math.max(gap, 150), 6000) / speed;
+      window.setTimeout(step, wait);
+    }
+    step();
+  }
+
+  if (publicRun) {
+    ui.speed = params.get('speed') === '4' ? 4 : 1;
+    api('GET', '/public/run/' + encodeURIComponent(publicRun) + '/events')
+      .then(function (list) { playPublic(list, ui.speed); })
+      .catch(function (error) { window.alertless(error); schedule(); });
+    return;
+  }
 
   loadModelOptions();
 

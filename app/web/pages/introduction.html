@@ -3,29 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sterling AI · Settings</title>
+<title>Sterling AI · Multi-agent demo · Introduction</title>
 <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body class="page-white">
-<div class="page">
-  <header class="hdr" data-part="header">
+<div class="page" data-screen-label="Introduction">
+  <header class="hdr hdr-sticky" data-part="header">
     <div class="brand-wrap"><span class="brand">Sterling AI <span class="muted">· Multi-agent demo</span></span></div>
     <nav class="nav">
       <a href="/preflight" class="nav-pf">Pre-flight<span class="pf-dot" data-part="preflight-indicator" data-status="pending" title="Pre-flight: not run yet">○</span></a>
-      <a href="/introduction">Introduction</a>
+      <span class="nav-current">Introduction</span>
       <a href="/demo">Demo</a>
-      <span class="nav-current">Settings</span>
+      <a href="/settings">Settings</a>
       <span class="build-stamp" data-part="build-stamp">{{BUILD_STAMP}}</span>
     </nav>
   </header>
-  <main class="settings-main">
-    <h1 class="page-title">Agent seats</h1>
-    <p class="page-sub" id="settings-note">Changes apply at the next stage.</p>
-    <div id="seat-rows" data-part="seat-rows"></div>
-    <p class="settings-status" id="settings-status" data-part="settings-status"></p>
+  <main class="intro-main" data-part="intro-main">
+{{SECTIONS}}
   </main>
 </div>
-<script src="/static/js/format.js"></script>
-<script src="/static/js/settings.js"></script>
+<script src="/static/js/intro.js"></script>
 </body>
 </html>
