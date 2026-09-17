@@ -123,10 +123,10 @@ description: "Task list for slice S4, compiled deliverable and provenance"
 
 **Goal**: the slice is proven on live runs and recorded.
 
-- [ ] T038 [US6] Live run from the Demo page on Clean run under `COST_CEILING=1.00`: record the run id, the seconds from `draft.committed` to `artifact.compiled`, the Reviewer verdict citing a page, and the spend; `scripts/compare_run.py` MATCH
-- [ ] T039 [US6] Live run on Planted inconsistency: v1 and v2 pages, version swap observed, every marker hovered on v2, Edit exercised once at Handoff; compare and record
-- [ ] T040 [US6] Live run on Clean run ending in Reject with notes and both downloads opened; record
-- [ ] T041 [US6] Roadmap S4 status entry in `docs/roadmap.md` with the run ids, timings, spend, and the evidence list; `docs/model-performance.md` refreshed with `uv run python scripts/model_report.py --write`
+- [x] T038 [US6] Live run from the Demo page on Clean run under `COST_CEILING=1.00`: record the run id, the seconds from `draft.committed` to `artifact.compiled`, the Reviewer verdict citing a page, and the spend; `scripts/compare_run.py` MATCH
+- [x] T039 [US6] Live run on Planted inconsistency: v1 and v2 pages, version swap observed, every marker hovered on v2, Edit exercised once at Handoff; compare and record
+- [x] T040 [US6] Live run on Clean run ending in Reject with notes and both downloads opened; record
+- [x] T041 [US6] Roadmap S4 status entry in `docs/roadmap.md` with the run ids, timings, spend, and the evidence list; `docs/model-performance.md` refreshed with `uv run python scripts/model_report.py --write`
 
 ---
 
