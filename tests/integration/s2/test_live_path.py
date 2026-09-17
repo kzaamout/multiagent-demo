@@ -178,20 +178,21 @@ async def test_ask_once_across_runs(tmp_path: Path) -> None:
     assert events[-1].payload["exit"] == "reviewer_pass"
 
 
-async def test_invalid_reply_twice_stops_with_seat_named(tmp_path: Path) -> None:
+async def test_invalid_reply_on_every_attempt_stops_with_seat_named(tmp_path: Path) -> None:
+    """A seat gets three attempts (two corrections) before it stops the run (decision 2026-09-17)."""
     turns = h.full_turns()
-    turns["intake"] = [[{"text": "not json"}], [{"text": "still not json"}]]
+    turns["intake"] = [[{"text": "not json"}], [{"text": "still not json"}], [{"text": "not json again"}]]
     orchestrator = h.build(tmp_path, turns, "10000000-0000-4000-8000-000000000007")
     await drive(orchestrator, SCRIPT)
     last = orchestrator.events[-1]
     assert last.payload["exit"] == "stopped"
-    assert "Intake Analyst" in (last.reason or "") and "invalid reply twice" in (last.reason or "")
+    assert "Intake Analyst" in (last.reason or "") and "invalid reply 3 times" in (last.reason or "")
     assert validate_run(orchestrator.events) == []
     rejected = sorted((orchestrator.run_folder or tmp_path).glob("rejected/*.txt"))
-    assert [r.name.rsplit("-", 1)[1] for r in rejected] == ["1.txt", "2.txt"], (
-        "both rejected replies are kept"
+    assert [r.name.rsplit("-", 1)[1] for r in rejected] == ["1.txt", "2.txt", "3.txt"], (
+        "every rejected reply is kept"
     )
-    assert "still not json" in rejected[1].read_text(encoding="utf-8")
+    assert "not json again" in rejected[2].read_text(encoding="utf-8")
 
 
 async def test_provider_error_never_leaks_its_text(tmp_path: Path) -> None:

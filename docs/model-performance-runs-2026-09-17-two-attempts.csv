@@ -1,0 +1,165 @@
+run_id,started_at,dataset_id,exit,golden_match,sweep_label,sweep_config,sweep_varied_seat,sweep_repeat,sweep_worker,seat,role,model,provider,temperature,num_ctx,think,max_tokens,calls,tokens_in,tokens_out,wall_ms,est_cost,tool_calls,replies,accepted_first_time,corrections,invalid_twice,reasons,checks_met,checks_total,checks
+058c0cba-987f-4c7c-bf05-9bf2fd442090,,missing-sheet,cost_ceiling,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,1,2085,313,5250,0.0,0,0,0,0,0,,0,1,blocker_escalated=0
+058c0cba-987f-4c7c-bf05-9bf2fd442090,,missing-sheet,cost_ceiling,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,6,40054,3500,59970,0.0,16,2,2,0,0,,1,1,reached_work=1
+058c0cba-987f-4c7c-bf05-9bf2fd442090,,missing-sheet,cost_ceiling,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,15,407348,10226,140048,1.0086490000000001,21,3,3,0,0,,1,1,blocker_names_lp2=1
+09c83b82-fd2f-4e0a-9f2a-649586ecf58e,,clean-run,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,10414,1166,21925,0.0,3,1,1,0,0,,1,1,ready=1
+110bbb73-3369-4684-9f66-1fe9a5266a7b,,missing-price,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,2,10548,242,5592,0.0,8,1,1,0,0,,0,1,golden_match=0
+15b6ca7a-d629-4cbd-9f60-f8a13c711df0,2026-09-17T02:54:20.603Z,planted-inconsistency,reviewer_pass,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,8048,324,12032,0.0,0,2,2,0,0,,0,1,reworked_once=0
+15b6ca7a-d629-4cbd-9f60-f8a13c711df0,2026-09-17T02:54:20.603Z,planted-inconsistency,reviewer_pass,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,23463,2246,46329,0.0,18,1,1,0,0,,0,1,golden_match=0
+15b6ca7a-d629-4cbd-9f60-f8a13c711df0,2026-09-17T02:54:20.603Z,planted-inconsistency,reviewer_pass,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,5,111042,4674,57028,0.295707,6,1,1,0,0,,1,1,names_both_sheets=1
+15b6ca7a-d629-4cbd-9f60-f8a13c711df0,2026-09-17T02:54:20.603Z,planted-inconsistency,reviewer_pass,false,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,3,14105,2452,38219,0.0,1,1,0,1,0,tool_not_used=1,0,1,golden_match=0
+15b6ca7a-d629-4cbd-9f60-f8a13c711df0,2026-09-17T02:54:20.603Z,planted-inconsistency,reviewer_pass,false,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,1,5390,1204,18830,0.0,0,1,1,0,0,,0,1,v1_carries_disagreement=0
+15b6ca7a-d629-4cbd-9f60-f8a13c711df0,2026-09-17T02:54:20.603Z,planted-inconsistency,reviewer_pass,false,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,1,2298,43,10363,0.0,0,1,1,0,0,,0,1,failed_v1_to_work=0
+16bc1d17-b69b-4a0f-9533-4ca09a1e3dfd,,missing-sheet,stopped,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,1,2054,295,9683,0.0,0,0,0,0,0,,0,1,blocker_escalated=0
+16bc1d17-b69b-4a0f-9533-4ca09a1e3dfd,,missing-sheet,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,19763,1552,29676,0.0,8,1,1,0,0,,1,1,reached_work=1
+16bc1d17-b69b-4a0f-9533-4ca09a1e3dfd,,missing-sheet,stopped,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,6,108701,4305,56271,0.286497,11,2,1,0,1,missing_fields=2,1,1,blocker_names_lp2=1
+1d74a94a-009a-463a-bb8a-f30456c29cb6,,planted-inconsistency,,false,,,,,,orchestrator,Orchestrator,claude-sonnet via Bedrock,bedrock,,,,,1,902,198,900,0.01,0,0,0,0,0,,0,1,reworked_once=0
+1d74a94a-009a-463a-bb8a-f30456c29cb6,,planted-inconsistency,,false,,,,,,intake,Intake Analyst,claude-sonnet via Bedrock,bedrock,,,,,1,15088,3312,41000,0.09,0,1,1,0,0,,0,1,golden_match=0
+269e53cf-a1a5-4f3e-b196-a135f0602232,2026-09-16T05:46:30.417Z,not-ready,not_ready,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,4,25637,1678,31798,0.0,8,1,1,0,0,,3,3,names_deadline=1;names_specification=1;not_ready=1
+28ee042c-4211-40c9-b709-69ac49dc8234,,clean-run,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,1,2599,858,12267,0.0,7,1,1,0,0,,0,1,ready=0
+37eed16d-4d9f-4565-a4a7-231fe5aa4830,2026-09-17T02:58:59.475Z,planted-inconsistency,reviewer_pass,true,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,8444,306,18979,0.0,0,2,2,0,0,,1,1,reworked_once=1
+37eed16d-4d9f-4565-a4a7-231fe5aa4830,2026-09-17T02:58:59.475Z,planted-inconsistency,reviewer_pass,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,23623,2712,46423,0.0,18,1,1,0,0,,1,1,golden_match=1
+37eed16d-4d9f-4565-a4a7-231fe5aa4830,2026-09-17T02:58:59.475Z,planted-inconsistency,reviewer_pass,true,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,5,117137,4790,60341,0.310391,6,1,1,0,0,,1,1,names_both_sheets=1
+37eed16d-4d9f-4565-a4a7-231fe5aa4830,2026-09-17T02:58:59.475Z,planted-inconsistency,reviewer_pass,true,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,5,23584,3987,204352,0.0,2,2,1,1,0,tool_not_used=1,1,1,golden_match=1
+37eed16d-4d9f-4565-a4a7-231fe5aa4830,2026-09-17T02:58:59.475Z,planted-inconsistency,reviewer_pass,true,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,7,47943,7806,751482,0.0,4,2,1,1,0,json_shape=1,0,1,v1_carries_disagreement=0
+37eed16d-4d9f-4565-a4a7-231fe5aa4830,2026-09-17T02:58:59.475Z,planted-inconsistency,reviewer_pass,true,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,2,4899,302,272317,0.0,0,2,2,0,0,,1,1,failed_v1_to_work=1
+3aacf5f4-0415-4c1b-9d84-3b12c4db0c76,,not-ready,not_ready,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,16674,2027,29615,0.0,7,1,1,0,0,,2,3,names_deadline=1;names_specification=0;not_ready=1
+3ae451c6-29c9-4796-b6af-0b0a2ae571c3,,clean-run,stopped,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,4475,452,7986,0.0,0,0,0,0,0,,0,1,golden_match=0
+3ae451c6-29c9-4796-b6af-0b0a2ae571c3,,clean-run,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,19761,1609,28726,0.0,8,1,1,0,0,,1,1,ready=1
+3ae451c6-29c9-4796-b6af-0b0a2ae571c3,,clean-run,stopped,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,4,89431,4017,46414,0.240935,6,1,1,0,0,,1,1,no_blocker=1
+3ae451c6-29c9-4796-b6af-0b0a2ae571c3,,clean-run,stopped,false,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,2,7694,1997,33234,0.0,1,1,0,1,0,tool_not_used=1,0,1,completed=0
+3c51338a-04c4-4329-95d4-492c47e54e8e,2026-09-17T04:55:13.106Z,clean-run,stopped,false,,,,,,single,Single model,"qwen3.5 9b, local",ollama,,,,,11,57405,408,32768,0.0,18,1,0,0,1,json_shape=2,0,0,
+3e14db78-2e64-4afb-9416-9544c3b04244,2026-09-17T04:51:59.924Z,clean-run,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,31561,10115,157491,0.0,18,1,0,0,1,checklist_grading=1;json_shape=1,0,1,ready=0
+4af19c4d-25be-49ed-84e9-e536a133971b,,missing-sheet,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,2,10954,242,5523,0.0,8,1,0,0,1,checklist_grading=2,0,1,reached_work=0
+5e96d341-488a-47f9-abfb-8dc161cb53ff,,planted-inconsistency,reviewer_pass,true,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,3,11647,473,13770,0.0,0,0,0,0,0,,1,1,reworked_once=1
+5e96d341-488a-47f9-abfb-8dc161cb53ff,,planted-inconsistency,reviewer_pass,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,19395,1867,27996,0.0,8,1,1,0,0,,1,1,golden_match=1
+5e96d341-488a-47f9-abfb-8dc161cb53ff,,planted-inconsistency,reviewer_pass,true,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,7,192784,5838,77660,0.488343,8,1,1,0,0,,1,1,names_both_sheets=1
+5e96d341-488a-47f9-abfb-8dc161cb53ff,,planted-inconsistency,reviewer_pass,true,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,6,28201,5178,77499,0.0,2,2,0,2,0,tool_not_used=2,1,1,golden_match=1
+5e96d341-488a-47f9-abfb-8dc161cb53ff,,planted-inconsistency,reviewer_pass,true,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,4,28841,11463,164708,0.0,1,2,1,1,0,provenance_tags=1,1,1,v1_carries_disagreement=1
+5e96d341-488a-47f9-abfb-8dc161cb53ff,,planted-inconsistency,reviewer_pass,true,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,2,8900,324,19650,0.0,0,2,2,0,0,,1,1,failed_v1_to_work=1
+641187e1-bf75-48f9-900e-5773fd0ab8b2,2026-09-17T04:59:08.738Z,planted-inconsistency,stopped,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,1,2051,290,4926,0.0,0,1,1,0,0,,0,1,reworked_once=0
+641187e1-bf75-48f9-900e-5773fd0ab8b2,2026-09-17T04:59:08.738Z,planted-inconsistency,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,2,12461,2378,36500,0.0,17,1,1,0,0,,0,1,golden_match=0
+641187e1-bf75-48f9-900e-5773fd0ab8b2,2026-09-17T04:59:08.738Z,planted-inconsistency,stopped,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,5,111458,4664,57518,0.296511,6,1,1,0,0,,1,1,names_both_sheets=1
+641187e1-bf75-48f9-900e-5773fd0ab8b2,2026-09-17T04:59:08.738Z,planted-inconsistency,stopped,false,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,2,7889,1237,52516,0.0,1,1,1,0,0,,0,1,golden_match=0
+641187e1-bf75-48f9-900e-5773fd0ab8b2,2026-09-17T04:59:08.738Z,planted-inconsistency,stopped,false,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,3,17762,2695,69071,0.0,2,1,0,0,1,provenance_tags=2,0,1,v1_carries_disagreement=0
+65548191-55d1-4031-a3b9-afabe5f35e4d,,not-ready,not_ready,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,17614,2103,35268,0.0,7,1,1,0,0,,2,3,names_deadline=1;names_specification=0;not_ready=1
+808e736e-644c-44d3-853b-7f32b35c6970,2026-09-17T05:03:10.379Z,clean-run,not_ready,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,2,12538,2951,75170,0.0,17,1,1,0,0,,0,1,ready=0
+81b9caac-b0e1-474c-8af7-8bd27958920d,2026-09-17T13:55:06.034Z,planted-inconsistency,stopped,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,1,2134,282,5129,0.0,0,1,1,0,0,,0,1,reworked_once=0
+81b9caac-b0e1-474c-8af7-8bd27958920d,2026-09-17T13:55:06.034Z,planted-inconsistency,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,2,12381,2408,48063,0.0,17,1,1,0,0,,0,1,golden_match=0
+81b9caac-b0e1-474c-8af7-8bd27958920d,2026-09-17T13:55:06.034Z,planted-inconsistency,stopped,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,7,188941,6388,87807,0.48593699999999995,8,1,1,0,0,,1,1,names_both_sheets=1
+81b9caac-b0e1-474c-8af7-8bd27958920d,2026-09-17T13:55:06.034Z,planted-inconsistency,stopped,false,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,3,13812,3252,49577,0.0,1,1,0,1,0,tool_not_used=1,0,1,golden_match=0
+81b9caac-b0e1-474c-8af7-8bd27958920d,2026-09-17T13:55:06.034Z,planted-inconsistency,stopped,false,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,2,11282,2037,31551,0.0,2,1,0,0,1,provenance_tags=2,0,1,v1_carries_disagreement=0
+83b97341-22e0-41b5-8292-9030646522ec,,clean-run,reviewer_pass,true,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,8120,307,10827,0.0,0,2,2,0,0,,1,1,golden_match=1
+83b97341-22e0-41b5-8292-9030646522ec,,clean-run,reviewer_pass,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,14245,1866,27863,0.0,7,1,0,1,0,json_shape=1,1,1,ready=1
+83b97341-22e0-41b5-8292-9030646522ec,,clean-run,reviewer_pass,true,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,4,89027,4026,46633,0.240145,6,1,1,0,0,,1,1,no_blocker=1
+83b97341-22e0-41b5-8292-9030646522ec,,clean-run,reviewer_pass,true,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,2,7989,1264,18446,0.0,1,1,1,0,0,,1,1,completed=1
+83b97341-22e0-41b5-8292-9030646522ec,,clean-run,reviewer_pass,true,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,4,31184,5336,75647,0.0,3,1,1,0,0,,1,1,draft_v1=1
+83b97341-22e0-41b5-8292-9030646522ec,,clean-run,reviewer_pass,true,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,1,2607,45,10761,0.0,0,1,1,0,0,,1,1,passed_v1=1
+84b39fb1-bea5-4218-8df0-853a10738c40,,missing-sheet,not_ready,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,4,30060,3129,49535,0.0,8,1,0,1,0,checklist_grading=1,0,1,reached_work=0
+84f1843a-1cdf-499f-9e01-2c8a3625176f,2026-09-17T05:19:27.547Z,clean-run,reviewer_pass,true,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,6717,220,10195,0.0,0,2,2,0,0,,1,1,golden_match=1
+84f1843a-1cdf-499f-9e01-2c8a3625176f,2026-09-17T05:19:27.547Z,clean-run,reviewer_pass,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,4,37430,3659,56078,0.0,18,1,0,1,0,checklist_grading=1,1,1,ready=1
+84f1843a-1cdf-499f-9e01-2c8a3625176f,2026-09-17T05:19:27.547Z,clean-run,reviewer_pass,true,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,7,184103,4673,60645,0.45643000000000006,8,1,1,0,0,,1,1,no_blocker=1
+84f1843a-1cdf-499f-9e01-2c8a3625176f,2026-09-17T05:19:27.547Z,clean-run,reviewer_pass,true,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,3,12205,2455,37215,0.0,1,1,0,1,0,tool_not_used=1,1,1,completed=1
+84f1843a-1cdf-499f-9e01-2c8a3625176f,2026-09-17T05:19:27.547Z,clean-run,reviewer_pass,true,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,4,24225,3152,49639,0.0,3,1,1,0,0,,1,1,draft_v1=1
+84f1843a-1cdf-499f-9e01-2c8a3625176f,2026-09-17T05:19:27.547Z,clean-run,reviewer_pass,true,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,1,5156,47,8944,0.0,0,1,1,0,0,,1,1,passed_v1=1
+8a5e1135-4f7b-40bc-be0f-96d55cf490a1,2026-09-17T04:54:00.665Z,clean-run,stopped,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,1,2087,314,6066,0.0,0,1,1,0,0,,0,1,golden_match=0
+8a5e1135-4f7b-40bc-be0f-96d55cf490a1,2026-09-17T04:54:00.665Z,clean-run,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,22817,2502,88714,0.0,18,1,1,0,0,,1,1,ready=1
+8a5e1135-4f7b-40bc-be0f-96d55cf490a1,2026-09-17T04:54:00.665Z,clean-run,stopped,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,7,199791,8246,99430,0.530247,8,1,1,0,0,,1,1,no_blocker=1
+8a5e1135-4f7b-40bc-be0f-96d55cf490a1,2026-09-17T04:54:00.665Z,clean-run,stopped,false,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,3,13415,2450,36056,0.0,1,1,0,1,0,tool_not_used=1,1,1,completed=1
+8a5e1135-4f7b-40bc-be0f-96d55cf490a1,2026-09-17T04:54:00.665Z,clean-run,stopped,false,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,2,11607,2013,29755,0.0,2,1,0,0,1,provenance_tags=2,0,1,draft_v1=0
+8eef48be-1ffb-4738-8f22-3a8b8f9816cc,2026-09-17T05:16:05.129Z,clean-run,reviewer_pass,true,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,7378,309,11167,0.0,0,2,2,0,0,,1,1,golden_match=1
+8eef48be-1ffb-4738-8f22-3a8b8f9816cc,2026-09-17T05:16:05.129Z,clean-run,reviewer_pass,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,21989,2366,36679,0.0,17,1,0,1,0,json_shape=1,1,1,ready=1
+8eef48be-1ffb-4738-8f22-3a8b8f9816cc,2026-09-17T05:16:05.129Z,clean-run,reviewer_pass,true,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,5,112547,4019,49546,0.29181199999999996,6,1,1,0,0,,1,1,no_blocker=1
+8eef48be-1ffb-4738-8f22-3a8b8f9816cc,2026-09-17T05:16:05.129Z,clean-run,reviewer_pass,true,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,3,12777,2445,35888,0.0,1,1,0,1,0,tool_not_used=1,1,1,completed=1
+8eef48be-1ffb-4738-8f22-3a8b8f9816cc,2026-09-17T05:16:05.129Z,clean-run,reviewer_pass,true,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,1,5158,1117,16932,0.0,0,1,1,0,0,,1,1,draft_v1=1
+8eef48be-1ffb-4738-8f22-3a8b8f9816cc,2026-09-17T05:16:05.129Z,clean-run,reviewer_pass,true,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,1,5445,47,8558,0.0,0,1,1,0,0,,1,1,passed_v1=1
+9364c54f-4bc8-4b47-9cef-4282c2195815,,missing-sheet,reviewer_pass,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,3,13203,408,12919,0.0,0,0,0,0,0,,0,1,blocker_escalated=0
+9364c54f-4bc8-4b47-9cef-4282c2195815,,missing-sheet,reviewer_pass,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,20360,1503,23672,0.0,8,1,1,0,0,,1,1,reached_work=1
+9364c54f-4bc8-4b47-9cef-4282c2195815,,missing-sheet,reviewer_pass,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,7,153455,7581,100736,0.420991,11,2,2,0,0,,1,1,blocker_names_lp2=1
+9364c54f-4bc8-4b47-9cef-4282c2195815,,missing-sheet,reviewer_pass,false,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,6,34853,7075,104139,0.0,2,2,0,2,0,tool_not_used=2,0,1,golden_match=0
+9364c54f-4bc8-4b47-9cef-4282c2195815,,missing-sheet,reviewer_pass,false,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,6,56597,12853,183098,0.0,3,2,1,1,0,json_shape=1,0,1,golden_match=0
+9364c54f-4bc8-4b47-9cef-4282c2195815,,missing-sheet,reviewer_pass,false,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,2,8031,494,22675,0.0,0,2,2,0,0,,0,1,golden_match=0
+93fc7501-452d-4e3f-82bb-f64b27a3b932,,not-ready,not_ready,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,17818,2406,39976,0.0,7,1,1,0,0,,3,3,names_deadline=1;names_specification=1;not_ready=1
+963686a4-c95f-49fb-87bc-9bdd916ebf03,,clean-run,retry_exhausted,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,9320,290,12266,0.0,0,0,0,0,0,,0,1,golden_match=0
+963686a4-c95f-49fb-87bc-9bdd916ebf03,,clean-run,retry_exhausted,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,19875,7040,122103,0.0,7,1,1,0,0,,1,1,ready=1
+963686a4-c95f-49fb-87bc-9bdd916ebf03,,clean-run,retry_exhausted,false,,,,,,estimator,Estimator,"qwen3.5 9b, local",ollama,,,,,3,56513,1653,56989,0.0,5,1,1,0,0,,1,1,no_blocker=1
+963686a4-c95f-49fb-87bc-9bdd916ebf03,,clean-run,retry_exhausted,false,,,,,,pricing,Pricing,"llama3.1 8b, local",ollama,,,,,6,19473,3851,70246,0.0,2,2,2,0,0,,1,1,completed=1
+963686a4-c95f-49fb-87bc-9bdd916ebf03,,clean-run,retry_exhausted,false,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,15,142838,24002,432625,0.0,11,3,3,0,0,,1,1,draft_v1=1
+963686a4-c95f-49fb-87bc-9bdd916ebf03,,clean-run,retry_exhausted,false,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,3,10816,678,36471,0.0,0,3,3,0,0,,0,1,passed_v1=0
+a4335b2f-0e1c-456b-ad46-cad0a75a4d40,,not-ready,not_ready,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,4,26189,4189,60032,0.0,7,1,1,0,0,,3,3,names_deadline=1;names_specification=1;not_ready=1
+a78cec1d-ba0c-4da8-a3a6-93d58d05fcde,,clean-run,cost_ceiling,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,1,2093,296,5436,0.0,0,0,0,0,0,,0,1,golden_match=0
+a78cec1d-ba0c-4da8-a3a6-93d58d05fcde,,clean-run,cost_ceiling,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,19764,1547,28808,0.0,8,1,1,0,0,,1,1,ready=1
+a78cec1d-ba0c-4da8-a3a6-93d58d05fcde,,clean-run,cost_ceiling,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,2,20468,260,5656,0.047889,3,1,1,0,0,,1,1,no_blocker=1
+a8d5a71a-a913-4d01-9f84-f5e2e8febff2,,missing-sheet,blocker_escalated,true,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,1,2051,284,4384,0.0,0,0,0,0,0,,1,1,blocker_escalated=1
+a8d5a71a-a913-4d01-9f84-f5e2e8febff2,,missing-sheet,blocker_escalated,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,19760,1636,24601,0.0,8,1,1,0,0,,1,1,reached_work=1
+a8d5a71a-a913-4d01-9f84-f5e2e8febff2,,missing-sheet,blocker_escalated,true,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,3,54118,948,18326,0.129488,5,1,1,0,0,,1,1,blocker_names_lp2=1
+b2387df9-35cd-4d88-9086-f6ba2b62d473,,missing-sheet,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,2,11132,242,6289,0.0,8,1,0,0,1,checklist_grading=2,0,1,reached_work=0
+b8b5555d-3f6f-4d47-9129-924c67647907,,not-ready,not_ready,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,4,27288,4314,74396,0.0,7,1,0,1,0,other=1,3,3,names_deadline=1;names_specification=1;not_ready=1
+cc4c1285-f9be-46a6-86b5-7c554e7fabed,2026-09-17T03:22:05.487Z,planted-inconsistency,reviewer_pass,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,7745,214,76854,0.0,0,2,2,0,0,,0,1,reworked_once=0
+cc4c1285-f9be-46a6-86b5-7c554e7fabed,2026-09-17T03:22:05.487Z,planted-inconsistency,reviewer_pass,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,2,12927,6586,295302,0.0,17,1,1,0,0,,0,1,golden_match=0
+cc4c1285-f9be-46a6-86b5-7c554e7fabed,2026-09-17T03:22:05.487Z,planted-inconsistency,reviewer_pass,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,5,116085,4103,54894,0.30052,6,1,1,0,0,,1,1,names_both_sheets=1
+cc4c1285-f9be-46a6-86b5-7c554e7fabed,2026-09-17T03:22:05.487Z,planted-inconsistency,reviewer_pass,false,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,2,8245,1301,361213,0.0,1,1,1,0,0,,0,1,golden_match=0
+cc4c1285-f9be-46a6-86b5-7c554e7fabed,2026-09-17T03:22:05.487Z,planted-inconsistency,reviewer_pass,false,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,4,26433,3351,576663,0.0,2,1,0,1,0,provenance_tags=1,0,1,v1_carries_disagreement=0
+cc4c1285-f9be-46a6-86b5-7c554e7fabed,2026-09-17T03:22:05.487Z,planted-inconsistency,reviewer_pass,false,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,1,2219,47,7647,0.0,0,1,1,0,0,,0,1,failed_v1_to_work=0
+cfebaf9e-2272-4acb-bb85-e065d93aa46b,2026-09-17T05:02:57.902Z,clean-run,reviewer_pass,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,8177,212,14510,0.0,0,2,2,0,0,,0,1,golden_match=0
+cfebaf9e-2272-4acb-bb85-e065d93aa46b,2026-09-17T05:02:57.902Z,clean-run,reviewer_pass,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,2,12456,2361,41159,0.0,17,1,1,0,0,,1,1,ready=1
+cfebaf9e-2272-4acb-bb85-e065d93aa46b,2026-09-17T05:02:57.902Z,clean-run,reviewer_pass,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,5,116382,3922,50572,0.299183,6,1,1,0,0,,1,1,no_blocker=1
+cfebaf9e-2272-4acb-bb85-e065d93aa46b,2026-09-17T05:02:57.902Z,clean-run,reviewer_pass,false,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,2,7339,1243,19085,0.0,1,1,1,0,0,,1,1,completed=1
+cfebaf9e-2272-4acb-bb85-e065d93aa46b,2026-09-17T05:02:57.902Z,clean-run,reviewer_pass,false,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,6,38742,13580,198401,0.0,3,2,1,1,0,provenance_tags=1,1,1,draft_v1=1
+cfebaf9e-2272-4acb-bb85-e065d93aa46b,2026-09-17T05:02:57.902Z,clean-run,reviewer_pass,false,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,3,8428,936,32526,0.0,0,2,1,1,0,json_shape=1,0,1,passed_v1=0
+dc6a73f8-dca7-4eae-88b4-6768ae99eaa6,,clean-run,stopped,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,4058,459,7394,0.0,0,1,0,1,0,json_shape=1,0,1,golden_match=0
+dc6a73f8-dca7-4eae-88b4-6768ae99eaa6,,clean-run,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,20034,1649,31007,0.0,8,1,1,0,0,,1,1,ready=1
+dc6a73f8-dca7-4eae-88b4-6768ae99eaa6,,clean-run,stopped,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,9,292362,6111,91551,0.710418,10,1,1,0,0,,1,1,no_blocker=1
+dc6a73f8-dca7-4eae-88b4-6768ae99eaa6,,clean-run,stopped,false,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,2,8196,1310,20666,0.0,1,1,1,0,0,,1,1,completed=1
+dc6a73f8-dca7-4eae-88b4-6768ae99eaa6,,clean-run,stopped,false,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,0,0,0,0,0.0,0,1,0,0,1,provenance_tags=2,0,1,draft_v1=0
+e10112d9-7c9b-4bc8-8cce-506b79078635,2026-09-17T05:00:29.490Z,clean-run,single_complete,false,,,,,,single,Single model,"qwen3.5 9b, local",ollama,,,,,5,123985,3537,118733,0.0,18,1,1,0,0,,0,0,
+e29ce2bf-c73a-4704-ac1f-72fd3797011f,,missing-sheet,,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,1,2048,259,4196,0.0,0,0,0,0,0,,0,1,blocker_escalated=0
+e29ce2bf-c73a-4704-ac1f-72fd3797011f,,missing-sheet,,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,19760,1608,28837,0.0,8,1,1,0,0,,1,1,reached_work=1
+e29ce2bf-c73a-4704-ac1f-72fd3797011f,,missing-sheet,,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,4,92913,7824,91646,0.290472,6,1,1,0,0,,0,1,blocker_names_lp2=0
+e29ce2bf-c73a-4704-ac1f-72fd3797011f,,missing-sheet,,false,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,6,31976,6690,101923,0.0,2,2,0,2,0,json_shape=1;tool_not_used=1,0,1,golden_match=0
+e29ce2bf-c73a-4704-ac1f-72fd3797011f,,missing-sheet,,false,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,9,76422,22725,338209,0.0,5,3,2,1,0,provenance_tags=1,0,1,golden_match=0
+e29ce2bf-c73a-4704-ac1f-72fd3797011f,,missing-sheet,,false,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,3,12546,450,28420,0.0,0,3,3,0,0,,0,1,golden_match=0
+e58c2850-b4a6-497b-b993-eb247f955a2c,2026-09-17T05:10:41.159Z,clean-run,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,1,3161,304,5471,0.0,17,1,0,0,1,checklist_grading=1;json_shape=1,0,1,ready=0
+e5dff96c-a902-4a4c-abea-d031226237aa,,not-ready,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,2,9393,210,13405,0.0,7,1,1,0,0,,0,3,names_deadline=0;names_specification=0;not_ready=0
+e7b70d2a-3862-489f-8849-af1d39da139d,,clean-run,reviewer_pass,true,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,11114,311,11343,0.0,0,0,0,0,0,,1,1,golden_match=1
+e7b70d2a-3862-489f-8849-af1d39da139d,,clean-run,reviewer_pass,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,18678,1910,29423,0.0,8,1,1,0,0,,1,1,ready=1
+e7b70d2a-3862-489f-8849-af1d39da139d,,clean-run,reviewer_pass,true,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,6,154948,5302,68303,0.399208,7,1,1,0,0,,1,1,no_blocker=1
+e7b70d2a-3862-489f-8849-af1d39da139d,,clean-run,reviewer_pass,true,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,2,8013,1528,22543,0.0,1,1,1,0,0,,1,1,completed=1
+e7b70d2a-3862-489f-8849-af1d39da139d,,clean-run,reviewer_pass,true,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,3,26796,11833,183238,0.0,2,1,1,0,0,,1,1,draft_v1=1
+e7b70d2a-3862-489f-8849-af1d39da139d,,clean-run,reviewer_pass,true,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,1,5290,45,7386,0.0,0,1,1,0,0,,1,1,passed_v1=1
+e8fb76f6-ac74-4772-bd20-d63950f4de6e,,missing-price,reviewer_pass,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,9195,186,10343,0.0,0,0,0,0,0,,1,1,reviewer_pass=1
+e8fb76f6-ac74-4772-bd20-d63950f4de6e,,missing-price,reviewer_pass,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,19764,1653,28019,0.0,8,1,1,0,0,,0,1,golden_match=0
+e8fb76f6-ac74-4772-bd20-d63950f4de6e,,missing-price,reviewer_pass,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,5,117191,4419,52971,0.30643,6,1,1,0,0,,0,1,golden_match=0
+e8fb76f6-ac74-4772-bd20-d63950f4de6e,,missing-price,reviewer_pass,false,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,3,14364,2631,43148,0.0,1,1,0,1,0,tool_not_used=1,1,1,exit_sign_unpriced=1
+e8fb76f6-ac74-4772-bd20-d63950f4de6e,,missing-price,reviewer_pass,false,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,10,95488,17645,283581,0.0,6,2,0,2,0,provenance_tags=2,1,1,v1_states_exclusion=1
+e8fb76f6-ac74-4772-bd20-d63950f4de6e,,missing-price,reviewer_pass,false,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,2,7451,394,21640,0.0,0,2,2,0,0,,0,1,passed_minor_at_most=0
+eaf7d225-146f-4735-a26e-34e32a726c63,,clean-run,dry_intake,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,19764,1595,28646,0.0,8,1,1,0,0,,1,1,ready=1
+f12549aa-86f3-46ec-a753-2a0acb8a5941,,missing-sheet,stopped,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,1,2071,269,4587,0.0,0,0,0,0,0,,0,1,blocker_escalated=0
+f12549aa-86f3-46ec-a753-2a0acb8a5941,,missing-sheet,stopped,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,20030,1904,31223,0.0,8,1,1,0,0,,1,1,reached_work=1
+f12549aa-86f3-46ec-a753-2a0acb8a5941,,missing-sheet,stopped,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,9,197871,6992,88125,0.5122279999999999,11,2,2,0,0,,1,1,blocker_names_lp2=1
+f12549aa-86f3-46ec-a753-2a0acb8a5941,,missing-sheet,stopped,false,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,3,16779,3899,58317,0.0,1,1,0,1,0,tool_not_used=1,0,1,golden_match=0
+f12549aa-86f3-46ec-a753-2a0acb8a5941,,missing-sheet,stopped,false,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,4,43108,9125,140546,0.0,3,1,0,0,1,provenance_tags=2,0,1,golden_match=0
+f2dda488-0a2f-457a-9ef1-33fcac05fa70,2026-09-17T05:11:42.070Z,planted-inconsistency,reviewer_pass,false,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,7661,193,9972,0.0,0,2,2,0,0,,0,1,reworked_once=0
+f2dda488-0a2f-457a-9ef1-33fcac05fa70,2026-09-17T05:11:42.070Z,planted-inconsistency,reviewer_pass,false,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,4,34673,4170,62408,0.0,18,1,0,1,0,checklist_grading=1,0,1,golden_match=0
+f2dda488-0a2f-457a-9ef1-33fcac05fa70,2026-09-17T05:11:42.070Z,planted-inconsistency,reviewer_pass,false,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,6,153884,5001,65227,0.39355500000000004,7,1,1,0,0,,1,1,names_both_sheets=1
+f2dda488-0a2f-457a-9ef1-33fcac05fa70,2026-09-17T05:11:42.070Z,planted-inconsistency,reviewer_pass,false,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,2,8346,1391,21154,0.0,1,1,1,0,0,,0,1,golden_match=0
+f2dda488-0a2f-457a-9ef1-33fcac05fa70,2026-09-17T05:11:42.070Z,planted-inconsistency,reviewer_pass,false,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,8,65572,5361,79933,0.0,6,1,0,1,0,json_shape=1,1,1,v1_carries_disagreement=1
+f2dda488-0a2f-457a-9ef1-33fcac05fa70,2026-09-17T05:11:42.070Z,planted-inconsistency,reviewer_pass,false,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,1,5589,47,12434,0.0,0,1,1,0,0,,0,1,failed_v1_to_work=0
+fe4832ee-53cf-4992-8c5d-a8d73746eead,,clean-run,reviewer_pass,true,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,11133,308,11512,0.0,0,0,0,0,0,,1,1,golden_match=1
+fe4832ee-53cf-4992-8c5d-a8d73746eead,,clean-run,reviewer_pass,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,18861,1826,27369,0.0,8,1,1,0,0,,1,1,ready=1
+fe4832ee-53cf-4992-8c5d-a8d73746eead,,clean-run,reviewer_pass,true,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,5,116455,5034,59704,0.311574,6,1,1,0,0,,1,1,no_blocker=1
+fe4832ee-53cf-4992-8c5d-a8d73746eead,,clean-run,reviewer_pass,true,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,3,14686,3207,44943,0.0,1,1,1,0,0,,1,1,completed=1
+fe4832ee-53cf-4992-8c5d-a8d73746eead,,clean-run,reviewer_pass,true,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,6,55543,9221,131101,0.0,4,1,1,0,0,,1,1,draft_v1=1
+fe4832ee-53cf-4992-8c5d-a8d73746eead,,clean-run,reviewer_pass,true,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,1,5174,47,7687,0.0,0,1,1,0,0,,1,1,passed_v1=1
+fead502e-8dd2-41da-8639-d8b57ab6d5e8,,missing-price,reviewer_pass,true,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,8313,305,10940,0.0,0,0,0,0,0,,1,1,reviewer_pass=1
+fead502e-8dd2-41da-8639-d8b57ab6d5e8,,missing-price,reviewer_pass,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,18951,1857,27257,0.0,8,1,1,0,0,,1,1,golden_match=1
+fead502e-8dd2-41da-8639-d8b57ab6d5e8,,missing-price,reviewer_pass,true,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,5,134578,5774,68524,0.359586,7,1,1,0,0,,1,1,golden_match=1
+fead502e-8dd2-41da-8639-d8b57ab6d5e8,,missing-price,reviewer_pass,true,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,3,14389,3237,45153,0.0,1,1,0,1,0,tool_not_used=1,1,1,exit_sign_unpriced=1
+fead502e-8dd2-41da-8639-d8b57ab6d5e8,,missing-price,reviewer_pass,true,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,6,41024,3778,53526,0.0,4,1,0,1,0,provenance_tags=1,1,1,v1_states_exclusion=1
+fead502e-8dd2-41da-8639-d8b57ab6d5e8,,missing-price,reviewer_pass,true,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,1,2554,43,10730,0.0,0,1,1,0,0,,1,1,passed_minor_at_most=1
+ff627dab-9156-4508-9b87-77300f821079,,clean-run,reviewer_pass,true,,,,,,orchestrator,Orchestrator,"qwen3.5 9b, local",ollama,,,,,2,9607,350,12984,0.0,0,0,0,0,0,,1,1,golden_match=1
+ff627dab-9156-4508-9b87-77300f821079,,clean-run,reviewer_pass,true,,,,,,intake,Intake Analyst,"qwen3.5 9b, local",ollama,,,,,3,18678,1968,75299,0.0,8,1,1,0,0,,1,1,ready=1
+ff627dab-9156-4508-9b87-77300f821079,,clean-run,reviewer_pass,true,,,,,,estimator,Estimator,claude-sonnet-5 via Bedrock,bedrock,,,,,5,117537,4592,59632,0.30909299999999995,6,1,1,0,0,,1,1,no_blocker=1
+ff627dab-9156-4508-9b87-77300f821079,,clean-run,reviewer_pass,true,,,,,,pricing,Pricing,"qwen3.5 9b, local",ollama,,,,,3,13017,2508,42323,0.0,1,1,1,0,0,,1,1,completed=1
+ff627dab-9156-4508-9b87-77300f821079,,clean-run,reviewer_pass,true,,,,,,writer,Writer,"qwen3.5 9b, local",ollama,,,,,5,48754,10347,146201,0.0,3,1,1,0,0,,1,1,draft_v1=1
+ff627dab-9156-4508-9b87-77300f821079,,clean-run,reviewer_pass,true,,,,,,reviewer,Reviewer,"gemma4 12b, local",ollama,,,,,1,3850,43,36100,0.0,0,1,1,0,0,,1,1,passed_v1=1
