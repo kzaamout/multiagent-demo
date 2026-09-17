@@ -47,6 +47,9 @@ class Settings:
     schema_version: str = "1.1.0"
     long_lead_days: int = 28
     agent_mode: str = "auto"  # auto: live when a dataset's inputs are curated, else stub; stub: always stub
+    public_run_id: str = "f2dda488-0a2f-457a-9ef1-33fcac05fa70"
+    """The one recorded run the public Introduction replay serves (spec 2.1, 6; S6 decision 1a).
+    The default is the S4 Planted inconsistency run of 2026-09-17; PUBLIC_RUN_ID overrides it."""
 
     @property
     def retry_budget(self) -> int:
@@ -73,4 +76,5 @@ def load_settings(env_file: Path | None = None) -> Settings:
         cost_ceiling=_float("COST_CEILING", 5.00),
         stub_pace=_float("STUB_PACE", 4.0),
         workflow=os.environ.get("WORKFLOW", "electrical_rfp"),
+        public_run_id=os.environ.get("PUBLIC_RUN_ID") or Settings.public_run_id,
     )
