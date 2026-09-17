@@ -33,3 +33,7 @@ Output shapes in each file map onto event payloads in `docs/schema/events-v1.1.0
 4. **Provenance tag syntax** is `{{value|src:<source_id>}}`. The S4 compile step parses it.
 5. **Long-lead threshold** is 28 days.
 6. **The price lookup tool returns extended costs and totals**, so Pricing copies numbers rather than computing them.
+
+## Engine checks on the Writer's reply
+
+Besides the provenance check, the engine rejects a draft once when a specialist concern that names a sheet (for example the Estimator's rating disagreement across E-001 and E-002) is missing from the draft's Assumptions section, quoting the concern back (decision 23, 2026-09-17). The Writer's instructions already ask for every concern; the check makes the demo's rejection moment independent of the local model's variance.

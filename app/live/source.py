@@ -21,6 +21,7 @@ from app.agents.base import Emit, HumanScript, Marks, MeterDelta
 from app.agents.source import AgentFailure, HeadlineResult, PlanResult, Timing
 from app.agents.stubs._common import rfp_plan
 from app.compile import CompileError, compile_draft
+from app.live.concerns import concern_problems, specialist_concerns
 from app.live.context import build_context
 from app.live.materials import CONFIG_DIR, DatasetFiles, build_materials
 from app.live.replies import (
@@ -609,6 +610,16 @@ class LiveAgentSource:
             problems = provenance_problems(markdown, bundle.context_slice)
             if problems:
                 return "; ".join(problems)
+            # Every specialist concern that names a sheet must be carried in the Assumptions section
+            # (decision 23): the local Writer dropped the rating concern in most runs, so the Reviewer
+            # never saw the disagreement the demo turns on.
+            dropped = [
+                problem
+                for role, concern in specialist_concerns(self.o.events)
+                for problem in concern_problems(markdown, [concern], role)
+            ]
+            if dropped:
+                return "; ".join(dropped)
             # The draft compiles before it becomes a version (spec FR-015): a compile failure is a
             # rejected reply carrying the compiler's message, and the second failure ends the run.
             try:
