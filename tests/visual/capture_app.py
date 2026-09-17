@@ -28,9 +28,10 @@ def golden_seq(kind: str) -> int:
     """Seq at which each Demo state holds in the planted-inconsistency golden log."""
     import json
 
-    root = Path(__file__).resolve().parents[2]
+    from app.config import load_settings
+
     lines = (
-        (root / "datasets" / "planted-inconsistency" / "golden-events.jsonl")
+        (load_settings().datasets_dir / "planted-inconsistency" / "golden-events.jsonl")
         .read_text(encoding="utf-8")
         .splitlines()
     )
@@ -68,6 +69,7 @@ def states() -> list[AppState]:
         AppState("demo-terminated", g + str(golden_seq("terminated"))),
         AppState("login", "/login"),
         AppState("settings", "/settings"),
+        AppState("settings-dropdown", "/settings"),
         AppState("preflight-pending", "/preflight"),
     ]
 
@@ -87,6 +89,13 @@ def capture(browser: Browser, base_url: str, out: Path = OUT) -> dict[str, Path]
             # Threads start collapsed (spec 0.7); the export's running state shows the Estimator
             # thread open, which the export reference itself reached by clicking it.
             page.click("article[data-kind='specialist-thread'][data-agent='estimator'] .card-hd")
+            page.wait_for_timeout(200)
+        if state.name.startswith("settings"):
+            page.wait_for_selector('.seat-row[data-seat="estimator"] .model-select')
+        if state.name == "settings-dropdown":
+            # The export's reference has the Estimator dropdown open (openDropdown 2).
+            page.click('.seat-row[data-seat="estimator"] .model-select')
+            page.wait_for_selector('.seat-row[data-seat="estimator"] .menu')
             page.wait_for_timeout(200)
         if state.name == "demo-terminated":
             page.evaluate(

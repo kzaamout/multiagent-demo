@@ -59,6 +59,8 @@ class AgentSource(Protocol):
 
     def bind(self, orchestrator: Orchestrator) -> None: ...
 
+    def swap_seat_model(self, seat: str, seat_model: Any) -> None: ...
+
     def intake(self) -> AsyncIterator[Emit]: ...
 
     async def plan(self) -> PlanResult: ...
@@ -117,6 +119,9 @@ class StubAgentSource:
 
     def bind(self, orchestrator: Orchestrator) -> None:
         return None
+
+    def swap_seat_model(self, seat: str, seat_model: Any) -> None:
+        return None  # a stub has no model to call
 
     def intake(self) -> AsyncIterator[Emit]:
         return _each(self.scenario.intake)

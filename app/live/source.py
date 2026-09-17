@@ -197,6 +197,10 @@ class LiveAgentSource:
 
     # Wiring
 
+    def swap_seat_model(self, seat: str, seat_model: SeatModel) -> None:
+        """A Settings swap: the seat's next call uses this model (S5). A call in flight is not touched."""
+        self.seat_models[seat] = seat_model
+
     def bind(self, orchestrator: Orchestrator) -> None:
         self._orchestrator = orchestrator
         self.ctx.knowledge.ensure(self.client_id, self.knowledge_seed)

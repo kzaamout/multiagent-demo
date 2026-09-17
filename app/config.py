@@ -35,7 +35,9 @@ class Settings:
     runs_dir: Path = field(default_factory=lambda: ROOT / "runs")
     knowledge_dir: Path = field(default_factory=lambda: ROOT / "knowledge")
     # DATASETS_DIR is honoured here too, so a worktree shares the main checkout's local datasets.
-    datasets_dir: Path = field(default_factory=lambda: Path(os.environ.get("DATASETS_DIR") or ROOT / "datasets"))
+    datasets_dir: Path = field(
+        default_factory=lambda: Path(os.environ.get("DATASETS_DIR") or ROOT / "datasets")
+    )
     pages_dir: Path = field(default_factory=lambda: ROOT / "app" / "web" / "pages")
     static_dir: Path = field(default_factory=lambda: ROOT / "app" / "web" / "static")
     review_max_cycles: int = 4

@@ -278,6 +278,30 @@ class Orchestrator:
         self.latest_draft = event
         await self._emit_compiled(event)
 
+    async def change_model(self, seat: str, agent: Agent, seat_model: Any | None = None) -> Event:
+        """Move a seat to another model while the run is live (S5, spec 2.3). The roster changes now, so
+        every later event from the seat carries the new model; a live source swaps the model it calls next;
+        a call already in flight finishes on the old model. Emits model.changed as a system event."""
+        if self.state.terminated or self._terminating:
+            raise RuntimeError("the run has ended; the swap applies to the next run")
+        if seat not in self.roster:
+            raise ValueError(f"unknown seat {seat}")
+        previous = self.roster[seat]
+        self.roster[seat] = agent
+        swap = getattr(self.scenario, "swap_seat_model", None)
+        if swap is not None and seat_model is not None:
+            swap(seat, seat_model)
+        return await self._emit_system(
+            "model.changed",
+            stage=self.state.stage,
+            offset=self._after(0),
+            payload={
+                "agent_id": seat,
+                "from_model": previous.model.model_dump(),
+                "to_model": agent.model.model_dump(),
+            },
+        )
+
     def attach_task(self, task: asyncio.Task[Any]) -> None:
         """The task running this Orchestrator, so Stop can cancel work in flight."""
         self._run_task = task

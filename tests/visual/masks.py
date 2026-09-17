@@ -103,6 +103,16 @@ MASKS: dict[str, list[Rect]] = {
             "S7",
         )
     ],
+    "settings-dropdown": [
+        Rect(
+            1300,
+            8,
+            1910,
+            48,
+            "nav order (spec 0.7, S3b) and pre-flight dot added to the Settings header (decision)",
+            "S7",
+        )
+    ],
     "preflight-pending": [
         Rect(
             1300,

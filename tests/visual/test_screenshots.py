@@ -12,7 +12,8 @@ from pathlib import Path
 import pytest
 import uvicorn
 
-from app.config import Settings
+from app.config import ROOT, Settings
+from app.live.providers import Availability, ModelConfig
 from app.main import create_app
 from tests.visual.compare import compare
 
@@ -32,7 +33,19 @@ def free_port() -> int:
 @pytest.fixture(scope="module")
 def base_url(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
     port = free_port()
-    app = create_app(Settings(runs_dir=tmp_path_factory.mktemp("runs"), agent_mode="stub"))
+    # The registry fixture carries the export's labels and greyed entries, so Settings compares against the
+    # references while the real page shows the live models (S5 research D8, design deviations S5).
+    app = create_app(
+        Settings(runs_dir=tmp_path_factory.mktemp("runs"), agent_mode="stub"),
+        model_config=ModelConfig.load(ROOT / "tests" / "fixtures" / "models-export.yaml"),
+        availability={
+            "bedrock": Availability("bedrock", True, "credentials resolved"),
+            "google": Availability("google", True, "key present"),
+            "ollama": Availability("ollama", True, "reachable, models present"),
+            "xai": Availability("xai", False, "no credentials in .env"),
+            "anthropic": Availability("anthropic", False, "no credentials in .env"),
+        },
+    )
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
@@ -61,7 +74,16 @@ def captures(base_url: str) -> dict[str, Path]:
 
 @pytest.mark.parametrize(
     "name",
-    ["demo-idle", "demo-paused", "demo-running", "demo-terminated", "login", "settings", "preflight-pending"],
+    [
+        "demo-idle",
+        "demo-paused",
+        "demo-running",
+        "demo-terminated",
+        "login",
+        "settings",
+        "settings-dropdown",
+        "preflight-pending",
+    ],
 )
 def test_page_matches_export(name: str, captures: dict[str, Path]) -> None:
     result = compare(name, REFERENCE / f"{name}.png", captures[name], OUTPUT)

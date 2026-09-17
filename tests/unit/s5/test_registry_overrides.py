@@ -33,11 +33,13 @@ def registry(tmp_path: Path) -> Registry:
 def test_override_changes_the_effective_configuration_only(tmp_path: Path) -> None:
     before = hashlib.sha256(MODELS_PATH.read_bytes()).hexdigest()
     r = registry(tmp_path)
-    assert r.effective_config().seat_spec("estimator").label == "claude-sonnet via Bedrock (vision)"
+    assert r.effective_config().seat_spec("estimator").label == "claude-sonnet via Bedrock"
     swap = r.set_seat_model("estimator", "export-opus")
     assert swap.applied == "next-run" and swap.model.label == "claude-opus via Bedrock"
     assert r.effective_config().seat_spec("estimator").label == "claude-opus via Bedrock"
-    assert r.model_config.seat_spec("estimator").label == "claude-sonnet via Bedrock (vision)", "the file's config"
+    assert r.model_config.seat_spec("estimator").label == "claude-sonnet via Bedrock", (
+        "the file's config"
+    )
     assert hashlib.sha256(MODELS_PATH.read_bytes()).hexdigest() == before
 
 
@@ -56,7 +58,16 @@ def test_unknown_key_seat_and_unavailable_provider_are_refused(tmp_path: Path) -
 def test_seat_table_shows_live_labels_and_greyed_options(tmp_path: Path) -> None:
     table = registry(tmp_path).seat_table()
     seats = {row["seat"]: row for row in table["seats"]}
-    assert list(seats) == ["orchestrator", "intake", "estimator", "pricing", "writer", "reviewer", "case", "market"]
+    assert list(seats) == [
+        "orchestrator",
+        "intake",
+        "estimator",
+        "pricing",
+        "writer",
+        "reviewer",
+        "case",
+        "market",
+    ]
     assert seats["pricing"]["card"]["model"]["label"] == "llama3.1 8b, local"
     assert seats["estimator"]["dependency"] == "Bid response workflow. Needs vision on drawings"
     assert seats["reviewer"]["warning"] == ""
@@ -68,8 +79,9 @@ def test_seat_table_shows_live_labels_and_greyed_options(tmp_path: Path) -> None
         "provider_label": "xAI",
         "available": False,
         "reason": "no credentials in .env",
+        "note": "no credentials in .env",
     }
-    assert options["export-llama"]["available"] and options["export-llama"]["reason"] == ""
+    assert options["export-llama"]["available"] and options["export-llama"]["note"] == "Ollama, detected"
     assert table["note"] == "Changes apply at the next stage."
     assert "GEMINI" not in str(table) and "AKIA" not in str(table)
 

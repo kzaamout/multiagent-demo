@@ -241,6 +241,10 @@
           pausedByHuman = false;
           addCard({ id: 'resumed:' + event.event_id, kind: 'orchestrator-note', role: 'resumed', event: event });
           break;
+        case 'model.changed':
+          /* The seat's label changes everywhere at once (spec 2.3); later events carry it on their actor. */
+          if (view.roster[p.agent_id]) { view.roster[p.agent_id] = Object.assign({}, view.roster[p.agent_id], { model: p.to_model }); }
+          break;
         case 'meter.update': {
           var m = view.meters[p.agent_id] || (view.meters[p.agent_id] = { tokens: 0, tokensIn: 0, tokensOut: 0, cost: 0, calls: 0, wallMs: 0, lastEvent: 'none' });
           m.tokensIn += p.tokens_in;

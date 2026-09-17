@@ -10,10 +10,13 @@
 
   function clock(view, event) { return F.fmtClock(F.tsMs(event.ts) - view.startMs); }
 
+  var LIVE_ROSTER = {};
+
   function agentCard(agent, size) {
     var a = agent || HUMAN;
+    if (a.agent_id && LIVE_ROSTER[a.agent_id] && LIVE_ROSTER[a.agent_id].model) { a = Object.assign({}, a, { model: LIVE_ROSTER[a.agent_id].model }); }
     var name = a.role ? a.name + ', ' + a.role : a.name;
-    return el('div', { class: 'agent' + (size ? ' agent-' + size : ''), 'data-part': 'agent-card' }, [
+    return el('div', { class: 'agent' + (size ? ' agent-' + size : ''), 'data-part': 'agent-card', 'data-agent': a.agent_id || 'human' }, [
       el('div', { class: 'avatar', 'data-part': 'avatar', style: 'background:' + F.seatColor(a.agent_id), text: F.initials(a.name) }),
       el('div', { class: 'agent-text' }, [
         el('div', { class: 'agent-name', 'data-part': 'name', text: name }),
@@ -881,6 +884,7 @@
   }
 
   function renderAll(view, ui, ctx) {
+    LIVE_ROSTER = view.hasRun ? view.roster : (ctx && ctx.idleRoster) || {};
     renderLoop(view, ui);
     renderBanner(view, ui);
     renderComposer(view, ui, ctx);

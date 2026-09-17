@@ -241,22 +241,23 @@ class Registry:
         for key, spec in config.models.items():
             state = self.availability.get(spec.provider)
             available = bool(state and state.available)
+            provider_label = str(config.providers.get(spec.provider, {}).get("label", spec.provider))
             if available:
                 reason = ""
+                note = f"{provider_label}, detected" if spec.provider == "ollama" else provider_label
             elif spec.provider == "ollama":
-                reason = "Ollama not detected at startup"
+                reason = note = "Ollama not detected at startup"
             else:
-                reason = "no credentials in .env"
+                reason = note = "no credentials in .env"
             options.append(
                 {
                     "key": key,
                     "label": spec.label,
                     "provider": spec.provider,
-                    "provider_label": str(
-                        config.providers.get(spec.provider, {}).get("label", spec.provider)
-                    ),
+                    "provider_label": provider_label,
                     "available": available,
                     "reason": reason,
+                    "note": note,
                 }
             )
         return options

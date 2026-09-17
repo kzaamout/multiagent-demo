@@ -20,7 +20,7 @@ from app.agents.stubs import bundle_for
 from app.buildinfo import build_info
 from app.compile import CompileError, compile_timeline, tools_available
 from app.config import Settings, load_settings
-from app.live.providers import ModelConfig, SeatModelFactory
+from app.live.providers import Availability, ModelConfig, SeatModelFactory, strands_model_for
 from app.orchestrator.orchestrator import Answer
 from app.runs.bus import StreamBus
 from app.runs.recorder import read_events
@@ -37,6 +37,10 @@ class RunRequest(BaseModel):
     mode: Literal["team"] = "team"
     names: dict[str, str] | None = None
     dry_intake: bool = False
+
+
+class SeatModelRequest(BaseModel):
+    model: str
 
 
 class AnswerItem(BaseModel):
@@ -65,10 +69,13 @@ def create_app(
     settings: Settings | None = None,
     seat_model_factory: SeatModelFactory | None = None,
     model_config: ModelConfig | None = None,
+    availability: dict[str, Availability] | None = None,
 ) -> FastAPI:
     cfg = settings or load_settings()
     bus = StreamBus()
-    registry = Registry(cfg, bus, seat_model_factory=seat_model_factory, model_config=model_config)
+    registry = Registry(
+        cfg, bus, seat_model_factory=seat_model_factory, model_config=model_config, availability=availability
+    )
     replays: dict[str, ReplaySession] = {}
 
     @asynccontextmanager
@@ -136,6 +143,38 @@ def create_app(
     async def providers() -> dict[str, Any]:
         """Availability as booleans and reasons only; never a credential value."""
         return registry.provider_report()
+
+    # Seats (S5, contracts/http-api-s5.md)
+
+    @app.get("/api/seats")
+    async def seats() -> dict[str, Any]:
+        """Every seat with its live card and every model with its availability. Never a credential value."""
+        return registry.seat_table()
+
+    @app.post("/api/seats/{seat}")
+    async def set_seat(seat: str, body: SeatModelRequest) -> dict[str, Any]:
+        try:
+            swap = registry.set_seat_model(seat, body.model)
+        except ValueError as error:
+            raise HTTPException(400, str(error)) from error
+        except LiveUnavailable as unavailable:
+            raise HTTPException(409, "; ".join(unavailable.problems)) from None
+        live = registry.live if registry.is_live() else None
+        if live is not None and seat in live.roster:
+            agent = live.roster[seat].model_copy(update={"model": swap.model})
+            seat_model = None
+            if registry.mode_for(live.dataset.dataset_id) == "live":
+                factory = registry.seat_model_factory or (
+                    lambda s: strands_model_for(registry.effective_config(), s)
+                )
+                seat_model = factory(seat)
+            await live.change_model(seat, agent, seat_model)
+        return {
+            "seat": swap.seat,
+            "model": swap.model.model_dump(),
+            "warning": swap.warning,
+            "applied": swap.applied,
+        }
 
     @app.get("/api/datasets")
     async def datasets() -> list[dict[str, Any]]:

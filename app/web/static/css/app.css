@@ -400,3 +400,16 @@ a:hover { color: #17171c; }
 .check-dot { width: 14px; height: 14px; border-radius: 999px; background: #d9d9dd; }
 .check-name { font-size: 17px; }
 .check-detail { font-size: 14px; color: #75758a; }
+
+/* S5: the seat rows are rendered into one container; it carries the same column gap as the page. */
+#seat-rows { display: flex; flex-direction: column; gap: 12px; }
+.seat-select-col .menu-item { white-space: normal; gap: 8px; }
+.seat-select-col .menu-item .menu-note { text-align: right; white-space: normal; }
+/* S5: the Settings seat menu opens in the row, as in the export's open dropdown state; greyed entries and the warning line. */
+.seat-select-col { position: relative; }
+.seat-select-col .menu { position: static; min-width: 0; margin-top: 0; }
+.menu-item[aria-disabled="true"] { color: #93939f; cursor: not-allowed; }
+.menu-item[aria-disabled="true"]:hover { background: none; }
+.seat-warning { font-size: 13px; color: #b45309; }
+.settings-status { font-size: 13px; color: #75758a; }
+.seat-select-col .model-select { box-sizing: content-box; height: 44px; }
