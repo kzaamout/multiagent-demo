@@ -46,7 +46,13 @@ DRY_INTAKE = Rect(
     "kept",
 )
 ARTIFACT_BODY = Rect(
-    1280, 316, 1896, 940, "artifact panel placeholder; compiled pages and Edit and Reject arrive in S4", "S4"
+    1280,
+    316,
+    1896,
+    940,
+    "compiled pages of the run with provenance markers (S4); the export shows a static mock of pages "
+    "with other content, so the region is reviewed for family consistency, not compared pixel by pixel",
+    "kept",
 )
 DRY_INTAKE_UNDER_BANNER = Rect(
     536,
@@ -57,7 +63,7 @@ DRY_INTAKE_UNDER_BANNER = Rect(
     "kept",
 )
 ARTIFACT_BODY_UNDER_BANNER = Rect(
-    1280, 548, 1896, 940, "artifact panel placeholder; compiled pages arrive in S4", "S4"
+    1280, 548, 1896, 940, "compiled pages of the run (S4); the export's mock pages differ in content", "kept"
 )
 COMPARE_STRIP = Rect(1280, 264, 1896, 304, "Compare strip content arrives with Single-model mode", "S5")
 COMPARISON_LINE = Rect(

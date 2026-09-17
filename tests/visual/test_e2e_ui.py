@@ -423,10 +423,10 @@ def test_pages_appear_for_a_stub_run_and_replay_without_datasets(
     choose_dataset(page, "01 · Clean run")
     page.click("#btn-run")
     _answer_banner_if_shown(page)
-    page.wait_for_selector("figure.page img.page-img", timeout=180000)
+    page.wait_for_selector("figure.page-figure img.page-img", timeout=180000)
     _approve(page)
     count = page.evaluate("() => window.__s1.view.latestCompiled.pageImages.length")
-    assert count >= 2 and page.locator("figure.page").count() == count
+    assert count >= 2 and page.locator("figure.page-figure").count() == count
     assert page.inner_text("#artifact-version").startswith("v1 ·")
     page.wait_for_function("() => document.querySelector('img.page-img').naturalWidth > 0")
     assert page.locator("#artifact-empty").is_hidden()
@@ -443,9 +443,9 @@ def test_pages_appear_for_a_stub_run_and_replay_without_datasets(
     )
     try:
         page.goto(base2 + f"/demo?run={run_id}")
-        page.wait_for_selector("figure.page img.page-img", timeout=60000)
+        page.wait_for_selector("figure.page-figure img.page-img", timeout=60000)
         page.wait_for_function("() => document.querySelector('img.page-img').naturalWidth > 0")
-        assert page.locator("figure.page").count() == count
+        assert page.locator("figure.page-figure").count() == count
         assert page.locator("#artifact-empty").is_hidden()
     finally:
         srv2.should_exit = True
@@ -545,7 +545,7 @@ def test_recording_without_pages_says_so(page: Any, server: tuple[str, Path]) ->
     )
     assert text[0] is None and text[1] == 1
     assert text[2] == "This recording predates compiled pages."
-    assert page.locator("figure.page").count() == 0
+    assert page.locator("figure.page-figure").count() == 0
 
 
 @pytest.mark.compiler
@@ -572,13 +572,13 @@ def test_every_marker_highlights_its_source_message(page: Any, server: tuple[str
             / "compiled.json"
         ).read_text(encoding="utf-8")
     )
-    figures = page.locator("#pages figure.page")
+    figures = page.locator("#pages figure.page-figure")
     total = 0
     for i in range(figures.count()):
         figure = figures.nth(i)
         figure.scroll_into_view_if_needed()
         page.wait_for_function(
-            "(i) => { const img = document.querySelectorAll('#pages figure.page img')[i]; return img.complete && img.naturalWidth > 0; }",
+            "(i) => { const img = document.querySelectorAll('#pages figure.page-figure img')[i]; return img.complete && img.naturalWidth > 0; }",
             arg=i,
         )
         page.wait_for_timeout(100)

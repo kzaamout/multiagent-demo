@@ -96,13 +96,17 @@ def make_orchestrator(
     record: bool = False,
     bus: StreamBus | None = None,
     run_id: str = "00000000-0000-4000-8000-000000000001",
+    dataset_folder: Path | None = None,
 ) -> Orchestrator:
     recorder = Recorder(settings.runs_dir, run_id) if record else None
     return Orchestrator(
         run_id=run_id,
         workflow="electrical_rfp",
         dataset=DatasetRef(
-            dataset_id=scenario.dataset_id, label=scenario.dataset_id, client_id=scenario.client_id
+            dataset_id=scenario.dataset_id,
+            label=scenario.dataset_id,
+            client_id=scenario.client_id,
+            folder=dataset_folder,
         ),
         scenario=scenario,
         roster=build_roster("electrical_rfp", names=EXPORT_NAMES),

@@ -151,7 +151,13 @@ def draft(
             "version": version,
             "markdown_path": f"drafts/draft-v{version}.md",
             "provenance_tags": [
-                {"tag_id": t.tag_id, "source_event_id": f"$event:{source_task}"} for t in fixture_tags()
+                # Pricing figures point at the Pricing sub-task (t2 in every stub plan); the rest at the
+                # Estimator's task, which is the one a rework re-dispatches.
+                {
+                    "tag_id": t.tag_id,
+                    "source_event_id": f"$event:{'t2' if t.source_id == 'pricing' else source_task}",
+                }
+                for t in fixture_tags()
             ],
             "note": note,
         },

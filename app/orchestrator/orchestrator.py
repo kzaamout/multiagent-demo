@@ -90,6 +90,7 @@ DEFAULT_REASONS: dict[str, str] = {
     "dispatch": "Each specialist receives only its sub-task, the brief, and the context in its scope.",
     "assemble_enter": "All specialist outputs are in, so the Writer can assemble the deliverable.",
     "assemble_dispatch": "The Writer assembles from the specialist outputs and tags every figure with its source.",
+    "brand_colour": "The brand file's colour is not a usable hex value, so the template's default colour stands in and is flagged for Handoff.",
     "review_enter": "A draft exists, so the Reviewer judges it against the brief and the criteria.",
     "handoff_enter": "The Reviewer passed the draft, so it goes to you for approval.",
     "handoff_exhausted": "Review stopped ({stop_reason}), so the draft goes to you with findings unresolved.",
@@ -799,11 +800,29 @@ class Orchestrator:
             folder, version, path.read_text(encoding="utf-8"), self.brand(), headlines=self.source_headlines()
         )
 
+    async def _record_brand_assumptions(self) -> None:
+        """A brand colour the template could not use is an assumption on the run (spec FR-013): the
+        default colour stands in and the human sees it at Handoff. A missing logo is not an assumption;
+        the wordmark is the designed fallback (decision 7a)."""
+        for text in self.brand().assumptions:
+            if "primary_colour" not in text or "brand_colour" in self.state.assumptions:
+                continue
+            self.state.assumptions.append("brand_colour")
+            await self._emit_orchestrator(
+                "assumption.accepted",
+                stage="assemble",
+                offset=self._after(100),
+                reason=self._reason("brand_colour"),
+                payload={"question_id": "brand_colour", "default_used": DEFAULT_COLOUR},
+            )
+
     async def _emit_compiled(self, draft_event: Event) -> Event:
         """Emit `artifact.compiled` for a committed draft from the record its compile left, compiling
         the fixture draft first when the source could not (stubs). Live sources compile before they
         commit, so a draft that does not compile never becomes a version."""
         version = int(draft_event.payload["version"])
+        if version == 1:
+            await self._record_brand_assumptions()
         compiled = read_compiled(self._artifact_folder, version)
         if compiled is None:
             compiled = await asyncio.to_thread(

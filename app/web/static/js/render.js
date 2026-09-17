@@ -695,11 +695,11 @@
     if (list.__key === key) { return; }
     list.__key = key;
     var top = scroll.scrollTop;
-    var figures = list.querySelectorAll('figure.page');
+    var figures = list.querySelectorAll('figure.page-figure');
     compiled.pageImages.forEach(function (path, i) {
       var figure = figures[i];
       if (!figure) {
-        figure = el('figure', { class: 'page', 'data-part': 'page', 'data-page': String(i + 1) }, [
+        figure = el('figure', { class: 'page-figure', 'data-part': 'page', 'data-page': String(i + 1) }, [
           el('img', { class: 'page-img', loading: i < 2 ? 'eager' : 'lazy', alt: 'Page ' + (i + 1) }),
           el('figcaption', { class: 'page-num', text: 'Page ' + (i + 1) })
         ]);
@@ -729,14 +729,20 @@
     return entry;
   }
 
-  function placeMarkers(figure, img, markers, tags) {
+  function placeMarkers(figure, img) {
+    /* The figure carries the markers for the version its image shows; a new version keys a new layer,
+       so v2's markers never sit on v1's positions. */
+    var want = figure.__markers;
+    if (!want) { return; }
+    var markers = want.list;
+    var tags = want.tags;
     var layer = figure.querySelector('.marker-layer');
     if (!layer) { layer = el('div', { class: 'marker-layer', 'data-part': 'marker-layer' }); figure.appendChild(layer); }
-    var key = markers.length + ':' + img.naturalWidth + ':' + Object.keys(tags).length;
+    var key = want.key + ':' + img.currentSrc + ':' + img.naturalWidth;
     if (layer.__key === key) { return; }
     layer.__key = key;
     layer.textContent = '';
-    if (!img.naturalWidth || !img.naturalHeight) { layer.__key = null; return; }
+    if (!img.naturalWidth || !img.naturalHeight || img.currentSrc.indexOf(want.path) === -1) { layer.__key = null; return; }
     markers.forEach(function (m) {
       var source = tags[m.tag_id] || null;
       var attrs = {
@@ -756,15 +762,21 @@
     var entry = loadMarkers(compiled, ui);
     if (entry.status !== 'loaded') { return; }
     var tags = view.draftTags[compiled.version] || {};
-    document.querySelectorAll('#pages figure.page').forEach(function (figure) {
+    document.querySelectorAll('#pages figure.page-figure').forEach(function (figure, index) {
       var pageNo = Number(figure.getAttribute('data-page'));
       var img = figure.querySelector('img');
-      var mine = entry.list.filter(function (m) { return m.page === pageNo; });
+      figure.__markers = {
+        key: compiled.runId + '/' + compiled.eventId,
+        path: encodeURIComponent(compiled.pageImages[index] ? compiled.pageImages[index].split('/').pop() : ''),
+        list: entry.list.filter(function (m) { return m.page === pageNo; }),
+        tags: tags
+      };
       if (img.complete && img.naturalWidth) {
-        placeMarkers(figure, img, mine, tags);
-      } else if (!img.__markerHook) {
+        placeMarkers(figure, img);
+      }
+      if (!img.__markerHook) {
         img.__markerHook = true;
-        img.addEventListener('load', function () { placeMarkers(figure, img, mine, tags); });
+        img.addEventListener('load', function () { placeMarkers(figure, img); });
       }
     });
   }

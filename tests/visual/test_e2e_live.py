@@ -69,7 +69,7 @@ def test_live_run_shows_tools_banner_and_draft_text(live_server: str) -> None:
         page.wait_for_selector("#btn-approve:not([disabled])", timeout=30000)
         page.wait_for_selector("#pages-scroll:not([hidden])", timeout=10000)
         page.wait_for_function("() => document.querySelector('img.page-img').naturalWidth > 0")
-        assert page.locator("figure.page").count() >= 1
+        assert page.locator("figure.page-figure").count() >= 1
         assert page.inner_text("#artifact-version").startswith("v1 ·")
         page.wait_for_selector(".marker", timeout=10000)
         assert page.locator(".marker").count() == 2, "one marker per provenance tag in the draft"
