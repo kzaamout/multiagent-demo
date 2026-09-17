@@ -277,3 +277,113 @@ def test_draft_renderer_keeps_provenance_tags_whole_inside_table_cells(
     html = page.evaluate("(md) => window.S1Draft.renderMarkdown(md)", markdown)
     assert html.count('class="prov"') == 1 and "{{" not in html and "src:" not in html
     assert html.count("<td>") == 3, "the tag's pipe does not split the cell"
+
+
+def _stage_events(transitions: list[tuple[str | None, str, str]], *, ended: bool) -> list[dict[str, Any]]:
+    """A minimal event list shaped like a run: start, the given stage transitions, optional end."""
+    actor = {"agent_id": "orchestrator", "name": "Oscar", "role": "Orchestrator", "model": {"label": "stub"}}
+    events: list[dict[str, Any]] = [
+        {
+            "event_id": "e0",
+            "run_id": "r",
+            "seq": 1,
+            "ts": "2026-09-16T10:00:00.000Z",
+            "type": "run.started",
+            "stage": None,
+            "actor": actor,
+            "reason": "start",
+            "payload": {
+                "workflow": "electrical_rfp",
+                "dataset_id": "clean-run",
+                "mode": "single",
+                "roster": [],
+            },
+        }
+    ]
+    for i, (src, dst, direction) in enumerate(transitions, start=1):
+        events.append(
+            {
+                "event_id": f"e{i}",
+                "run_id": "r",
+                "seq": i + 1,
+                "ts": "2026-09-16T10:00:01.000Z",
+                "type": "stage.changed",
+                "stage": dst,
+                "actor": actor,
+                "reason": "next",
+                "payload": {"from": src, "to": dst, "direction": direction, "target_reason": f"into {dst}"},
+            }
+        )
+    if ended:
+        events.append(
+            {
+                "event_id": "end",
+                "run_id": "r",
+                "seq": len(events) + 1,
+                "ts": "2026-09-16T10:00:02.000Z",
+                "type": "run.terminated",
+                "stage": None,
+                "actor": actor,
+                "reason": "done",
+                "payload": {"exit": "single_complete", "summary": {"headline": "Single model finished"}},
+            }
+        )
+    return events
+
+
+def test_reducer_marks_skipped_stages_bypassed(page: Any, server: tuple[str, Path]) -> None:
+    """Spec 0.7, 2.2: a stage a forward transition skips renders bypassed, never idle, and every
+    connector the jump crosses fills. No Team-mode run skips a stage, so the reducer is fed a
+    Single-model shaped list directly."""
+    base, _ = server
+    page.goto(base + "/demo")
+    page.wait_for_function("() => window.S1Reducer && window.S1Reducer.reduce")
+    reduce = "(events) => window.S1Reducer.reduce(events)"
+
+    running = _stage_events([(None, "intake", "forward"), ("intake", "work", "forward")], ended=False)
+    view = page.evaluate(reduce, running)
+    assert view["nodes"] == {
+        "intake": "complete",
+        "plan": "bypassed",
+        "work": "active",
+        "assemble": "idle",
+        "review": "idle",
+        "handoff": "idle",
+    }
+    assert view["stageReason"] == "into work"
+    assert set(view["forwardFired"]) == {"intake-plan", "plan-work"}, "both crossed connectors fill"
+
+    single = _stage_events(
+        [
+            (None, "intake", "forward"),
+            ("intake", "work", "forward"),
+            ("work", "assemble", "forward"),
+            ("assemble", "handoff", "forward"),
+        ],
+        ended=True,
+    )
+    view = page.evaluate(reduce, single)
+    assert view["nodes"]["plan"] == "bypassed" and view["nodes"]["review"] == "bypassed"
+    assert [s for s, state in view["nodes"].items() if state == "complete"] == [
+        "intake",
+        "work",
+        "assemble",
+        "handoff",
+    ]
+    assert len(view["forwardFired"]) == 5, "every forward connector filled"
+    assert view["stageReason"] == "Single model finished", "the termination headline replaces the stage label"
+
+    entered_later = _stage_events(
+        [
+            (None, "intake", "forward"),
+            ("intake", "work", "forward"),
+            ("work", "plan", "backward"),
+            ("plan", "work", "forward"),
+        ],
+        ended=False,
+    )
+    view = page.evaluate(reduce, entered_later)
+    assert view["nodes"]["plan"] == "complete", (
+        "a bypassed stage that is later entered is complete, not bypassed"
+    )
+    assert page.errors == []
