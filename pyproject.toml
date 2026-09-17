@@ -64,5 +64,8 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-markers = ["visual: screenshot comparison tests that need Chromium"]
+markers = [
+    "visual: screenshot comparison tests that need Chromium",
+    "compiler: needs Typst and pandoc on the path",
+]
 addopts = "-q"

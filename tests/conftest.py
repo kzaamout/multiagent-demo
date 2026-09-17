@@ -34,11 +34,27 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     """Datasets are not committed (see .gitignore). Without them these tests cannot run, so they skip
     rather than fail, and a checkout with the datasets in place runs everything as before."""
     folder = ROOT / "datasets"
-    if folder.is_dir() and any(p.is_dir() for p in folder.iterdir()):
+    if not (folder.is_dir() and any(p.is_dir() for p in folder.iterdir())):
+        skip = pytest.mark.skip(reason="no datasets in this checkout; see datasets/README.md")
+        for item in items:
+            if "dataset" in item.keywords:
+                item.add_marker(skip)
+    _skip_without_compiler(items)
+
+
+def _skip_without_compiler(items: list[pytest.Item]) -> None:
+    """Typst and pandoc are external tools (docs/dependencies.md). Tests that compile a document skip,
+    naming the missing tool, so a machine without them still runs the rest of the suite."""
+    if not any("compiler" in item.keywords for item in items):
         return
-    skip = pytest.mark.skip(reason="no datasets in this checkout; see datasets/README.md")
+    from app.compile.pipeline import tools_available
+
+    missing = [name for name, version in tools_available().items() if version is None]
+    if not missing:
+        return
+    skip = pytest.mark.skip(reason="compiler missing: " + ", ".join(missing))
     for item in items:
-        if "dataset" in item.keywords:
+        if "compiler" in item.keywords:
             item.add_marker(skip)
 
 
