@@ -12,7 +12,7 @@ Not software. Judgement about how AI should be put to work inside a business: se
 Talk about it as an org chart, not a tech stack. The Orchestrator is the project manager. The specialists are the estimator and the buyer. The Writer is the proposal writer. The Reviewer is QA. The prospect is the approver. Use the agents' names. "Rosa rejected Willa's draft because Elias's estimate didn't match the panel schedule" lands. "The reviewer agent returned a fail verdict" does not.
 
 ## Before the meeting
-- One week out: ask for one real RFP, redacted if needed. If refused, pick a public tender from their market and say so.
+- One week out: ask for one real bid request, redacted if needed. If refused, pick a public tender from their market and say so.
 - Run Dry intake on their file. Not ready: go back to them for the missing pieces (this makes you look rigorous). Ready with assumptions: note which clarification will fire live and plan to have the prospect answer it.
 - Run the full team on their file at least twice. Fix anything ugly. Record a clean run for Replay.
 - Load the Planted inconsistency dataset as your backup if their file passes review cleanly on the first go. You need a rejection on screen.
@@ -24,7 +24,7 @@ Talk about it as an org chart, not a tech stack. The Orchestrator is the project
 ## The arc (20 minutes)
 0 to 3, Introduction tab. Meet the team, one sentence per agent. Explain the loop with the diagram, spend the extra beat on the backward arrows and on "four ways it stops."
 
-3 to 5, the villain. Switch to Single model, run their RFP. Say nothing while it generates. Ask them to read it. Let them find the invented price or the missed item. If they don't, point to one. Say: "That's what most AI demos are. Here's what we do instead."
+3 to 5, the villain. Switch to Single model, run their bid request. Say nothing while it generates. Ask them to read it. Let them find the invented price or the missed item. If they don't, point to one. Say: "That's what most AI demos are. Here's what we do instead."
 
 5 to 14, the team run. Narrate lightly, let the screen do the work.
 - Plan appears: "This is orchestration. A work breakdown before any work."
