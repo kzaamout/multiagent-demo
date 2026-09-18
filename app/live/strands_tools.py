@@ -83,6 +83,12 @@ def build_tools(
     def document_parse_pdf(file: str, tool_context: ToolContext) -> dict[str, Any]:
         """Read a request document or drawing sheet: text and a legibility confidence for each page.
 
+        Read every document and every prepared sheet before grading the checklist. A sheet you have not
+        opened cannot be graded from its file name, and a document absent from the list is the one fact
+        you can state without reading. The confidence is the page's legibility, not your confidence in
+        what it says. This returns text only: a drawing's symbols and title block need an eye, so a grade
+        that depends on what a drawing shows belongs to the Estimator as a concern, not to you.
+
         Args:
             file: A prepared sheet or page, for example "prepared/E-001.pdf", or a path in the inputs
                 folder, for example "request.pdf" or "drawings/E-001.pdf".
@@ -97,7 +103,12 @@ def build_tools(
 
     @tool(context=True)
     def document_extract_attachments(tool_context: ToolContext) -> dict[str, Any]:
-        """List the request files and drawing sheets provided with the request, and the prepared sheets."""
+        """List the request files and drawing sheets provided with the request, and the prepared sheets.
+
+        Call this first, before reading anything: it is the record of what the request actually came with.
+        A document the request names that does not appear here is genuinely missing and is graded so; a
+        document that appears here has been provided, whatever the request says about it. Use it to decide
+        what to read, not to decide what a document contains."""
         request = [p.name for p in files.request_files()]
         sheets = [p.stem for p in files.drawing_files()]
         prepared = (
@@ -253,6 +264,11 @@ def build_tools(
         """Fill the response template. Sections: executive_summary, scope, pricing_summary,
         schedule_of_values, assumptions, exclusions. Returns the markdown, tags found, and gaps.
 
+        It reports the provenance tags it can see and the sections it found empty, which is what the
+        engine checks your draft against, so calling it before you reply shows you what will be refused
+        while you can still fix it. It fills the template around your text; it does not write the text,
+        and it cannot tag a figure for you.
+
         Args:
             sections: Section name to markdown text.
         """
@@ -268,6 +284,9 @@ def build_tools(
     def compile_trigger(version: int, tool_context: ToolContext) -> dict[str, Any]:
         """Ask for the draft to be committed and compiled. The draft from your final reply is
         committed as the given version and compiled to pages for the Reviewer.
+
+        Call this once, when the draft is finished. It is not a preview: the version it commits is what
+        the Reviewer judges and what the human sees. Use template_render while you are still working.
 
         Args:
             version: The draft version you are committing, starting at 1.

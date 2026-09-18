@@ -16,11 +16,13 @@ import pytest
 from app.live.materials import DatasetFiles
 from app.live.strands_tools import ToolLog, build_tools
 
+SEATS_WITH_TOOLS = ("intake", "estimator", "pricing", "writer")
+
 
 def spec_of(name: str, tmp_path: Path) -> dict[str, Any]:
     """The tool as Strands hands it to a model: its description and its argument schema."""
     made: list[object] = []
-    for seat in ("estimator", "pricing"):
+    for seat in SEATS_WITH_TOOLS:
         made += build_tools(
             seat,
             files=DatasetFiles(tmp_path),
@@ -66,3 +68,32 @@ def test_the_drawing_reader_says_an_unread_sheet_is_not_a_missing_sheet(tmp_path
     text = description("vision_read_drawing", tmp_path)
     assert "not a missing sheet" in text
     assert "drawing index" in text, "it says what a real missing sheet looks like"
+
+
+def test_every_tool_offered_to_a_seat_says_when_to_use_it(tmp_path: Path) -> None:
+    """A description that says only what a tool does leaves the seat to guess when to reach for it.
+
+    Not a style rule: the seats that skipped a tool, or decided about a sheet they had not opened, were
+    reading descriptions that named the action and stopped. Length is a crude proxy, so the real check is
+    that each one says something about when, or when not.
+    """
+    when_words = ("before", "first", "once", "not a", "do not", "cannot", "refused", "while")
+    seen: set[str] = set()
+    for seat in SEATS_WITH_TOOLS:
+        for tool in build_tools(
+            seat,
+            files=DatasetFiles(tmp_path),
+            log=ToolLog(),
+            prospect_name="Fictional Prospect Ltd.",
+            prepared_dir=tmp_path,
+            project="a project",
+            supplier_order=[],
+            long_lead_days=21,
+        ):
+            name = str(getattr(tool, "tool_name", ""))
+            if name in seen:
+                continue
+            seen.add(name)
+            text = str((getattr(tool, "tool_spec", {}) or {}).get("description", "")).lower()
+            assert any(word in text for word in when_words), f"{name} says what it does but not when"
+    assert len(seen) == 7, f"every tool the team holds is covered, found {sorted(seen)}"
