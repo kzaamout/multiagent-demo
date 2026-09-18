@@ -85,3 +85,12 @@ def test_a_repeat_stage_runs_only_the_named_pairs_without_a_baseline_job() -> No
     ]
     assert [j.repeat for j in jobs] == [0, 1, 2]
     assert jobs[0].seats["pricing"] == "llama3-1-8b" and jobs[0].seats["writer"] == "qwen3-5-9b"
+
+
+def test_the_blocker_policy_follows_the_dataset_not_the_whole_sweep() -> None:
+    """Missing sheet is built to escalate; on a dataset that plants nothing a blocker is invented."""
+    sweep = load_sweep()
+    plan = {"blocker": "answer", "blocker_by_dataset": {"missing-sheet": "escalate"}}
+    assert sweep.blocker_policy(plan, "missing-sheet") == "escalate"
+    assert sweep.blocker_policy(plan, "clean-run") == "answer"
+    assert sweep.blocker_policy({}, "clean-run") == "escalate", "the old default is unchanged"

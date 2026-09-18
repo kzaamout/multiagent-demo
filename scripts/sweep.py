@@ -188,6 +188,18 @@ class Api:
             raise RuntimeError(f"{method} {path} -> {failure.code}: {detail}") from None
 
 
+def blocker_policy(plan: dict[str, Any], dataset_id: str) -> str:
+    """What to do when a blocker asks for a human, which depends on the dataset.
+
+    One policy cannot serve a sweep that spans datasets. Missing sheet exists to produce an escalated
+    blocker, so answering there destroys the scenario; on a dataset that plants nothing a blocker is the
+    seat inventing one, and escalating ends the run in a minute. A plan gives the default in `blocker` and
+    the exceptions in `blocker_by_dataset`.
+    """
+    by_dataset = plan.get("blocker_by_dataset") or {}
+    return str(by_dataset.get(dataset_id, plan.get("blocker", "escalate")))
+
+
 def drive(api: Api, job: Job, plan: dict[str, Any], log: Any) -> dict[str, Any]:
     """Set the seats, start the run, answer what it asks, approve at Handoff, and say how it ended."""
     for seat, model_key in job.seats.items():
@@ -223,7 +235,7 @@ def drive(api: Api, job: Job, plan: dict[str, Any], log: Any) -> dict[str, Any]:
             ]
             blocker = pending.get("blocker")
             if blocker and blocker["blocker_id"] not in answered:
-                if str(plan.get("blocker", "escalate")) == "escalate":
+                if blocker_policy(plan, job.dataset_id) == "escalate":
                     answers.append({"question_id": blocker["blocker_id"], "answer": "", "action": "escalate"})
                 else:
                     answers.append(
