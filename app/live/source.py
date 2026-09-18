@@ -9,6 +9,7 @@ records ride on the next emission so every model call gets its own meter update.
 from __future__ import annotations
 
 import asyncio
+import functools
 import re
 from collections.abc import AsyncIterator, Callable, Mapping
 from dataclasses import dataclass
@@ -23,6 +24,7 @@ from app.agents.stubs._common import rfp_plan
 from app.compile import CompileError, compile_draft
 from app.live.concerns import concern_problems, specialist_concerns
 from app.live.context import build_context
+from app.live.deterministic import assumptions_block, blocker_names_a_present_sheet, tag_advice
 from app.live.materials import CONFIG_DIR, DatasetFiles, build_materials
 from app.live.replies import (
     REQUIRED_SECTIONS,
@@ -54,7 +56,7 @@ from app.schema.bundles import PromptBundle
 from app.schema.events import Event, Subtask
 from app.seats.definitions import SEAT_DEFINITIONS, instructions_version, load_instructions
 from app.tools.prepare import PREPARED_DIR, prepare_documents, read_manifest
-from app.tools.template import commit_draft, find_tags, provenance_problems
+from app.tools.template import commit_draft, find_tags, provenance_problems, untagged_money
 
 if TYPE_CHECKING:
     from app.orchestrator.orchestrator import Orchestrator
@@ -160,10 +162,24 @@ def estimator_blocker_is_not_a_concern(reply: BaseModel, tools_used: list[str]) 
     return None
 
 
-def estimator_requirements(reply: BaseModel, tools_used: list[str]) -> str | None:
-    """Both Estimator rules, in the order a reader of the conventions would apply them."""
-    return estimator_blocker_is_not_a_concern(reply, tools_used) or estimator_used_calculator(
-        reply, tools_used
+def estimator_blocker_is_real(reply: BaseModel, prepared: Any) -> str | None:
+    """A blocker for a sheet the run holds is the seat inventing one (spec 010).
+
+    Seventeen of these were raised on datasets that plant nothing missing, several naming a sheet parsed
+    at Intake minutes earlier. The manifest settles it, so the seat is told to open the sheet instead of
+    stopping the run for a human.
+    """
+    if not isinstance(reply, EstimatorReply) or reply.blocker is None:
+        return None
+    return blocker_names_a_present_sheet(reply.blocker.description, prepared)
+
+
+def estimator_requirements(reply: BaseModel, tools_used: list[str], prepared: Any = None) -> str | None:
+    """The Estimator rules, in the order a reader of the conventions would apply them."""
+    return (
+        estimator_blocker_is_real(reply, prepared)
+        or estimator_blocker_is_not_a_concern(reply, tools_used)
+        or estimator_used_calculator(reply, tools_used)
     )
 
 
@@ -233,6 +249,13 @@ class LiveAgentSource:
         )
         context = build_context(agent_id, materials)
         self._sources = context.source_events()
+        slice_text = context.render()
+        if agent_id == "writer":
+            # The concerns are structured in the events, so the Writer is handed the assumptions it must
+            # carry rather than asked to remember them: its largest single failure (spec 010).
+            block = assumptions_block(specialist_concerns(self.o.events))
+            if block:
+                slice_text = f"{slice_text}\n\n{block}"
         return PromptBundle(
             prompt_ref=f"pb-{self.o.run_id[:8]}-{self._counter:02d}",
             system=load_instructions(
@@ -241,7 +264,7 @@ class LiveAgentSource:
                 review_max_cycles=self.ctx.review_max_cycles,
                 long_lead_days=self.ctx.long_lead_days,
             ),
-            context_slice=context.render(),
+            context_slice=slice_text,
             task=task,
             tools=list(SEAT_DEFINITIONS[agent_id].tools),
             model=self.seat_models[agent_id].model,
@@ -568,6 +591,10 @@ class LiveAgentSource:
         task = f"Sub-task {subtask.task_id}: {subtask.title}. {extra}".strip()
         bundle = self._bundle(agent_id, task, findings)
         requirement = SPECIALIST_REQUIREMENTS.get(agent_id)
+        if agent_id == "estimator" and self.run_folder is not None:
+            # The Estimator's blocker is checked against the sheets the run holds (spec 010).
+            prepared = read_manifest(self.run_folder / PREPARED_DIR)
+            requirement = functools.partial(estimator_requirements, prepared=prepared)
         async for emit, reply, pending, tools_used in self._stream(
             agent_id, subtask.task_id, bundle, lambda t: parse_reply(agent_id, t), requirement
         ):
@@ -612,7 +639,10 @@ class LiveAgentSource:
             markdown = cast(WriterReply, reply).markdown
             problems = provenance_problems(markdown, bundle.context_slice)
             if problems:
-                return "; ".join(problems)
+                # Say which source each untagged figure came from, when the offered outputs settle it.
+                # Naming the figures without naming their source left the Writer guessing (spec 010).
+                advice = tag_advice(untagged_money(markdown), bundle.context_slice)
+                return "; ".join(problems) + (f". {advice}" if advice else "")
             # Every specialist concern that names a sheet must be carried in the Assumptions section
             # (decision 23): the local Writer dropped the rating concern in most runs, so the Reviewer
             # never saw the disagreement the demo turns on.

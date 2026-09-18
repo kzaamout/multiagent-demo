@@ -71,6 +71,12 @@ def provenance_problems(markdown: str, offered_context: str) -> list[str]:
     return problems
 
 
+def untagged_money(markdown: str) -> list[str]:
+    """Dollar amounts in the body that carry no provenance tag, in the order they appear (spec 010)."""
+    body = markdown.split("\n## Provenance", 1)[0]
+    return list(dict.fromkeys(MONEY.findall(TAG.sub("", body))))
+
+
 def find_tags(markdown: str) -> list[Tag]:
     return [Tag(f"t{i:02d}", m.group(1), m.group(2)) for i, m in enumerate(TAG.finditer(markdown), start=1)]
 

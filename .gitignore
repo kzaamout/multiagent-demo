@@ -9,6 +9,10 @@
 # client knowledge files written by live runs, seeded from datasets
 /knowledge/
 
+# Reading brought in from elsewhere: exports, vendor documentation, articles. Useful to have beside the
+# code, not ours to publish, and never part of what a prospect is shown.
+/research/
+
 # python
 .venv/
 __pycache__/
