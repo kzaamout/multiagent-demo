@@ -20,7 +20,6 @@ from typing import Any
 
 # A sheet as the trade writes it: one or two letters, a dash, digits. E-001, LP-2, M-101.
 SHEET = re.compile(r"\b([A-Z]{1,2}-\d{1,3})\b")
-MONEY = re.compile(r"\$[\d,]+(?:\.\d{2})?")
 SOURCE_HEADING = re.compile(r"\(source id:\s*([a-z0-9_]+)\)", re.I)
 
 
@@ -142,6 +141,43 @@ def tag_advice(untagged: Iterable[str], offered_context: str) -> str | None:
             "document: " + ", ".join(missing)
         )
     return ". ".join(parts) if parts else None
+
+
+def money_disagreements(markdown: str, offered_context: str) -> list[str]:
+    """Tagged money in the draft whose value is not in the output the tag names (spec 010, phase 1.6).
+
+    A tagged figure was never checked against its source: the tag proved the Writer named an output, not
+    that the number came from it. Six of twelve runs then exhausted their review budget on 23 findings
+    that all said the same thing, that a total in one section disagreed with the same total in another,
+    including one draft carrying $36,882.581 for a price of $36,882.58. The seat is copying Pricing's
+    totals by hand into three places and mistyping them, which is not something more attempts can fix.
+
+    Pricing's own numbers are the truth and are already in the context, so each tagged amount is looked up
+    in the output it claims. Money only, because that is where every one of those findings was and a
+    quantity repeated in prose has honest reasons to differ. The provenance appendix is excluded, as it is
+    everywhere else.
+    """
+    from app.tools.template import MONEY, find_tags
+
+    body = markdown.split("\n## Provenance", 1)[0]
+    problems: list[str] = []
+    for tag in find_tags(body):
+        if not MONEY.fullmatch(tag.value.strip()):
+            continue
+        sources = sources_of_figure(tag.value.strip(), offered_context)
+        if tag.source_id in sources:
+            continue
+        if sources:
+            problems.append(
+                f"{tag.value} is tagged src:{tag.source_id} but that figure is in "
+                f"{' and '.join(sources)}, so either the figure or the tag is wrong"
+            )
+        else:
+            problems.append(
+                f"{tag.value} is tagged src:{tag.source_id} and no output holds that figure. Copy the "
+                "number from the output rather than retyping it, and use the same one in every section"
+            )
+    return problems
 
 
 def assumptions_block(concerns: Iterable[tuple[str, Mapping[str, Any]]]) -> str:

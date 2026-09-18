@@ -188,3 +188,54 @@ def test_a_whole_number_matches_its_decimal_form_but_not_a_longer_number() -> No
     assert sources_of_figure("$95", JSON_CONTEXT) == ["brief", "pricing"], "95 and 95.0 are the same rate"
     assert sources_of_figure("$5", JSON_CONTEXT) == [], "a figure is not found inside a longer one"
     assert sources_of_figure("$1,234.00", JSON_CONTEXT) == [], "a figure in no output is still not found"
+
+
+PRICED = (
+    "## Brief (source id: brief)\n"
+    "Budget guidance: 40000 CAD.\n"
+    "## Estimator output (source id: takeoff)\n"
+    '{"lines": 47, "labour_hours": 99.25}\n'
+    "## Pricing output (source id: pricing)\n"
+    '{"material": 18328.11, "labour": 9428.75, "total": 36882.58}\n'
+)
+
+
+def test_a_mistyped_total_is_caught_though_it_carries_a_tag() -> None:
+    """The real failure: a draft carrying $36,882.581 for a price of $36,882.58 (spec 010, phase 1.6).
+
+    A tag proved the Writer named an output, never that the number came from it, so a mistyped total
+    passed review as readily as a correct one and six runs exhausted their budget arguing about it.
+    """
+    from app.live.deterministic import money_disagreements
+
+    problems = money_disagreements("Total {{$36,882.581|src:pricing}}.", PRICED)
+    assert len(problems) == 1 and "$36,882.581" in problems[0]
+    assert "Copy the number from the output" in problems[0]
+
+
+def test_the_same_total_written_two_ways_cannot_both_be_right() -> None:
+    """Every one of the 23 review findings was a figure disagreeing with itself across sections."""
+    from app.live.deterministic import money_disagreements
+
+    draft = "Summary {{$21,077.33|src:pricing}} and the table says {{$18,328.11|src:pricing}}."
+    problems = money_disagreements(draft, PRICED)
+    assert [p.split(" is tagged")[0] for p in problems] == ["$21,077.33"], "only the wrong one is named"
+
+
+def test_a_figure_tagged_to_the_wrong_output_is_named_as_such() -> None:
+    from app.live.deterministic import money_disagreements
+
+    problems = money_disagreements("Total {{$36,882.58|src:takeoff}}.", PRICED)
+    assert len(problems) == 1 and "that figure is in pricing" in problems[0]
+
+
+def test_correct_money_and_anything_that_is_not_money_pass_untouched() -> None:
+    """The check must not start refusing drafts that are right, or figures it has no business judging."""
+    from app.live.deterministic import money_disagreements
+
+    good = (
+        "Total {{$36,882.58|src:pricing}}, material {{$18,328.11|src:pricing}}, budget {{$40,000|src:brief}}."
+    )
+    assert money_disagreements(good, PRICED) == []
+    assert money_disagreements("Panel {{225 A|src:brief}} over {{99.25 hours|src:takeoff}}.", PRICED) == []
+    assert money_disagreements("Nothing here.\n## Provenance\n{{$99.99|src:pricing}}", PRICED) == []

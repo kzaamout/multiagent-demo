@@ -24,7 +24,12 @@ from app.agents.stubs._common import rfp_plan
 from app.compile import CompileError, compile_draft
 from app.live.concerns import concern_problems, specialist_concerns
 from app.live.context import build_context
-from app.live.deterministic import assumptions_block, blocker_names_a_present_sheet, tag_advice
+from app.live.deterministic import (
+    assumptions_block,
+    blocker_names_a_present_sheet,
+    money_disagreements,
+    tag_advice,
+)
 from app.live.materials import CONFIG_DIR, DatasetFiles, build_materials
 from app.live.replies import (
     REQUIRED_SECTIONS,
@@ -643,6 +648,11 @@ class LiveAgentSource:
                 # Naming the figures without naming their source left the Writer guessing (spec 010).
                 advice = tag_advice(untagged_money(markdown), bundle.context_slice)
                 return "; ".join(problems) + (f". {advice}" if advice else "")
+            # A tag proved the Writer named an output, not that the figure came from it, so a mistyped
+            # total passed review as often as a correct one (spec 010, phase 1.6).
+            disagreements = money_disagreements(markdown, bundle.context_slice)
+            if disagreements:
+                return "; ".join(disagreements)
             # Every specialist concern that names a sheet must be carried in the Assumptions section
             # (decision 23): the local Writer dropped the rating concern in most runs, so the Reviewer
             # never saw the disagreement the demo turns on.
