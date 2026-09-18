@@ -8,11 +8,11 @@ Counted findings need 3 or more refusals on the instructions that seat runs on n
 
 Instructions: `config/electrical-bid/seats/orchestrator.md`
 
-### route_drift (detected, 29)
+### route_drift (detected, 37)
 
 the run finished but not by the route its golden log records, so a rehearsed demo would show a different path than the one it was rehearsed on.
 
-Runs: 0d198db3, 0e705cf5, 15b6ca7a, 16187608, 17470f65, 34b49132, 445a87ee, 4fcc9ced and more
+Runs: 0d198db3, 0e705cf5, 15b6ca7a, 16187608, 17470f65, 34b49132, 35f4f6ff, 445a87ee and more
 
 Where the lesson belongs: the dataset's golden log, or the seat that took the detour.
 
@@ -43,11 +43,11 @@ A second occurrence, for wording: the reply is not valid JSON (Expecting ',' del
 
 Instructions: `config/electrical-bid/seats/intake.md`
 
-### ready_job_stopped (detected, 23)
+### ready_job_stopped (detected, 27)
 
 missing-sheet was stopped at Intake, though only the Not ready dataset is meant to stop there, so no specialist did any work.
 
-Runs: 026784d5, 1a7e6ebe, 42b498bf, 65ea59ff, 745fe52c, 82e8ae33, 82ff0505, a23117b5 and more
+Runs: 026784d5, 1a7e6ebe, 42b498bf, 65ea59ff, 737a1147, 745fe52c, 82e8ae33, 82ff0505 and more
 
 Where the lesson belongs: seat instructions.
 
@@ -60,7 +60,7 @@ Send instead: TO FILL, what the seat should have sent and why it is right
 
 A second occurrence, for wording: the run ended not_ready
 
-### checklist_grading (counted, 97)
+### checklist_grading (counted, 123)
 
 the readiness grades and the verdict did not agree, or a gap was left unasked.
 
@@ -115,11 +115,11 @@ A second occurrence, for wording: you wrote a call to document_parse_pdf as text
 
 Instructions: `config/electrical-bid/seats/estimator.md`
 
-### invented_blocker (detected, 17)
+### invented_blocker (detected, 19)
 
 a blocker was raised on missing-price, which plants none, so the run stopped for a human over something that was not missing.
 
-Runs: 1222b0e6, 46e90cfa, 50489781, 52391a6f, 5dd22dd1, 6658d651, 7baa3836, 802b4479 and more
+Runs: 1222b0e6, 46e90cfa, 50489781, 52391a6f, 5dd22dd1, 60ef9865, 6658d651, 7baa3836 and more
 
 Where the lesson belongs: seat instructions.
 
@@ -132,11 +132,11 @@ Send instead: TO FILL, what the seat should have sent and why it is right
 
 A second occurrence, for wording: the dataset README plants no blocker here
 
-### no_json (counted, 84)
+### no_json (counted, 105)
 
 the seat ended its turn on a progress line and never sent the JSON object.
 
-Runs: 0d8187d5, 165d8eae, 17470f65, 17d1bea3, 1c4ae916, 203c489b, 2c0279e3, 2c2098e8 and more
+Runs: 0d8187d5, 0e5c553b, 165d8eae, 17470f65, 17d1bea3, 1c4ae916, 203c489b, 2257a151 and more
 
 Where the lesson belongs: seat instructions.
 
@@ -149,11 +149,11 @@ Send instead: TO FILL, what the seat should have sent and why it is right
 
 A second occurrence, for wording: no JSON object found in the reply
 
-### wrong_shape (counted, 14)
+### wrong_shape (counted, 21)
 
 the seat sent valid JSON missing a field the reply must carry.
 
-Runs: 11086d33, 1222b0e6, 203c489b, 4e03e2aa, b12924f6, ea19a763, ef48985b, f9dc1661 and more
+Runs: 11086d33, 1222b0e6, 203c489b, 4e03e2aa, 59aa6bb2, 60ef9865, 6b79c76f, b12924f6 and more
 
 Where the lesson belongs: seat instructions.
 
@@ -166,11 +166,11 @@ Send instead: TO FILL, what the seat should have sent and why it is right
 
 A second occurrence, for wording: a completed takeoff needs headline, bom, and labour
 
-### tool_not_used (counted, 12)
+### tool_not_used (counted, 13)
 
 the seat wrote numbers it was supposed to get from a tool.
 
-Runs: 16187608, 427076ed, 46e90cfa, 802b4479, 848b3ad2, 99742c19, b12924f6, e8ca7378 and more
+Runs: 16187608, 427076ed, 46e90cfa, 783906ea, 802b4479, 848b3ad2, 99742c19, b12924f6 and more
 
 Where the lesson belongs: seat instructions.
 
@@ -183,11 +183,11 @@ Send instead: TO FILL, what the seat should have sent and why it is right
 
 A second occurrence, for wording: the bill of materials was not totalled with quantity_calculate. Call quantity_calculate with every counted and measured line, then copy its quantities with waste and its labour hours into your reply
 
-### invalid_json (counted, 8)
+### invalid_json (counted, 10)
 
 the seat sent JSON that could not be parsed, usually a brace or a quote.
 
-Runs: 445a87ee, 4e03e2aa, 5fc0c3f4, c88ccc6e, d82bbb69, f9dc1661
+Runs: 445a87ee, 4e03e2aa, 5fc0c3f4, 60ef9865, c88ccc6e, d82bbb69, d8b26fa1, f9dc1661
 
 Where the lesson belongs: seat instructions.
 
@@ -256,7 +256,7 @@ A second occurrence, for wording: the reply is not valid JSON (Expecting ',' del
 
 Instructions: `config/electrical-bid/seats/writer.md`
 
-### concern_dropped (counted, 35)
+### concern_dropped (counted, 41)
 
 a specialist's concern never reached the assumptions section.
 
@@ -273,11 +273,11 @@ Send instead: TO FILL, what the seat should have sent and why it is right
 
 A second occurrence, for wording: the Estimator's concern is not carried in the Assumptions section: "Labour hours copied from quantity_calculate without unit_hours; all groups marked low conf...". Add one line for it there naming the sheets E-000 and the values that disagr
 
-### provenance_tags (counted, 31)
+### provenance_tags (counted, 36)
 
 the draft carried figures with no tag saying which output they came from.
 
-Runs: 0d8187d5, 0e705cf5, 12c422c3, 150d5000, 17470f65, 17d1bea3, 24fa18c2, 427076ed and more
+Runs: 0d8187d5, 0e705cf5, 12c422c3, 150d5000, 17470f65, 17d1bea3, 2257a151, 24fa18c2 and more
 
 Where the lesson belongs: seat instructions.
 
@@ -290,11 +290,11 @@ Send instead: TO FILL, what the seat should have sent and why it is right
 
 A second occurrence, for wording: these tags name a source id that is not in your context: knowledge
 
-### invalid_json (counted, 23)
+### invalid_json (counted, 25)
 
 the seat sent JSON that could not be parsed, usually a brace or a quote.
 
-Runs: 0d198db3, 11086d33, 2c0279e3, 4e03e2aa, 5ab85367, 6607e196, 6658d651, 7ffaa32b and more
+Runs: 0d198db3, 0e5c553b, 11086d33, 2c0279e3, 4e03e2aa, 5ab85367, 6607e196, 6658d651 and more
 
 Where the lesson belongs: seat instructions.
 
@@ -307,7 +307,24 @@ Send instead: TO FILL, what the seat should have sent and why it is right
 
 A second occurrence, for wording: the reply is not valid JSON (Expecting ':' delimiter near ' to pricing source id.", "tags": [{"t01", "pricing"}, {"t02", "pricing"}, {"t03"')
 
-### wrong_shape (counted, 14)
+### no_json (counted, 17)
+
+the seat ended its turn on a progress line and never sent the JSON object.
+
+Runs: 150d5000, 35f4f6ff, 50489781, 67702c23, 6b79c76f, 7baa3836, 7e05dbe4, 802b4479 and more
+
+Where the lesson belongs: seat instructions.
+
+```
+4. TITLE THE LESSON IN ONE LINE
+Sent back: Draft v1 committed for review. Please check tags and provenance before next step.
+The reason given: no JSON object found in the reply
+Send instead: TO FILL, what the seat should have sent and why it is right
+```
+
+A second occurrence, for wording: no JSON object found in the reply
+
+### wrong_shape (counted, 16)
 
 the seat sent valid JSON missing a field the reply must carry.
 
@@ -316,30 +333,13 @@ Runs: 0d8187d5, 17470f65, 2c0279e3, 427076ed, 4e10f889, 4fcc9ced, 50489781, 55ef
 Where the lesson belongs: seat instructions.
 
 ```
-4. TITLE THE LESSON IN ONE LINE
+5. TITLE THE LESSON IN ONE LINE
 Sent back: Progress line for writing cover and executive summary. {"markdown": "# Proposal for Quillbrook Public Library Board\n\nQuillbrook Public Library, Main Floor Electrical Fit-out\n\n## Executive summary\
 The reason given: tags.0.line_item: Input should be a valid string; tags.1.prospect_name: Input should be a valid string
 Send instead: TO FILL, what the seat should have sent and why it is right
 ```
 
 A second occurrence, for wording: tags.0.line_item: Input should be a valid string; tags.1.prospect_name: Input should be a valid string
-
-### no_json (counted, 13)
-
-the seat ended its turn on a progress line and never sent the JSON object.
-
-Runs: 150d5000, 50489781, 67702c23, 7baa3836, 7e05dbe4, 802b4479, 9d2f97a5, a81bad6c and more
-
-Where the lesson belongs: seat instructions.
-
-```
-5. TITLE THE LESSON IN ONE LINE
-Sent back: Draft v1 committed for review. Please check tags and provenance before next step.
-The reason given: no JSON object found in the reply
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: no JSON object found in the reply
 
 ### tool_not_used (counted, 4)
 
