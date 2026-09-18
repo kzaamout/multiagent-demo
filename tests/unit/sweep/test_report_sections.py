@@ -14,6 +14,13 @@ from app.runs.metrics import SeatAttempt, append_attempt, write_metrics
 from tests.unit.sweep.test_expectations import started, terminated
 
 
+def cell(lines: list[str], row_starts: str, column: str) -> str:
+    """A cell by column name, so a table gaining or losing a column does not silently move an assertion."""
+    headers = [c.strip() for c in lines[0].split("|")]
+    row = next(line for line in lines if line.startswith(row_starts))
+    return [c.strip() for c in row.split("|")][headers.index(column)]
+
+
 def load_report() -> Any:
     spec = importlib.util.spec_from_file_location("model_report", ROOT / "scripts" / "model_report.py")
     assert spec and spec.loader
@@ -239,11 +246,49 @@ def test_a_model_holding_several_seats_in_one_run_counts_that_run_once(tmp_path:
         {"run_id": "r2", "seats": [seat("intake", "q, local", stopped=1)]},
     ]
     lines = module.local_model_table(runs)
-    q = next(line for line in lines if line.startswith("| q, local |"))
-    cells = [c.strip() for c in q.split("|")]
-    assert cells[4] == "2", "two recordings, not the three seats it filled"
-    assert cells[5] == "2" and cells[6] == "6", "seats held and calls still sum"
-    assert cells[7] == "1 (50%)", "the stop is a share of its runs"
-    assert "varies" not in cells[2], "one setting everywhere reads as that setting"
-    g = next(line for line in lines if line.startswith("| g, local |"))
-    assert [c.strip() for c in g.split("|")][4] == "1"
+    assert cell(lines, "| q, local |", "Runs") == "2", "two recordings, not the three seats it filled"
+    assert cell(lines, "| q, local |", "Seats") == "2"
+    assert cell(lines, "| q, local |", "Calls") == "6", "calls still sum across its seats"
+    assert cell(lines, "| q, local |", "Stopped runs") == "1 (50%)", "a share of its runs"
+    assert "Settings" not in lines[0] and "Prompt" not in lines[0], "those belong to the seat"
+    assert cell(lines, "| g, local |", "Runs") == "1"
+
+
+def test_the_seat_table_measures_the_seat_across_every_model_that_held_it() -> None:
+    """A seat that stops runs whatever sits in it is a seat problem, not a model problem."""
+    module = load_report()
+
+    def seat(agent_id: str, model: str, version: str, stopped: int = 0) -> dict[str, Any]:
+        return {
+            "agent_id": agent_id,
+            "role": agent_id,
+            "model": model,
+            "provider": "ollama",
+            "calls": 1,
+            "tokens_in": 80,
+            "tokens_out": 40,
+            "wall_ms": 2000,
+            "est_cost": 0.0,
+            "tool_calls": 0,
+            "replies": 1,
+            "accepted_first_time": 0,
+            "corrections": 1,
+            "stopped_run": stopped,
+            "reasons": {},
+            "settings": {},
+            "instructions": version,
+            "checks": {"ok": False},
+        }
+
+    runs = [
+        {"run_id": "r1", "seats": [seat("writer", "a, local", "v1", stopped=1)]},
+        {"run_id": "r2", "seats": [seat("writer", "b, local", "v2", stopped=1)]},
+        {"run_id": "r3", "seats": [seat("writer", "c, local", "v2")]},
+    ]
+    lines = module.seat_performance_table(runs)
+    assert cell(lines, "| writer |", "Tested models") == "3", "three models have held it"
+    assert cell(lines, "| writer |", "Prompt versions") == "2", "its wording has been rewritten once"
+    assert cell(lines, "| writer |", "Runs") == "3"
+    assert cell(lines, "| writer |", "Stopped runs") == "2 (67%)", "it stopped two of its three runs"
+    assert cell(lines, "| writer |", "Accuracy") == "0/3 (0%)"
+    assert cell(lines, "| writer |", "First time") == "0%"

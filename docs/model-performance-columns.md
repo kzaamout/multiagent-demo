@@ -24,6 +24,8 @@ Generated with `docs/model-performance.md` and `docs/model-performance-runs.csv`
 The same meanings as above, except where a per-model view changes them.
 
 - **Seats**: how many different seats this model held across the runs counted
+- **Tested models**: how many different models have held this seat
+- **Prompt versions**: how many versions of this seat's instructions are recorded, which is how often the wording had to change to get the seat working
 - **Runs**: recordings the model appears in at all, counted once however many seats it filled in that run
 - **Stopped runs**: runs this model ended by running out of attempts in any seat, with the share of its runs
 - **Tokens in/out per call**: average prompt and completion tokens per call, across its seats

@@ -39,13 +39,27 @@ Ranked among Ollama models with at least 5 runs on the seat: fewest stopped runs
 
 Each local model across every seat it held, which answers what a model is like rather than what it is like in one chair. Runs count the recordings a model appears in, not the seats it filled, so a model holding five seats in one run counts once. Settings and the prompt belong to the seat, so a model that held several says how many it saw.
 
-| Model | Settings | Prompt | Seats | Runs | Calls | Stopped runs | Accuracy | First time | Corrections | Tokens in/out per call | Seconds per call | Cost per run |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| qwen3.5 9b, local | varies, 4 of them | varies, 8 of them | 7 | 196 | 2398 | 76 (39%) | 312/596 (52%) | 54% | 231 | 11778/755 | 14.4 | $0.00 |
-| gemma4 12b, local | varies, 4 of them | varies, 6 of them | 6 | 68 | 239 | 9 (13%) | 40/85 (47%) | 88% | 5 | 6339/308 | 11.2 | $0.00 |
-| qwen3.5 4b, local | varies, 3 of them | varies, 6 of them | 6 | 28 | 147 | 7 (25%) | 13/35 (37%) | 51% | 16 | 10423/581 | 7.8 | $0.00 |
-| deepseek-r1 14b, local | varies, 2 of them | varies, 5 of them | 4 | 21 | 36 | 5 (24%) | 9/23 (39%) | 35% | 12 | 3963/1160 | 58.9 | $0.00 |
-| llama3.1 8b, local | varies, 3 of them | varies, 4 of them | 4 | 20 | 110 | 5 (25%) | 10/22 (45%) | 55% | 5 | 6772/233 | 4.6 | $0.00 |
+| Model | Seats | Runs | Calls | Stopped runs | Accuracy | First time | Corrections | Tokens in/out per call | Seconds per call | Cost per run |
+|---|---|---|---|---|---|---|---|---|---|---|
+| qwen3.5 9b, local | 7 | 196 | 2398 | 76 (39%) | 312/596 (52%) | 54% | 231 | 11778/755 | 14.4 | $0.00 |
+| gemma4 12b, local | 6 | 68 | 239 | 9 (13%) | 40/85 (47%) | 88% | 5 | 6339/308 | 11.2 | $0.00 |
+| qwen3.5 4b, local | 6 | 28 | 147 | 7 (25%) | 13/35 (37%) | 51% | 16 | 10423/581 | 7.8 | $0.00 |
+| deepseek-r1 14b, local | 4 | 21 | 36 | 5 (24%) | 9/23 (39%) | 35% | 12 | 3963/1160 | 58.9 | $0.00 |
+| llama3.1 8b, local | 4 | 20 | 110 | 5 (25%) | 10/22 (45%) | 55% | 5 | 6772/233 | 4.6 | $0.00 |
+
+## Seat performance
+
+Each seat across every model that held it, which says how hard the seat is rather than how good a model is. A seat that stops runs whatever sits in it, needs many corrections, and has had its wording rewritten repeatedly is a seat asking to be made smaller, by splitting the job or by moving part of it into a tool.
+
+| Seat | Tested models | Prompt versions | Runs | Calls | Stopped runs | Accuracy | First time | Corrections | Tokens in/out per call | Seconds per call | Cost per run |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| orchestrator | 5 | 1 | 139 | 196 | 0 (0%) | 28/139 (20%) | 99% | 1 | 2908/212 | 7.4 | $0.00 |
+| intake | 5 | 2 | 204 | 781 | 24 (12%) | 152/260 (58%) | 35% | 118 | 8171/924 | 16.6 | $0.00 |
+| estimator | 4 | 2 | 139 | 1196 | 32 (23%) | 91/139 (65%) | 40% | 72 | 19000/536 | 11.1 | $0.07 |
+| pricing | 5 | 1 | 96 | 241 | 6 (6%) | 67/96 (70%) | 83% | 14 | 4218/769 | 14.4 | $0.00 |
+| writer | 5 | 1 | 91 | 555 | 39 (43%) | 46/91 (51%) | 24% | 60 | 7996/987 | 17.7 | $0.00 |
+| reviewer | 3 | 1 | 61 | 94 | 1 (2%) | 24/61 (39%) | 95% | 4 | 5589/223 | 14.1 | $0.00 |
+| single | 1 | 0 | 2 | 16 | 1 (50%) | n/a | 50% | 0 | 11337/247 | 9.5 | $0.00 |
 
 ## Every seat and model
 

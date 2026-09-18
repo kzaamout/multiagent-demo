@@ -71,6 +71,12 @@ TABLE_COLUMNS: list[tuple[str, str]] = [
 
 LOCAL_TABLE_NOTES: list[tuple[str, str]] = [
     ("Seats", "how many different seats this model held across the runs counted"),
+    ("Tested models", "how many different models have held this seat"),
+    (
+        "Prompt versions",
+        "how many versions of this seat's instructions are recorded, which is how often the wording had to "
+        "change to get the seat working",
+    ),
     (
         "Runs",
         "recordings the model appears in at all, counted once however many seats it filled in that run",
@@ -423,14 +429,6 @@ def best_local_table(groups: list[Group]) -> list[str]:
     return lines
 
 
-def _one_or_varies(values: list[str]) -> str:
-    """One value when a model was given the same one everywhere, else how many it saw."""
-    distinct = sorted({v for v in values if v})
-    if not distinct:
-        return "not recorded"
-    return distinct[0] if len(distinct) == 1 else f"varies, {len(distinct)} of them"
-
-
 def local_model_table(runs: list[dict[str, Any]]) -> list[str]:
     """One row per local model, across every seat it held.
 
@@ -445,12 +443,10 @@ def local_model_table(runs: list[dict[str, Any]]) -> list[str]:
                 continue
             row = totals.setdefault(
                 seat["model"] or "unknown",
-                {"run_ids": set(), "seats": set(), "settings": [], "prompts": [], "checks": [0, 0]},
+                {"run_ids": set(), "seats": set(), "checks": [0, 0]},
             )
             row["run_ids"].add(data["run_id"])
             row["seats"].add(seat["agent_id"])
-            row["settings"].append(settings_text(seat.get("settings") or {}))
-            row["prompts"].append(seat.get("instructions", ""))
             for name in ("calls", "tokens_in", "tokens_out", "wall_ms", "replies", "corrections"):
                 row[name] = row.get(name, 0) + seat[name]
             row["first"] = row.get("first", 0) + seat["accepted_first_time"]
@@ -460,9 +456,9 @@ def local_model_table(runs: list[dict[str, Any]]) -> list[str]:
             row["checks"][0] += sum(1 for met in checks.values() if met)
             row["checks"][1] += len(checks)
     lines = [
-        "| Model | Settings | Prompt | Seats | Runs | Calls | Stopped runs | Accuracy | First time | "
-        "Corrections | Tokens in/out per call | Seconds per call | Cost per run |",
-        "|" + "---|" * 13,
+        "| Model | Seats | Runs | Calls | Stopped runs | Accuracy | First time | Corrections | "
+        "Tokens in/out per call | Seconds per call | Cost per run |",
+        "|" + "---|" * 11,
     ]
     for model, row in sorted(totals.items(), key=lambda kv: -len(kv[1]["run_ids"])):
         runs_count, calls = len(row["run_ids"]), row.get("calls", 0)
@@ -473,12 +469,68 @@ def local_model_table(runs: list[dict[str, Any]]) -> list[str]:
         per_call = f"{round(row.get('tokens_in', 0) / calls) if calls else 0}/{round(row.get('tokens_out', 0) / calls) if calls else 0}"
         seconds = f"{row.get('wall_ms', 0) / calls / 1000:.1f}" if calls else "0.0"
         lines.append(
-            f"| {model} | {_one_or_varies(row['settings'])} | {_one_or_varies(row['prompts'])} | "
-            f"{len(row['seats'])} | {runs_count} | {calls} | {stopped} | {accuracy} | {first} | "
+            f"| {model} | {len(row['seats'])} | {runs_count} | {calls} | {stopped} | {accuracy} | {first} | "
             f"{row.get('corrections', 0)} | {per_call} | {seconds} | ${row.get('cost', 0.0) / runs_count:.2f} |"
         )
     if len(lines) == 2:
-        lines.append("| no local model has run yet | | | | | | | | | | | | |")
+        lines.append("| no local model has run yet | | | | | | | | | | |")
+    return lines
+
+
+def seat_performance_table(runs: list[dict[str, Any]]) -> list[str]:
+    """One row per seat, across every model that held it.
+
+    This is the seat's difficulty, not a model's. A seat that stops runs whatever sits in it, needs many
+    corrections, and has been rewritten repeatedly is asking to be made smaller, by splitting the job or by
+    moving part of it into a tool. Prompt counts the instruction versions recorded for the seat, which is
+    how many times the wording had to be changed to get it working.
+    """
+    totals: dict[str, dict[str, Any]] = {}
+    for data in runs:
+        for seat in data.get("seats", []):
+            if not (seat["calls"] or seat["replies"]):
+                continue
+            row = totals.setdefault(
+                seat["agent_id"],
+                {"run_ids": set(), "models": set(), "prompts": set(), "checks": [0, 0]},
+            )
+            row["run_ids"].add(data["run_id"])
+            if seat.get("model"):
+                row["models"].add(seat["model"])
+            if seat.get("instructions"):
+                row["prompts"].add(seat["instructions"])
+            for name in ("calls", "tokens_in", "tokens_out", "wall_ms", "replies", "corrections"):
+                row[name] = row.get(name, 0) + seat[name]
+            row["first"] = row.get("first", 0) + seat["accepted_first_time"]
+            row["stopped"] = row.get("stopped", 0) + seat.get("stopped_run", 0)
+            row["cost"] = row.get("cost", 0.0) + seat["est_cost"]
+            checks = seat.get("checks") or {}
+            row["checks"][0] += sum(1 for met in checks.values() if met)
+            row["checks"][1] += len(checks)
+    lines = [
+        "| Seat | Tested models | Prompt versions | Runs | Calls | Stopped runs | Accuracy | First time | "
+        "Corrections | Tokens in/out per call | Seconds per call | Cost per run |",
+        "|" + "---|" * 12,
+    ]
+    for agent_id in SEAT_ORDER:
+        if agent_id not in totals:
+            continue
+        row = totals[agent_id]
+        runs_count, calls = len(row["run_ids"]), row.get("calls", 0)
+        met, total = row["checks"]
+        accuracy = f"{met}/{total} ({met / total * 100:.0f}%)" if total else "n/a"
+        first = f"{row['first'] / row['replies'] * 100:.0f}%" if row.get("replies") else "n/a"
+        stopped = f"{row.get('stopped', 0)} ({row.get('stopped', 0) / runs_count * 100:.0f}%)"
+        per_call = (
+            f"{round(row.get('tokens_in', 0) / calls) if calls else 0}/"
+            f"{round(row.get('tokens_out', 0) / calls) if calls else 0}"
+        )
+        seconds = f"{row.get('wall_ms', 0) / calls / 1000:.1f}" if calls else "0.0"
+        lines.append(
+            f"| {agent_id} | {len(row['models'])} | {len(row['prompts'])} | {runs_count} | {calls} | "
+            f"{stopped} | {accuracy} | {first} | {row.get('corrections', 0)} | {per_call} | {seconds} | "
+            f"${row.get('cost', 0.0) / runs_count:.2f} |"
+        )
     return lines
 
 
@@ -724,6 +776,15 @@ def report(groups: list[Group], runs: list[dict[str, Any]], probe: bool = True) 
         "model that held several says how many it saw.",
         "",
         *local_model_table(runs),
+        "",
+        "## Seat performance",
+        "",
+        "Each seat across every model that held it, which says how hard the seat is rather than how good a "
+        "model is. A seat that stops runs whatever sits in it, needs many corrections, and has had its "
+        "wording rewritten repeatedly is a seat asking to be made smaller, by splitting the job or by "
+        "moving part of it into a tool.",
+        "",
+        *seat_performance_table(runs),
         "",
         "## Every seat and model",
         "",
