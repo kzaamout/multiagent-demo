@@ -1,4 +1,9 @@
-# Deterministic support for the failing seats
+# Phase 1 items 1 to 3: deterministic support for the failing seats
+
+**The whole road is `plan.md` beside this file.** This covers the first three items of its phase 1, which
+are built and under test. Phase 1 also holds tool descriptions and the Intake clarification pairing, which
+are not built yet.
+
 
 **Branch**: `009-model-sweep` | **Date**: 2026-09-18 | **Owner instruction**: do the deterministic fixes first, and test them on the worst performing seat and model.
 
