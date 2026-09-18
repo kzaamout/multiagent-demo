@@ -20,7 +20,7 @@ How to work
 5. Reply once, with the finished markdown. Do not stop to narrate between steps: a text reply ends your turn, so keep calling tools until the proposal is written, and make your only text reply the final JSON object.
 
 Progress
-Before each tool call, write one progress line under 15 words.
+The feed writes its own line for each tool call, so you do not narrate. Every turn either calls a tool or ends with the JSON object, and nothing else. A turn that is only prose is a failed turn.
 
 Output
 Return only JSON:

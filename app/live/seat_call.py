@@ -75,6 +75,32 @@ def estimated_cost(tokens_in: int, tokens_out: int, price_in: float, price_out: 
     return round(tokens_in / 1_000_000 * price_in + tokens_out / 1_000_000 * price_out, 6)
 
 
+# What the feed says while a seat works, written from the tool call rather than asked of the model.
+PROGRESS_WORDS: dict[str, tuple[str, str]] = {
+    "vision_read_drawing": ("Reading sheet", "sheet"),
+    "document_parse_pdf": ("Reading", "file"),
+    "document_extract_attachments": ("Listing what the request came with", ""),
+    "quantity_calculate": ("Totalling the takeoff", "items"),
+    "price_list_lookup": ("Pricing the bill of materials", "items"),
+    "template_render": ("Filling the response template", ""),
+    "compile_trigger": ("Committing the draft", "version"),
+}
+
+
+def progress_for(tool: str, arguments: dict[str, Any]) -> str:
+    """One line for the feed, from a tool call. Names the thing when the call names one."""
+    words = PROGRESS_WORDS.get(tool)
+    if words is None:
+        return tool.replace("_", " ").capitalize()
+    phrase, key = words
+    value = arguments.get(key)
+    if isinstance(value, list):
+        return f"{phrase}, {len(value)} lines"
+    if value in (None, ""):
+        return phrase
+    return f"{phrase} {value}"
+
+
 class _Observer(HookProvider):
     def __init__(self, queue: asyncio.Queue[CallItem], seat_model: SeatModel, log: ToolLog) -> None:
         self.queue = queue
@@ -104,14 +130,26 @@ class _Observer(HookProvider):
         tokens_in = int(usage.get("inputTokens", 0))
         tokens_out = int(usage.get("outputTokens", 0))
         blocks = message.get("content") or []
-        if any("toolUse" in block for block in blocks):
+        uses = [block["toolUse"] for block in blocks if "toolUse" in block]
+        if uses:
+            said = False
             for block in blocks:
                 for line in str(block.get("text", "")).splitlines():
                     line = line.strip()
                     if line:
+                        said = True
                         self.queue.put_nowait(
                             CallItem("progress", text=without_em_dashes(line)[:MAX_PROGRESS_CHARS])
                         )
+            if not said:
+                # The seats were asked to narrate before every tool call, and the failure that follows is
+                # a seat treating that line as its whole reply: the largest single failure on the team.
+                # The engine knows what is being called and on what, so it writes the line instead and the
+                # instruction leaves the prompts (spec 010).
+                for use in uses:
+                    line = progress_for(str(use.get("name", "")), dict(use.get("input") or {}))
+                    if line:
+                        self.queue.put_nowait(CallItem("progress", text=line[:MAX_PROGRESS_CHARS]))
         self.queue.put_nowait(
             CallItem(
                 "usage",
@@ -232,6 +270,34 @@ class SeatCall:
                 raise ReplyError(unmet)
         return reply
 
+    def _force_json(self, agent: Agent, on: bool) -> None:
+        """Make the provider require JSON of the next reply, for a correction only (spec 010).
+
+        Ollama takes a `format` field that constrains the reply, and our provider passes extra request
+        fields straight through. Setting it for the whole call is unsafe: with tools offered and a format
+        set, the model stops calling them and answers from nothing. A probe on 2026-09-18 asked for a
+        sheet to be read and got an invented headline about a sheet never opened.
+
+        On a correction the tool results are already in the conversation, so nothing is skipped by
+        requiring the shape: the seat has done the work and is being asked to hand it over properly. That
+        is where narration costs us, so that is the only place this is turned on.
+        """
+        model = getattr(agent, "model", None)
+        if model is None or not hasattr(model, "update_config") or not hasattr(model, "get_config"):
+            return
+        config = dict(model.get_config() or {})
+        extra = dict(config.get("additional_args") or {})
+        if "format" in extra and not on:
+            extra.pop("format")
+        elif on:
+            extra["format"] = "json"
+        else:
+            return
+        try:
+            model.update_config(additional_args=extra)
+        except Exception:  # noqa: BLE001
+            pass  # a provider that will not take it keeps its own behaviour
+
     def _agent(self, queue: asyncio.Queue[CallItem]) -> Agent:
         return Agent(
             model=self.seat_model.strands_model,
@@ -320,6 +386,7 @@ class SeatCall:
                         f"{last_error}. Fix this, using your tools if needed, then reply again with only the corrected JSON object."
                     )
                     text = ""
+                    self._force_json(agent, True)
                     try:
                         async for item in self._invoke(agent, correction, queue):
                             if isinstance(item, str):
@@ -332,6 +399,8 @@ class SeatCall:
                         raise AgentFailure(
                             f"The {self.role} on {label} failed while correcting its reply, so the run stops."
                         ) from None
+                    finally:
+                        self._force_json(agent, False)
                     try:
                         reply = self._accept(text)
                         self._attempt(number, True, text)

@@ -22,7 +22,7 @@ Rework
 When findings are routed to you, fix those findings only and say in one line what changed. When a specialist has reworked, rebuild the affected sections from the new output.
 
 Progress
-One line under 15 words for each section as you write it.
+The feed writes its own line for each tool call, so you do not narrate. Every turn either calls a tool or ends with the JSON object, and nothing else. A turn that is only prose is a failed turn.
 
 Output
 Return only JSON:
@@ -48,7 +48,7 @@ Send instead: tag the figure where it is written, in the sentence the reader see
 3. A progress line is not a reply. Your turn has to end with the JSON object.
 Sent back: "Writing the pricing summary." and nothing else.
 The reason given: no JSON object found in the reply.
-Send instead: write the progress line, build the sections, and end the turn with the JSON object and no text after it. A turn holding only narration is a failed turn.
+Send instead: build the sections and end the turn with the JSON object and no text after it. The feed writes its own line for each tool call, so you never need to announce one. A turn holding only prose is a failed turn.
 
 4. Every specialist concern reaches the Assumptions section.
 Sent back: a complete draft whose Assumptions section did not mention a concern the Estimator had raised.
