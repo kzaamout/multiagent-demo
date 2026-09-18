@@ -363,11 +363,25 @@ class IntakeReply(BaseModel):
         gaps = [c for c in failing + assumed if needs_a_question(c.item, marks)]
         # A not_ready run ends before any question is asked, so its gaps need grades, not questions.
         if expected != "not_ready" and len(self.clarifications) < len(gaps):
+            # The seat's largest failure by a distance (83 refusals): it grades the items correctly and
+            # then raises no question for them. The engine cannot write these questions, because a gap
+            # needs one only when the checklist leaves it open, so there is no default to propose and the
+            # wording has to come from the request. What it can do is hand over the skeleton with the ids
+            # already right, which turns composing into filling (spec 010, phase 1.5).
+            asked = {c.question_id for c in self.clarifications}
+            skeleton = ", ".join(
+                f'{{"question_id": "{canonical_question_id(c.item)}", "question": ..., '
+                f'"why_it_matters": ..., "proposed_default": ..., "blocking": ...}}'
+                for c in gaps
+                if canonical_question_id(c.item) not in asked
+            )
             names = "; ".join(c.item for c in gaps)
             raise ReplyError(
                 f"{len(gaps)} checklist items are not pass but there are {len(self.clarifications)} clarifications. "
-                f"Add one clarification with a proposed default for each of: {names}. Mark it blocking when the "
-                "request says the item must be settled before submitting"
+                f"Add one clarification for each of: {names}. Use these ids exactly, one object each, and fill "
+                f"the rest from the request: {skeleton}. The proposed default is your best reading of what the "
+                "client would answer, so the human can accept it in one click. Mark it blocking when the request "
+                "says the item must be settled before submitting"
             )
 
 

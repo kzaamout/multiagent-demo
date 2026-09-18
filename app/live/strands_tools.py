@@ -116,6 +116,11 @@ def build_tools(
     def vision_read_drawing(sheet: str, tool_context: ToolContext, page: int = 1) -> dict[str, Any]:
         """Look at one drawing sheet as an image, with any text the sheet's PDF carries.
 
+        Use this for any sheet in the drawing set, including one you have not opened yet. A sheet you
+        have not read is not a missing sheet: read it here before deciding anything about it, and raise a
+        blocker only for a sheet the drawing index lists that the set does not contain. Use it once per
+        sheet you need; it returns what the sheet shows with a confidence, not an interpretation.
+
         Args:
             sheet: Sheet name as listed in the drawing sheets, for example "E-001".
             page: Page within the sheet file, starting at 1.
@@ -139,6 +144,11 @@ def build_tools(
     @tool(context=True)
     def quantity_calculate(items: list[dict[str, Any]], tool_context: ToolContext) -> dict[str, Any]:
         """Total counts and lengths, apply the waste factors, and roll up labour hours.
+
+        Required before a completed takeoff: a reply whose quantities or labour hours were not produced
+        by this tool is refused. Call it once with every counted and measured line, after reading the
+        sheets and before writing your reply, then copy its numbers. Do not add, multiply or apply a waste
+        factor yourself, and do not use it to decide what to count.
 
         Args:
             items: Lines, each with description, unit, category (wire, conduit, device, fixture,
@@ -184,6 +194,12 @@ def build_tools(
         labour_rate: float | None = None,
     ) -> dict[str, Any]:
         """Price bill of materials lines from the supplier fixture and return extended costs and totals.
+
+        Required before a priced reply: a reply whose prices or totals did not come from this tool is
+        refused. Call it once with every bill of materials line, plus the markup rate, the labour hours
+        and the labour rate, then copy its prices, its extensions and its totals. A price you remember or
+        work out yourself is not a price from the fixture, even when it looks right. An item the fixture
+        does not carry comes back unpriced, which is an exception to report rather than a price to invent.
 
         Args:
             items: Lines, each with line_ref, description, quantity, unit, and optional item_code.
