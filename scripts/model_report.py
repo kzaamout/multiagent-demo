@@ -287,11 +287,30 @@ def table(groups: list[Group]) -> list[str]:
     return lines
 
 
+def current_versions() -> dict[str, str]:
+    """The instruction version each seat is on now, so the table can say which rejections still apply."""
+    try:
+        from app.seats.definitions import instructions_version
+
+        return {seat: instructions_version(seat) for seat in SEAT_DEFINITIONS}
+    except (OSError, KeyError):  # pragma: no cover - a checkout without the seat files
+        return {}
+
+
 def reason_table(groups: list[Group]) -> list[str]:
-    """Every seat and model pair, including the ones never sent back, so absence is visible."""
+    """Every seat and model pair on the instructions that seat runs on now, including the pairs never sent
+    back, so absence is visible. Rejections against wording that has since been rewritten are counted
+    separately rather than mixed in: they say what an earlier prompt did, not what to fix today.
+    """
+    current = current_versions()
     lines = ["| Seat | Model | Rejections | Reasons |", "|---|---|---|---|"]
     merged: dict[tuple[str, str], dict[str, int]] = {}
+    superseded: dict[str, int] = {}
     for g in groups:
+        version = current.get(g.agent_id)
+        if version is not None and g.instructions != version:
+            superseded[g.agent_id] = superseded.get(g.agent_id, 0) + sum(g.reasons.values())
+            continue
         bucket = merged.setdefault((g.agent_id, g.model), {})
         for name, count in g.reasons.items():
             bucket[name] = bucket.get(name, 0) + count
@@ -299,6 +318,16 @@ def reason_table(groups: list[Group]) -> list[str]:
         total = sum(reasons.values())
         text = ", ".join(f"{name} {count}" for name, count in sorted(reasons.items())) if total else "none"
         lines.append(f"| {agent_id} | {model} | {total} | {text} |")
+    if not merged:
+        lines.append("| none on the current instructions | | 0 | |")
+    dropped = sum(superseded.values())
+    if dropped:
+        seats = ", ".join(f"{seat} {count}" for seat, count in sorted(superseded.items()) if count)
+        lines += [
+            "",
+            f"Not counted above: {dropped} rejections against instructions that have since been rewritten "
+            f"({seats}). They are in `docs/model-performance-runs.csv` with the version that produced them.",
+        ]
     return lines
 
 
@@ -615,7 +644,9 @@ def report(groups: list[Group], runs: list[dict[str, Any]], probe: bool = True) 
         "",
         "## Why replies were sent back",
         "",
-        "Every seat and model pair that ran, with none where nothing was sent back.",
+        "Only rejections against the instructions each seat runs on now, so every line is something still "
+        "worth fixing. A seat taught since a rejection no longer carries it here. Pairs that ran without a "
+        "rejection are listed as none, so absence is visible.",
         "",
         *reason_table(groups),
         "",

@@ -89,38 +89,23 @@ Ranked among Ollama models with at least 5 runs on the seat: fewest stopped runs
 
 ## Why replies were sent back
 
-Every seat and model pair that ran, with none where nothing was sent back.
+Only rejections against the instructions each seat runs on now, so every line is something still worth fixing. A seat taught since a rejection no longer carries it here. Pairs that ran without a rejection are listed as none, so absence is visible.
 
 | Seat | Model | Rejections | Reasons |
 |---|---|---|---|
-| orchestrator | claude-sonnet via Bedrock | 0 | none |
-| orchestrator | deepseek-r1 14b, local | 0 | none |
 | orchestrator | gemma4 12b, local | 0 | none |
-| orchestrator | llama3.1 8b, local | 0 | none |
 | orchestrator | qwen3.5 4b, local | 0 | none |
-| orchestrator | qwen3.5 9b, local | 1 | invalid_json 1 |
-| intake | claude-sonnet via Bedrock | 0 | none |
-| intake | deepseek-r1 14b, local | 9 | checklist_grading 4, wrong_shape 5 |
-| intake | gemma4 12b, local | 1 | checklist_grading 1 |
-| intake | llama3.1 8b, local | 3 | checklist_grading 2, tool_not_used 1 |
-| intake | qwen3.5 4b, local | 2 | no_json 2 |
-| intake | qwen3.5 9b, local | 70 | checklist_grading 33, no_json 24, other 1, output_limit 2, wrong_shape 10 |
-| estimator | claude-sonnet-5 via Bedrock | 2 | wrong_shape 2 |
-| estimator | gemma4 12b, local | 2 | no_json 1, output_limit 1 |
-| estimator | qwen3.5 4b, local | 5 | no_json 3, tool_not_used 2 |
-| estimator | qwen3.5 9b, local | 130 | invalid_json 12, no_json 83, tool_not_used 16, wrong_shape 19 |
-| pricing | deepseek-r1 14b, local | 3 | tool_not_used 3 |
+| orchestrator | qwen3.5 9b, local | 0 | none |
+| intake | deepseek-r1 14b, local | 8 | checklist_grading 4, wrong_shape 4 |
+| intake | qwen3.5 9b, local | 14 | checklist_grading 8, no_json 4, output_limit 1, wrong_shape 1 |
+| estimator | qwen3.5 9b, local | 27 | invalid_json 3, no_json 16, tool_not_used 5, wrong_shape 3 |
 | pricing | gemma4 12b, local | 0 | none |
-| pricing | llama3.1 8b, local | 6 | tool_not_used 6 |
-| pricing | qwen3.5 4b, local | 0 | none |
-| pricing | qwen3.5 9b, local | 16 | tool_not_used 15, wrong_shape 1 |
-| writer | deepseek-r1 14b, local | 2 | concern_dropped 2 |
-| writer | qwen3.5 4b, local | 5 | concern_dropped 2, provenance_tags 3 |
-| writer | qwen3.5 9b, local | 136 | concern_dropped 32, invalid_json 5, no_json 20, provenance_tags 69, wrong_shape 10 |
-| reviewer | gemma4 12b, local | 3 | invalid_json 1, wrong_shape 2 |
-| reviewer | qwen3.5 4b, local | 0 | none |
-| reviewer | qwen3.5 9b, local | 0 | none |
-| single | qwen3.5 9b, local | 2 | no_json 2 |
+| pricing | llama3.1 8b, local | 3 | tool_not_used 3 |
+| pricing | qwen3.5 9b, local | 0 | none |
+| writer | qwen3.5 9b, local | 24 | concern_dropped 7, invalid_json 2, no_json 5, provenance_tags 7, wrong_shape 3 |
+| reviewer | gemma4 12b, local | 1 | wrong_shape 1 |
+
+Not counted above: 321 rejections against instructions that have since been rewritten (estimator 112, intake 63, orchestrator 1, pricing 22, reviewer 2, single 2, writer 119). They are in `docs/model-performance-runs.csv` with the version that produced them.
 
 ## Models and what they take
 
