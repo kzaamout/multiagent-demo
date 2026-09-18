@@ -209,3 +209,22 @@ def test_no_golden_means_no_fallback_check(tmp_path: Path, datasets: Path) -> No
     assert golden_match("clean-run", run) == (None, "no golden log")
     checks = seat_checks("clean-run", run, tmp_path)
     assert "orchestrator" not in checks and checks["intake"] == {"ready": False}
+
+
+def test_each_rejection_lands_in_the_category_that_says_how_to_fix_it() -> None:
+    """The three failures once pooled as json_shape need different fixes, so they are counted apart."""
+    from app.runs.metrics import categorise
+
+    cases = {
+        "no JSON object found in the reply": "no_json",
+        "the reply is not valid JSON (Expecting ',' delimiter)": "invalid_json",
+        "bom.8.group: Field required": "wrong_shape",
+        "a completed takeoff needs headline, bom, and labour": "wrong_shape",
+        "these dollar amounts have no provenance tag: $95": "provenance_tags",
+        "the Estimator's concern is not carried in the Assumptions section": "concern_dropped",
+        "no price came from price_list_lookup": "tool_not_used",
+        "verdict not_ready contradicts the checklist grades": "checklist_grading",
+        "the reply hit the model's output limit": "output_limit",
+    }
+    for message, expected in cases.items():
+        assert categorise(message) == expected, message

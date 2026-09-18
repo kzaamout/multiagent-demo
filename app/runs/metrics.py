@@ -24,14 +24,19 @@ MANIFEST_FILE = "run.json"
 
 # Why a reply was sent back, grouped so that a pattern is visible across runs. First match wins.
 CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("json_shape", ("is not valid json", "no json object", "expected", "field required", "input should")),
+    # json_shape held three failures with three different fixes, so it is split (owner decision
+    # 2026-09-17): the seat never replied, the seat replied with broken JSON, or the seat replied with
+    # valid JSON in the wrong structure. missing_fields was the third of those said in other words, so it
+    # is folded in rather than kept beside it.
+    ("no_json", ("no json object",)),
+    ("invalid_json", ("is not valid json",)),
+    ("wrong_shape", ("expected", "field required", "input should", "needs headline", "needs", "must")),
     ("checklist_grading", ("checklist", "verdict", "clarification")),
     ("compile_failed", ("does not compile",)),
     ("concern_dropped", ("concern is not carried", "no assumptions section")),
     ("provenance_tags", ("provenance", "src:", "source id")),
     ("tool_not_used", ("price_list_lookup", "quantity_calculate", "as text instead of calling")),
     ("blocker_as_concern", ("blocker, not a concern",)),
-    ("missing_fields", ("needs headline", "needs", "must")),
     ("output_limit", ("output limit", "max tokens")),
     ("provider_error", ("could not be reached",)),
 )

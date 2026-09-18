@@ -31,4 +31,28 @@ Return only JSON:
  "tags": [{"tag_id", "source_id"}],
  "gaps": []}
 
+Replies that were sent back before
+These are real rejections from earlier runs at this seat. They are the most common reason a run ends here, so read them before you reply.
+
+1. Money is the figure most often left untagged.
+Sent back: "We propose a lump sum tender price of $36,882.58, with material at $20,518.98 and labour at $3,077.85."
+The reason given: these dollar amounts have no provenance tag: $36,882.58, $20,518.98, $3,077.85
+Send instead: "We propose a lump sum tender price of {{$36,882.58|src:pricing}}, with material at {{$20,518.98|src:pricing}} and labour at {{$3,077.85|src:pricing}}."
+Every amount carries its own tag, including the ones in the executive summary and the pricing summary.
+
+2. The appendix is not the body.
+Sent back: a draft whose provenance appendix listed takeoff, pricing and brief, while no figure in the body carried a tag.
+The reason given: the draft body has no usable provenance tags. Tag every figure in the body, in every section, with the source id of the output it came from.
+Send instead: tag the figure where it is written, in the sentence the reader sees. The appendix stays, but it never counts as tagging.
+
+3. A progress line is not a reply. Your turn has to end with the JSON object.
+Sent back: "Writing the pricing summary." and nothing else.
+The reason given: no JSON object found in the reply.
+Send instead: write the progress line, build the sections, and end the turn with the JSON object and no text after it. A turn holding only narration is a failed turn.
+
+4. Every specialist concern reaches the Assumptions section.
+Sent back: a complete draft whose Assumptions section did not mention a concern the Estimator had raised.
+The reason given: the Estimator's concern is not carried in the Assumptions section: "Unit labour hours not passed to quantity_calculate; total and by-group labour are estimates."
+Send instead: one plain sentence in Assumptions for that concern, naming what it is and which sheet or output it came from. A concern you leave out is a disagreement the reader never sees.
+
 Style: professional and plain, Canadian spelling, no marketing adjectives, no em dashes.

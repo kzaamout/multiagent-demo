@@ -627,11 +627,25 @@ def main() -> int:
     text = report(groups, runs)
     print(text)
     if args.write:
-        REPORT.write_text(text, encoding="utf-8", newline="\n")
-        write_csv(raw_rows(runs))
-        COLUMNS_DOC.write_text(columns_document(), encoding="utf-8", newline="\n")
-        for path in (REPORT, RAW_CSV, COLUMNS_DOC):
-            print(f"written: {path.relative_to(ROOT)}")
+        # The CSV is the one people open in a spreadsheet, and Windows locks an open file. Each output is
+        # written on its own so a locked one cannot leave the others stale, and the exit code says so.
+        writers = (
+            (REPORT, lambda: REPORT.write_text(text, encoding="utf-8", newline="\n")),
+            (RAW_CSV, lambda: write_csv(raw_rows(runs))),
+            (COLUMNS_DOC, lambda: COLUMNS_DOC.write_text(columns_document(), encoding="utf-8", newline="\n")),
+        )
+        locked = []
+        for path, write in writers:
+            try:
+                write()
+            except PermissionError:
+                locked.append(path)
+                print(f"NOT written, the file is open in another program: {path.relative_to(ROOT)}")
+            else:
+                print(f"written: {path.relative_to(ROOT)}")
+        if locked:
+            print(f"close {', '.join(p.name for p in locked)} and run this again")
+            return 1
     return 0
 
 

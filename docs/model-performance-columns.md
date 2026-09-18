@@ -7,9 +7,10 @@ Generated with `docs/model-performance.md` and `docs/model-performance-runs.csv`
 - **Seat**: the seat the row is about; one seat per row, so a model that held two seats appears twice
 - **Model**: the model label the seat ran on, as the run's events record it
 - **Settings**: the hyperparameters the seat ran with, recorded per run: temperature, num_ctx, think, max_tokens; 'not recorded' for runs before capture
+- **Prompt**: the version of the seat's instructions the run used, so runs before and after a seat was taught something do not blend; 'not recorded' for runs before capture
 - **Runs**: runs in which the seat made at least one call or reply on this model with these settings
 - **Calls**: model calls the seat made across those runs, from meter.update events
-- **Stopped runs**: times the seat's reply was refused twice in a row and the run ended because of it
+- **Stopped runs**: times the seat ran out of attempts and the run ended because of it
 - **Accuracy**: checks met over checks defined: the dataset's own expectations of the seat, or the golden match where the dataset defines none for it (app/runs/expectations.py)
 - **First time**: share of accepted replies that needed no correction
 - **Corrections**: replies accepted on the second attempt, after one refusal
@@ -30,6 +31,7 @@ Generated with `docs/model-performance.md` and `docs/model-performance-runs.csv`
 - **sweep_varied_seat**: the seat the configuration changed from the baseline, or all
 - **sweep_repeat**: which repeat of the configuration on the dataset, from 0
 - **sweep_worker**: the machine that ran the job
+- **instructions**: the version of the seat's instructions the run used (app/seats/definitions.py)
 - **seat**: the seat the row is about
 - **role**: the seat's display role
 - **model**: the model label the seat ran on
