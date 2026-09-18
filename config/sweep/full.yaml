@@ -1,0 +1,29 @@
+# The full sweep (owner decision 2026-09-18): every local model, in every seat it can serve, on every stock
+# dataset, with the hyperparameters left exactly as config/models.yaml sets them. Run with:
+#   uv run python scripts/sweep.py config/sweep/full.yaml --worker laptop
+#
+# 20 configurations survive, plus the baseline, over five datasets: 105 runs, about eight hours on the
+# reference laptop, at no cost. A configuration identical to the baseline is not run twice, which is why
+# Qwen 3.5 9B appears only in the Reviewer seat here: it already holds the other five in the baseline. Llama 3.1 and DeepSeek R1 are text only, so the Estimator and
+# Reviewer seats skip them; the skipped combinations are printed at the start rather than passed over in
+# silence. One pass gives every model and seat pair five runs, one per dataset, which is the minimum the
+# report needs before it will rank a model, and five scenarios are better evidence than five repeats of one.
+label: full-1
+datasets: [clean-run, not-ready, missing-sheet, planted-inconsistency, missing-price]
+repeats: 1
+ceiling: 1.00
+max_minutes: 20            # a hung seat cost 30 minutes on 2026-09-18; 20 still clears the slowest real run
+blocker: answer            # a blocker on a dataset that plants none is the seat inventing one
+blocker_by_dataset:
+  missing-sheet: escalate  # this scenario exists to produce an escalated blocker; answering destroys it
+baseline:                  # the seats as config/models.yaml has them, with the Estimator local for this sweep
+  orchestrator: qwen3-5-9b
+  intake: qwen3-5-9b
+  estimator: qwen3-5-9b
+  pricing: qwen3-5-9b
+  writer: qwen3-5-9b
+  reviewer: gemma4-12b
+vary:
+  models: [qwen3-5-9b, gemma4-12b, llama3-1-8b, deepseek-r1-14b, qwen3-5-4b]
+  seats: [orchestrator, intake, estimator, pricing, writer, reviewer]
+whole: []                  # every seat on one model is a separate question; not part of this pass
