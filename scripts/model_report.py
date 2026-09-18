@@ -44,9 +44,14 @@ TABLE_COLUMNS: list[tuple[str, str]] = [
         "the hyperparameters the seat ran with, recorded per run: temperature, num_ctx, think, max_tokens; "
         "'not recorded' for runs before capture",
     ),
+    (
+        "Prompt",
+        "the version of the seat's instructions the run used, so runs before and after a seat was taught "
+        "something do not blend; 'not recorded' for runs before capture",
+    ),
     ("Runs", "runs in which the seat made at least one call or reply on this model with these settings"),
     ("Calls", "model calls the seat made across those runs, from meter.update events"),
-    ("Stopped runs", "times the seat's reply was refused twice in a row and the run ended because of it"),
+    ("Stopped runs", "times the seat ran out of attempts and the run ended because of it"),
     (
         "Accuracy",
         "checks met over checks defined: the dataset's own expectations of the seat, or the golden match "
@@ -82,6 +87,7 @@ CSV_COLUMNS: list[tuple[str, str]] = [
     ("sweep_varied_seat", "the seat the configuration changed from the baseline, or all"),
     ("sweep_repeat", "which repeat of the configuration on the dataset, from 0"),
     ("sweep_worker", "the machine that ran the job"),
+    ("instructions", "the version of the seat's instructions the run used (app/seats/definitions.py)"),
     ("seat", "the seat the row is about"),
     ("role", "the seat's display role"),
     ("model", "the model label the seat ran on"),
@@ -116,6 +122,7 @@ class Group:
     model: str
     provider: str = ""
     settings: str = "not recorded"
+    instructions: str = "not recorded"
     runs: int = 0
     calls: int = 0
     tokens_in: int = 0
@@ -206,7 +213,7 @@ def started_at(folder: Path, data: dict[str, Any]) -> str:
 
 
 def collect(runs_dir: Path = RUNS) -> tuple[list[Group], list[dict[str, Any]]]:
-    groups: dict[tuple[str, str, str], Group] = {}
+    groups: dict[tuple[str, str, str, str], Group] = {}
     runs: list[dict[str, Any]] = []
     for folder in sorted(p for p in runs_dir.glob("*") if p.is_dir() and not p.name.startswith("_")):
         data = metrics_of(folder)
@@ -219,7 +226,8 @@ def collect(runs_dir: Path = RUNS) -> tuple[list[Group], list[dict[str, Any]]]:
             if not seat["calls"] and not seat["replies"]:
                 continue  # a seat that never ran in this run
             settings = settings_text(seat.get("settings") or {})
-            key = (seat["agent_id"], seat["model"] or "unknown", settings)
+            prompt = seat.get("instructions") or "not recorded"
+            key = (seat["agent_id"], seat["model"] or "unknown", settings, prompt)
             group = groups.setdefault(
                 key,
                 Group(
@@ -228,6 +236,7 @@ def collect(runs_dir: Path = RUNS) -> tuple[list[Group], list[dict[str, Any]]]:
                     model=key[1],
                     provider=seat.get("provider", ""),
                     settings=settings,
+                    instructions=prompt,
                 ),
             )
             group.runs += 1
@@ -247,7 +256,12 @@ def collect(runs_dir: Path = RUNS) -> tuple[list[Group], list[dict[str, Any]]]:
                 group.reasons[reason] = group.reasons.get(reason, 0) + count
     return sorted(
         groups.values(),
-        key=lambda g: (SEAT_ORDER.index(g.agent_id) if g.agent_id in SEAT_ORDER else 99, g.model, g.settings),
+        key=lambda g: (
+            SEAT_ORDER.index(g.agent_id) if g.agent_id in SEAT_ORDER else 99,
+            g.model,
+            g.settings,
+            g.instructions,
+        ),
     ), runs
 
 
@@ -261,7 +275,8 @@ def table(groups: list[Group]) -> list[str]:
     for g in groups:
         first = f"{g.first_time_rate * 100:.0f}%" if g.replies else "n/a"
         lines.append(
-            f"| {g.agent_id} | {g.model} | {g.settings} | {g.runs} | {g.calls} | {g.stopped_run} | "
+            f"| {g.agent_id} | {g.model} | {g.settings} | {g.instructions} | {g.runs} | {g.calls} | "
+            f"{g.stopped_run} | "
             f"{_accuracy(g)} | {first} | {g.corrections} | {g.tokens_in_per_call} | "
             f"{g.tokens_out_per_call} | {g.seconds_per_call:.1f} | ${g.cost_per_run:.2f} |"
         )
@@ -320,6 +335,8 @@ def merge_by_model(groups: list[Group]) -> list[Group]:
         into.est_cost += g.est_cost
         if into.settings == "not recorded" and g.settings != "not recorded":
             into.settings = g.settings
+        if into.instructions == "not recorded" and g.instructions != "not recorded":
+            into.instructions = g.instructions
         for reason, count in g.reasons.items():
             into.reasons[reason] = into.reasons.get(reason, 0) + count
     return list(merged.values())
@@ -380,6 +397,7 @@ def raw_rows(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "role": seat["role"],
                     "model": seat["model"],
                     "provider": seat.get("provider", ""),
+                    "instructions": seat.get("instructions", ""),
                     "temperature": settings.get("temperature", ""),
                     "num_ctx": settings.get("num_ctx", ""),
                     "think": settings.get("think", ""),

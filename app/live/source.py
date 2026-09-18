@@ -52,7 +52,7 @@ from app.orchestrator.knowledge_store import KnowledgeStore
 from app.runs.metrics import SeatAttempt, append_attempt
 from app.schema.bundles import PromptBundle
 from app.schema.events import Event, Subtask
-from app.seats.definitions import SEAT_DEFINITIONS, load_instructions
+from app.seats.definitions import SEAT_DEFINITIONS, instructions_version, load_instructions
 from app.tools.prepare import PREPARED_DIR, prepare_documents, read_manifest
 from app.tools.template import commit_draft, find_tags, provenance_problems
 
@@ -302,6 +302,7 @@ class LiveAgentSource:
                 accepted=accepted,
                 error=without_em_dashes(error),
                 settings=dict(self.seat_models[agent_id].settings) if agent_id in self.seat_models else {},
+                instructions=instructions_version(agent_id),
             ),
         )
         # Every reply is kept, so a recorded run can be read back without the provider (spec section 6).

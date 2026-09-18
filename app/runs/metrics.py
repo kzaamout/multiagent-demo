@@ -57,6 +57,8 @@ class SeatAttempt:
     error: str = ""
     settings: dict[str, Any] = field(default_factory=dict)
     """temperature, num_ctx, think, max_tokens as the seat resolved them (decision 5a); empty on old lines."""
+    instructions: str = ""
+    """The version of the seat's instructions this attempt ran on; empty on lines recorded before capture."""
 
     def line(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False)
@@ -84,6 +86,8 @@ class SeatRow:
     reasons: dict[str, int] = field(default_factory=dict)
     settings: dict[str, Any] = field(default_factory=dict)
     """The hyperparameters the seat ran with, from its attempt lines; empty when the run predates capture."""
+    instructions: str = ""
+    """The version of the seat's instructions, so a lesson taught to a seat starts a new row in the report."""
     checks: dict[str, bool] = field(default_factory=dict)
     """Correctness checks the dataset defines for this seat, each met or not (app/runs/expectations.py)."""
 
@@ -229,6 +233,8 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
             seat.model, seat.provider = attempt.model, attempt.provider
         if attempt.settings:
             seat.settings = dict(attempt.settings)
+        if attempt.instructions:
+            seat.instructions = attempt.instructions
         final_rejected[agent_id] = not attempt.accepted
         if attempt.accepted:
             seat.replies += 1

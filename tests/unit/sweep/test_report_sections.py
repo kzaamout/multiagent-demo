@@ -145,3 +145,34 @@ def test_a_seat_that_recovers_on_a_later_attempt_did_not_stop_the_run(tmp_path: 
 
     exhausted = metrics("stopped", [(1, False), (2, False), (3, False)])
     assert exhausted["stopped_run"] == 1 and exhausted["replies"] == 1
+
+
+def test_a_taught_seat_starts_a_new_row_so_runs_before_and_after_do_not_blend(tmp_path: Path) -> None:
+    """The prompt version is recorded per run, so teaching a seat splits its rows (owner request)."""
+    module = load_report()
+    runs = tmp_path / "runs"
+    for index, (version, accepted) in enumerate((("old1234", True), ("new5678", True))):
+        folder = runs / f"r{index}"
+        folder.mkdir(parents=True)
+        events = [started("clean-run"), terminated(2, "reviewer_pass")]
+        (folder / "events.jsonl").write_text("".join(e.to_line() + chr(10) for e in events), encoding="utf-8")
+        append_attempt(
+            folder,
+            SeatAttempt(
+                "pb-01",
+                "writer",
+                "qwen3.5 9b, local",
+                "ollama",
+                1,
+                accepted,
+                "" if accepted else "bad",
+                {"temperature": 0.1},
+                version,
+            ),
+        )
+    groups, _ = module.collect(runs)
+    assert sorted(g.instructions for g in groups) == ["new5678", "old1234"], (
+        "the same model on two prompt versions is two rows"
+    )
+    merged = module.merge_by_model(groups)
+    assert len(merged) == 1, "the ranking still judges the model as one"

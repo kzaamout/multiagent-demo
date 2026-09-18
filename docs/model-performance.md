@@ -9,9 +9,10 @@ Runs recorded: 78, of which 78 called a model. Estimated spend across all of the
 - **Seat**: the seat the row is about; one seat per row, so a model that held two seats appears twice
 - **Model**: the model label the seat ran on, as the run's events record it
 - **Settings**: the hyperparameters the seat ran with, recorded per run: temperature, num_ctx, think, max_tokens; 'not recorded' for runs before capture
+- **Prompt**: the version of the seat's instructions the run used, so runs before and after a seat was taught something do not blend; 'not recorded' for runs before capture
 - **Runs**: runs in which the seat made at least one call or reply on this model with these settings
 - **Calls**: model calls the seat made across those runs, from meter.update events
-- **Stopped runs**: times the seat's reply was refused twice in a row and the run ended because of it
+- **Stopped runs**: times the seat ran out of attempts and the run ended because of it
 - **Accuracy**: checks met over checks defined: the dataset's own expectations of the seat, or the golden match where the dataset defines none for it (app/runs/expectations.py)
 - **First time**: share of accepted replies that needed no correction
 - **Corrections**: replies accepted on the second attempt, after one refusal
@@ -36,43 +37,43 @@ Ranked among Ollama models with at least 5 runs on the seat: fewest stopped runs
 
 ## Every seat and model
 
-| Seat | Model | Settings | Runs | Calls | Stopped runs | Accuracy | First time | Corrections | Tokens in per call | Tokens out per call | Seconds per call | Cost per run |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| orchestrator | claude-sonnet via Bedrock | not recorded | 1 | 1 | 0 | 0/1 (0%) | n/a | 0 | 902 | 198 | 0.9 | $0.01 |
-| orchestrator | deepseek-r1 14b, local | temperature 0.1, num_ctx 16384, think model default, max_tokens model default | 1 | 1 | 0 | 0/1 (0%) | 100% | 0 | 2170 | 989 | 52.7 | $0.00 |
-| orchestrator | gemma4 12b, local | temperature 0.1, num_ctx 16384, think off, max_tokens model default | 2 | 3 | 0 | 1/2 (50%) | 100% | 0 | 2918 | 231 | 8.3 | $0.00 |
-| orchestrator | llama3.1 8b, local | temperature 0.1, num_ctx 16384, think model default, max_tokens model default | 1 | 1 | 0 | 0/1 (0%) | 100% | 0 | 1971 | 262 | 13.5 | $0.00 |
-| orchestrator | qwen3.5 4b, local | temperature 0.1, num_ctx 65536, think off, max_tokens model default | 2 | 3 | 0 | 1/2 (50%) | 100% | 0 | 2899 | 150 | 5.4 | $0.00 |
-| orchestrator | qwen3.5 9b, local | not recorded | 28 | 48 | 0 | 11/28 (39%) | 95% | 1 | 3646 | 176 | 6.9 | $0.00 |
-| orchestrator | qwen3.5 9b, local | temperature 0.1, num_ctx 65536, think off, max_tokens model default | 20 | 24 | 0 | 1/20 (5%) | 100% | 0 | 2473 | 232 | 5.6 | $0.00 |
-| intake | claude-sonnet via Bedrock | not recorded | 1 | 1 | 0 | 0/1 (0%) | 100% | 0 | 15088 | 3312 | 41.0 | $0.09 |
-| intake | deepseek-r1 14b, local | temperature 0.1, num_ctx 16384, think model default, max_tokens model default | 1 | 2 | 0 | 1/1 (100%) | 0% | 1 | 3709 | 1284 | 61.8 | $0.00 |
-| intake | gemma4 12b, local | temperature 0.1, num_ctx 16384, think off, max_tokens model default | 2 | 21 | 0 | 2/2 (100%) | 50% | 1 | 6702 | 209 | 5.3 | $0.00 |
-| intake | llama3.1 8b, local | temperature 0.1, num_ctx 16384, think model default, max_tokens model default | 1 | 18 | 1 | 0/1 (0%) | 0% | 0 | 7881 | 65 | 1.7 | $0.00 |
-| intake | qwen3.5 4b, local | temperature 0.1, num_ctx 65536, think off, max_tokens model default | 2 | 6 | 0 | 2/2 (100%) | 0% | 2 | 7980 | 649 | 7.6 | $0.00 |
-| intake | qwen3.5 9b, local | not recorded | 45 | 131 | 4 | 40/59 (68%) | 78% | 6 | 6637 | 827 | 16.3 | $0.00 |
-| intake | qwen3.5 9b, local | temperature 0.1, num_ctx 65536, think off, max_tokens model default | 24 | 78 | 1 | 21/24 (88%) | 54% | 12 | 8031 | 967 | 15.2 | $0.00 |
-| estimator | claude-sonnet-5 via Bedrock | not recorded | 26 | 153 | 1 | 24/26 (92%) | 97% | 0 | 24513 | 874 | 11.2 | $0.37 |
-| estimator | gemma4 12b, local | temperature model default, num_ctx 16384, think off, max_tokens model default | 2 | 10 | 2 | 2/2 (100%) | 0% | 0 | 7106 | 24 | 2.4 | $0.00 |
-| estimator | qwen3.5 4b, local | temperature model default, num_ctx 65536, think off, max_tokens model default | 2 | 21 | 0 | 1/2 (50%) | 0% | 3 | 17400 | 872 | 11.4 | $0.00 |
-| estimator | qwen3.5 9b, local | not recorded | 2 | 6 | 1 | 2/2 (100%) | 50% | 0 | 13354 | 338 | 13.8 | $0.00 |
-| estimator | qwen3.5 9b, local | temperature model default, num_ctx 65536, think off, max_tokens model default | 21 | 201 | 6 | 13/21 (62%) | 23% | 17 | 17729 | 477 | 11.0 | $0.00 |
-| pricing | deepseek-r1 14b, local | temperature 0.1, num_ctx 16384, think model default, max_tokens model default | 1 | 0 | 1 | 0/1 (0%) | 0% | 0 | 0 | 0 | 0.0 | $0.00 |
-| pricing | gemma4 12b, local | temperature 0.1, num_ctx 16384, think off, max_tokens model default | 1 | 2 | 0 | 1/1 (100%) | 100% | 0 | 3249 | 896 | 21.5 | $0.00 |
-| pricing | llama3.1 8b, local | not recorded | 1 | 6 | 0 | 1/1 (100%) | 100% | 0 | 3246 | 642 | 11.7 | $0.00 |
-| pricing | llama3.1 8b, local | temperature 0.1, num_ctx 16384, think model default, max_tokens model default | 1 | 2 | 0 | 1/1 (100%) | 100% | 0 | 3170 | 690 | 11.0 | $0.00 |
-| pricing | qwen3.5 4b, local | temperature 0.1, num_ctx 65536, think off, max_tokens model default | 2 | 4 | 0 | 2/2 (100%) | 100% | 0 | 4198 | 708 | 8.1 | $0.00 |
-| pricing | qwen3.5 9b, local | not recorded | 22 | 69 | 2 | 13/22 (59%) | 38% | 14 | 4665 | 909 | 21.3 | $0.00 |
-| pricing | qwen3.5 9b, local | temperature 0.1, num_ctx 65536, think off, max_tokens model default | 11 | 26 | 0 | 11/11 (100%) | 100% | 0 | 3991 | 700 | 11.0 | $0.00 |
-| writer | deepseek-r1 14b, local | temperature model default, num_ctx 16384, think model default, max_tokens model default | 1 | 4 | 0 | 1/1 (100%) | 0% | 2 | 4866 | 1384 | 70.1 | $0.00 |
-| writer | qwen3.5 4b, local | temperature model default, num_ctx 65536, think off, max_tokens model default | 1 | 24 | 1 | 1/1 (100%) | 0% | 1 | 11441 | 993 | 9.9 | $0.00 |
-| writer | qwen3.5 9b, local | not recorded | 22 | 110 | 5 | 12/22 (55%) | 52% | 10 | 8188 | 1642 | 36.0 | $0.00 |
-| writer | qwen3.5 9b, local | temperature model default, num_ctx 65536, think off, max_tokens model default | 13 | 100 | 8 | 7/13 (54%) | 11% | 8 | 7907 | 880 | 13.4 | $0.00 |
-| reviewer | gemma4 12b, local | not recorded | 17 | 27 | 0 | 9/17 (53%) | 96% | 1 | 3750 | 149 | 20.5 | $0.00 |
-| reviewer | gemma4 12b, local | temperature 0.2, num_ctx 16384, think off, max_tokens model default | 7 | 11 | 0 | 3/7 (43%) | 100% | 0 | 5781 | 155 | 11.0 | $0.00 |
-| reviewer | qwen3.5 4b, local | temperature 0.2, num_ctx 65536, think off, max_tokens model default | 1 | 1 | 0 | 0/1 (0%) | 100% | 0 | 11317 | 478 | 8.4 | $0.00 |
-| reviewer | qwen3.5 9b, local | temperature 0.2, num_ctx 65536, think off, max_tokens model default | 1 | 1 | 0 | 0/1 (0%) | 100% | 0 | 11903 | 460 | 14.1 | $0.00 |
-| single | qwen3.5 9b, local | not recorded | 2 | 16 | 1 | n/a | 50% | 0 | 11337 | 247 | 9.5 | $0.00 |
+| Seat | Model | Settings | Prompt | Runs | Calls | Stopped runs | Accuracy | First time | Corrections | Tokens in per call | Tokens out per call | Seconds per call | Cost per run |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| orchestrator | claude-sonnet via Bedrock | not recorded | not recorded | 1 | 1 | 0 | 0/1 (0%) | n/a | 0 | 902 | 198 | 0.9 | $0.01 |
+| orchestrator | deepseek-r1 14b, local | temperature 0.1, num_ctx 16384, think model default, max_tokens model default | not recorded | 1 | 1 | 0 | 0/1 (0%) | 100% | 0 | 2170 | 989 | 52.7 | $0.00 |
+| orchestrator | gemma4 12b, local | temperature 0.1, num_ctx 16384, think off, max_tokens model default | not recorded | 2 | 3 | 0 | 1/2 (50%) | 100% | 0 | 2918 | 231 | 8.3 | $0.00 |
+| orchestrator | llama3.1 8b, local | temperature 0.1, num_ctx 16384, think model default, max_tokens model default | not recorded | 1 | 1 | 0 | 0/1 (0%) | 100% | 0 | 1971 | 262 | 13.5 | $0.00 |
+| orchestrator | qwen3.5 4b, local | temperature 0.1, num_ctx 65536, think off, max_tokens model default | not recorded | 2 | 3 | 0 | 1/2 (50%) | 100% | 0 | 2899 | 150 | 5.4 | $0.00 |
+| orchestrator | qwen3.5 9b, local | not recorded | not recorded | 28 | 48 | 0 | 11/28 (39%) | 95% | 1 | 3646 | 176 | 6.9 | $0.00 |
+| orchestrator | qwen3.5 9b, local | temperature 0.1, num_ctx 65536, think off, max_tokens model default | not recorded | 20 | 24 | 0 | 1/20 (5%) | 100% | 0 | 2473 | 232 | 5.6 | $0.00 |
+| intake | claude-sonnet via Bedrock | not recorded | not recorded | 1 | 1 | 0 | 0/1 (0%) | 100% | 0 | 15088 | 3312 | 41.0 | $0.09 |
+| intake | deepseek-r1 14b, local | temperature 0.1, num_ctx 16384, think model default, max_tokens model default | not recorded | 1 | 2 | 0 | 1/1 (100%) | 0% | 1 | 3709 | 1284 | 61.8 | $0.00 |
+| intake | gemma4 12b, local | temperature 0.1, num_ctx 16384, think off, max_tokens model default | not recorded | 2 | 21 | 0 | 2/2 (100%) | 50% | 1 | 6702 | 209 | 5.3 | $0.00 |
+| intake | llama3.1 8b, local | temperature 0.1, num_ctx 16384, think model default, max_tokens model default | not recorded | 1 | 18 | 1 | 0/1 (0%) | 0% | 0 | 7881 | 65 | 1.7 | $0.00 |
+| intake | qwen3.5 4b, local | temperature 0.1, num_ctx 65536, think off, max_tokens model default | not recorded | 2 | 6 | 0 | 2/2 (100%) | 0% | 2 | 7980 | 649 | 7.6 | $0.00 |
+| intake | qwen3.5 9b, local | not recorded | not recorded | 45 | 131 | 4 | 40/59 (68%) | 78% | 6 | 6637 | 827 | 16.3 | $0.00 |
+| intake | qwen3.5 9b, local | temperature 0.1, num_ctx 65536, think off, max_tokens model default | not recorded | 24 | 78 | 1 | 21/24 (88%) | 54% | 12 | 8031 | 967 | 15.2 | $0.00 |
+| estimator | claude-sonnet-5 via Bedrock | not recorded | not recorded | 26 | 153 | 1 | 24/26 (92%) | 97% | 0 | 24513 | 874 | 11.2 | $0.37 |
+| estimator | gemma4 12b, local | temperature model default, num_ctx 16384, think off, max_tokens model default | not recorded | 2 | 10 | 2 | 2/2 (100%) | 0% | 0 | 7106 | 24 | 2.4 | $0.00 |
+| estimator | qwen3.5 4b, local | temperature model default, num_ctx 65536, think off, max_tokens model default | not recorded | 2 | 21 | 0 | 1/2 (50%) | 0% | 3 | 17400 | 872 | 11.4 | $0.00 |
+| estimator | qwen3.5 9b, local | not recorded | not recorded | 2 | 6 | 1 | 2/2 (100%) | 50% | 0 | 13354 | 338 | 13.8 | $0.00 |
+| estimator | qwen3.5 9b, local | temperature model default, num_ctx 65536, think off, max_tokens model default | not recorded | 21 | 201 | 6 | 13/21 (62%) | 23% | 17 | 17729 | 477 | 11.0 | $0.00 |
+| pricing | deepseek-r1 14b, local | temperature 0.1, num_ctx 16384, think model default, max_tokens model default | not recorded | 1 | 0 | 1 | 0/1 (0%) | 0% | 0 | 0 | 0 | 0.0 | $0.00 |
+| pricing | gemma4 12b, local | temperature 0.1, num_ctx 16384, think off, max_tokens model default | not recorded | 1 | 2 | 0 | 1/1 (100%) | 100% | 0 | 3249 | 896 | 21.5 | $0.00 |
+| pricing | llama3.1 8b, local | not recorded | not recorded | 1 | 6 | 0 | 1/1 (100%) | 100% | 0 | 3246 | 642 | 11.7 | $0.00 |
+| pricing | llama3.1 8b, local | temperature 0.1, num_ctx 16384, think model default, max_tokens model default | not recorded | 1 | 2 | 0 | 1/1 (100%) | 100% | 0 | 3170 | 690 | 11.0 | $0.00 |
+| pricing | qwen3.5 4b, local | temperature 0.1, num_ctx 65536, think off, max_tokens model default | not recorded | 2 | 4 | 0 | 2/2 (100%) | 100% | 0 | 4198 | 708 | 8.1 | $0.00 |
+| pricing | qwen3.5 9b, local | not recorded | not recorded | 22 | 69 | 2 | 13/22 (59%) | 38% | 14 | 4665 | 909 | 21.3 | $0.00 |
+| pricing | qwen3.5 9b, local | temperature 0.1, num_ctx 65536, think off, max_tokens model default | not recorded | 11 | 26 | 0 | 11/11 (100%) | 100% | 0 | 3991 | 700 | 11.0 | $0.00 |
+| writer | deepseek-r1 14b, local | temperature model default, num_ctx 16384, think model default, max_tokens model default | not recorded | 1 | 4 | 0 | 1/1 (100%) | 0% | 2 | 4866 | 1384 | 70.1 | $0.00 |
+| writer | qwen3.5 4b, local | temperature model default, num_ctx 65536, think off, max_tokens model default | not recorded | 1 | 24 | 1 | 1/1 (100%) | 0% | 1 | 11441 | 993 | 9.9 | $0.00 |
+| writer | qwen3.5 9b, local | not recorded | not recorded | 22 | 110 | 5 | 12/22 (55%) | 52% | 10 | 8188 | 1642 | 36.0 | $0.00 |
+| writer | qwen3.5 9b, local | temperature model default, num_ctx 65536, think off, max_tokens model default | not recorded | 13 | 100 | 8 | 7/13 (54%) | 11% | 8 | 7907 | 880 | 13.4 | $0.00 |
+| reviewer | gemma4 12b, local | not recorded | not recorded | 17 | 27 | 0 | 9/17 (53%) | 96% | 1 | 3750 | 149 | 20.5 | $0.00 |
+| reviewer | gemma4 12b, local | temperature 0.2, num_ctx 16384, think off, max_tokens model default | not recorded | 7 | 11 | 0 | 3/7 (43%) | 100% | 0 | 5781 | 155 | 11.0 | $0.00 |
+| reviewer | qwen3.5 4b, local | temperature 0.2, num_ctx 65536, think off, max_tokens model default | not recorded | 1 | 1 | 0 | 0/1 (0%) | 100% | 0 | 11317 | 478 | 8.4 | $0.00 |
+| reviewer | qwen3.5 9b, local | temperature 0.2, num_ctx 65536, think off, max_tokens model default | not recorded | 1 | 1 | 0 | 0/1 (0%) | 100% | 0 | 11903 | 460 | 14.1 | $0.00 |
+| single | qwen3.5 9b, local | not recorded | not recorded | 2 | 16 | 1 | n/a | 50% | 0 | 11337 | 247 | 9.5 | $0.00 |
 
 ## Why replies were sent back
 
