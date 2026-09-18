@@ -228,3 +228,17 @@ def test_each_rejection_lands_in_the_category_that_says_how_to_fix_it() -> None:
     }
     for message, expected in cases.items():
         assert categorise(message) == expected, message
+
+
+def test_a_grading_refusal_is_not_read_as_a_shape_problem() -> None:
+    """Corrections say what the seat must do, so bare "must" cannot decide the category."""
+    from app.runs.metrics import categorise
+
+    grading = (
+        "2 checklist items are not pass but there are 0 clarifications. Add one clarification with a "
+        "proposed default for each of: bid_security_requirement; panel_schedules. Mark it blocking when "
+        "the request says the item must be settled before submitting"
+    )
+    assert categorise(grading) == "checklist_grading"
+    assert categorise("a completed takeoff needs headline, bom, and labour") == "wrong_shape"
+    assert categorise("brief: Field required; readiness: Field required") == "wrong_shape"

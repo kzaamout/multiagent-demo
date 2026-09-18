@@ -30,8 +30,11 @@ CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     # is folded in rather than kept beside it.
     ("no_json", ("no json object",)),
     ("invalid_json", ("is not valid json",)),
-    ("wrong_shape", ("expected", "field required", "input should", "needs headline", "needs", "must")),
+    # Grading comes before shape. A correction naming the fix often contains the words "must" or "needs",
+    # so bare "must" and "needs" in the shape list swallowed 68 Intake grading refusals and reported the
+    # seat's largest problem as the wrong one. Shape now matches on the validator's own words.
     ("checklist_grading", ("checklist", "verdict", "clarification")),
+    ("wrong_shape", ("expected", "field required", "input should", "needs headline")),
     ("compile_failed", ("does not compile",)),
     ("concern_dropped", ("concern is not carried", "no assumptions section")),
     ("provenance_tags", ("provenance", "src:", "source id")),
