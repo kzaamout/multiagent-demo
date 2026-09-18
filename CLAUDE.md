@@ -32,6 +32,7 @@ A sales demo that shows several AI agents, under an orchestrator, taking a busin
 - Scenario datasets and curation checklist: `datasets/`
 - Sales playbook (humans only, do not load unless asked): `docs/sales-playbook.md`
 - Approved slice roadmap and pre-S1 decisions: `docs/roadmap.md`
+- What happens at each seat, its input, output, checks, and every route and exit: `docs/seat-flow.md`
 - Frozen event schema: `docs/schema/events-v1.1.0.md`, an additive amendment of `events-v1.0.0.md` (typed models in `app/schema/`)
 - Dependency rationale record: `docs/dependencies.md`
 - Deviations found while building (design/ is never edited): `docs/design-deviations.md`
