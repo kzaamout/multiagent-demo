@@ -172,6 +172,10 @@ To run every dataset on stubbed agents at no cost, add `AGENT_MODE=stub` to `.en
 
 `uv run python scripts/sweep.py config/sweep/stage-1.yaml --worker laptop` runs every configuration in a plan, one run at a time, through the same API the Demo page uses: a baseline seat assignment, each listed model on each listed seat one at a time, and each `whole` model on every seat. Combinations a model cannot serve are skipped (a text-only model on the Estimator or the Reviewer). Clarifications take their proposed default, a blocker is escalated, Handoff is approved by the sweep, and a run past `max_minutes` is stopped. Jobs are claimed in `runs/_sweep/<label>.jsonl`, so a second machine pointed at the same runs folder takes the next unclaimed job; `--dry-run` lists the jobs. Each run then carries `sweep.json` saying which job it was. Read the results with `uv run python scripts/model_report.py --write`, which refreshes `docs/model-performance.md`, the raw rows in `docs/model-performance-runs.csv`, and the column definitions in `docs/model-performance-columns.md`. A sweep occupies Ollama, so live runs from the Demo page crawl while it goes.
 
+### Teaching a seat
+
+`uv run python scripts/prompt_review.py --write` reads every recorded run and says what each seat is still getting wrong, then writes `docs/prompt-review.md`. It suggests and never edits. Each finding quotes the real refusal, names the runs, and drafts the example block in the shape the seat files use, leaving one line blank: what the seat should have sent instead. That line is a judgment about the trade's conventions, so a person writes it. Paste the finished block into `config/electrical-bid/seats/<seat>.md`, which changes that seat's recorded instruction version, and the report then keeps runs before and after the lesson apart. Refusals against wording you have already rewritten drop out on the next run of the review, so the list shrinks as you teach.
+
 ### If something goes wrong
 
 | Symptom | Fix |

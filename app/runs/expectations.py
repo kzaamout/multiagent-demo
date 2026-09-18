@@ -27,6 +27,13 @@ from app.schema.events import Event
 
 SEATS = ("orchestrator", "intake", "estimator", "pricing", "writer", "reviewer")
 
+# What a dataset is built to provoke, from its README. Kept here with the checks so there is one home for
+# what a scenario expects, and read by scripts/prompt_review.py to tell a real finding from an invented one.
+PLANTS_A_BLOCKER = frozenset({"missing-sheet"})
+"""Datasets where a blocker needing a human is the point. A blocker anywhere else is the seat inventing one."""
+EXPECTS_NOT_READY = frozenset({"not-ready"})
+"""Datasets where Intake is meant to stop the run. Stopping any other job wastes it."""
+
 
 def _payload(event: Event) -> dict[str, Any]:
     return event.payload if isinstance(event.payload, dict) else {}

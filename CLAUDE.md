@@ -36,6 +36,7 @@ A sales demo that shows several AI agents, under an orchestrator, taking a busin
 - Dependency rationale record: `docs/dependencies.md`
 - Deviations found while building (design/ is never edited): `docs/design-deviations.md`
 - Model performance per seat, captured on every run: `docs/model-performance.md` with the raw rows in `docs/model-performance-runs.csv` and every column defined in `docs/model-performance-columns.md`, refreshed with `uv run python scripts/model_report.py --write`; sweeps over seats and models: `uv run python scripts/sweep.py config/sweep/<plan>.yaml`
+- What the runs say to teach a seat next, suggested from its own refusals and never applied automatically: `uv run python scripts/prompt_review.py --write` writes `docs/prompt-review.md`
 - Quality gates: `uv run python scripts/check.py`; screenshots and browser tests: `uv run pytest -m visual`
 
 ## Stack (verify current versions before pinning)
