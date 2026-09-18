@@ -160,3 +160,31 @@ def test_word_matching_does_not_join_two_different_checklist_items() -> None:
     assert _marking("submission_deadline", marks) == "blocking"
     assert _marking("bid_security", marks) == "default: none required"
     assert _marking("deadline for questions about security", marks) is None, "part words are not a match"
+
+
+JSON_CONTEXT = (
+    "## Brief (source id: brief)\n"
+    "Default labour rate: 95 CAD per hour blended.\n"
+    "## Estimator output (source id: takeoff)\n"
+    '{"labour_hours": 99.25, "lines": 47}\n'
+    "## Pricing output (source id: pricing)\n"
+    '{"material": 19051.79, "labour_rate": 95.0, "labour": 9428.75, "total": 31338.31}\n'
+)
+
+
+def test_a_price_is_found_though_the_output_holds_it_as_a_bare_number() -> None:
+    """A specialist output reaches the Writer as JSON: 31338.31, not $31,338.31.
+
+    Comparing the two as written found nothing, so the advice told the Writer that a real Pricing total
+    did not belong in the document. Confidently wrong guidance is worse than none.
+    """
+    assert sources_of_figure("$31,338.31", JSON_CONTEXT) == ["pricing"]
+    assert sources_of_figure("$9,428.75", JSON_CONTEXT) == ["pricing"]
+    advice = tag_advice(["$31,338.31"], JSON_CONTEXT)
+    assert advice == "write these exactly: {{$31,338.31|src:pricing}}"
+
+
+def test_a_whole_number_matches_its_decimal_form_but_not_a_longer_number() -> None:
+    assert sources_of_figure("$95", JSON_CONTEXT) == ["brief", "pricing"], "95 and 95.0 are the same rate"
+    assert sources_of_figure("$5", JSON_CONTEXT) == [], "a figure is not found inside a longer one"
+    assert sources_of_figure("$1,234.00", JSON_CONTEXT) == [], "a figure in no output is still not found"

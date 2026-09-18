@@ -102,8 +102,20 @@ def sources_of_figure(figure: str, offered_context: str) -> list[str]:
         position = match.end()
     if sections:
         sections[-1] = (sections[-1][0], offered_context[position:])
-    bare = figure.replace(",", "")
-    return sorted({name for name, body in sections if figure in body or bare in body.replace(",", "")})
+    # A specialist output reaches the Writer as JSON, where a price is 31338.31 with no currency symbol
+    # and no thousands separator, while the draft writes $31,338.31. Comparing the two as written found
+    # nothing and the advice then told the Writer that a real Pricing total did not belong in the
+    # document, which is worse than saying nothing at all. The comparison is on the number.
+    number = figure.lstrip("$").replace(",", "").rstrip(".")
+    if not number:
+        return []
+    whole = number.split(".")[0]
+    pattern = re.compile(
+        rf"(?<![\d.]){re.escape(number)}(?![\d])|(?<![\d.]){re.escape(whole)}(?:\.0+)?(?![\d])"
+        if "." not in number
+        else rf"(?<![\d.]){re.escape(number)}(?![\d])"
+    )
+    return sorted({name for name, body in sections if pattern.search(body.replace(",", ""))})
 
 
 def tag_advice(untagged: Iterable[str], offered_context: str) -> str | None:
