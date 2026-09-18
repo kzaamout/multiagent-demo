@@ -51,7 +51,11 @@ TABLE_COLUMNS: list[tuple[str, str]] = [
     ),
     ("Runs", "runs in which the seat made at least one call or reply on this model with these settings"),
     ("Calls", "model calls the seat made across those runs, from meter.update events"),
-    ("Stopped runs", "times the seat ran out of attempts and the run ended because of it"),
+    (
+        "Stopped runs",
+        "times the seat ran out of attempts and the run ended because of it; the ranking uses this as a "
+        "share of the model's runs, so a model is not favoured for having been tried less",
+    ),
     (
         "Accuracy",
         "checks met over checks defined: the dataset's own expectations of the seat, or the golden match "
@@ -298,10 +302,15 @@ def reason_table(groups: list[Group]) -> list[str]:
     return lines
 
 
-def rank_key(g: Group) -> tuple[int, float, float, float]:
-    """Owner ranking (2026-09-17): fewest stopped runs, then accuracy, then first-time rate, then speed."""
+def rank_key(g: Group) -> tuple[float, float, float, float]:
+    """Owner ranking (2026-09-17): fewest stopped runs, then accuracy, then first-time rate, then speed.
+
+    Stopped runs ranks as a share of the model's runs, not as a count. Counting them made a model look
+    better for having been tried less: on the Clean run, 1 stop in 6 runs beat 2 stops in 42, though the
+    second is four times steadier and seven times better evidenced. The other three were already shares.
+    """
     return (
-        g.stopped_run,
+        g.stopped_run / g.runs if g.runs else 1.0,
         -(g.accuracy if g.accuracy is not None else 0.0),
         -g.first_time_rate,
         g.seconds_per_call,
@@ -365,7 +374,8 @@ def best_local_table(groups: list[Group]) -> list[str]:
         )
         first = f"{best.first_time_rate * 100:.0f}%" if best.replies else "n/a"
         lines.append(
-            f"| {seat} | {best.model}, {best.settings} | {best.runs} | {best.stopped_run} | {_accuracy(best)} | "
+            f"| {seat} | {best.model}, {best.settings} | {best.runs} | "
+            f"{best.stopped_run} ({best.stopped_run / best.runs * 100:.0f}%) | {_accuracy(best)} | "
             f"{first} | {best.seconds_per_call:.1f} | {runner} |"
         )
     return lines

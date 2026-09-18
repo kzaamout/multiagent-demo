@@ -10,7 +10,7 @@ Generated with `docs/model-performance.md` and `docs/model-performance-runs.csv`
 - **Prompt**: the version of the seat's instructions the run used, so runs before and after a seat was taught something do not blend; 'not recorded' for runs before capture
 - **Runs**: runs in which the seat made at least one call or reply on this model with these settings
 - **Calls**: model calls the seat made across those runs, from meter.update events
-- **Stopped runs**: times the seat ran out of attempts and the run ended because of it
+- **Stopped runs**: times the seat ran out of attempts and the run ended because of it; the ranking uses this as a share of the model's runs, so a model is not favoured for having been tried less
 - **Accuracy**: checks met over checks defined: the dataset's own expectations of the seat, or the golden match where the dataset defines none for it (app/runs/expectations.py)
 - **First time**: share of accepted replies that needed no correction
 - **Corrections**: replies accepted on the second attempt, after one refusal

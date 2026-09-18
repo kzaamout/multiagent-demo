@@ -51,7 +51,8 @@ def test_best_local_ranks_stopped_runs_before_accuracy_and_needs_five_runs() -> 
     lines = module.best_local_table([sharp, steady, young])
     row = next(line for line in lines if line.startswith("| writer |"))
     assert row.startswith(
-        "| writer | steady, local, temperature 0.1 | 6 | 0 | 3/6 (50%) | 50% | 40.0 | sharp, local (6 runs) |"
+        "| writer | steady, local, temperature 0.1 | 6 | 0 (0%) | 3/6 (50%) | 50% | 40.0 | "
+        "sharp, local (6 runs) |"
     )
     only_young = module.best_local_table([young])
     assert "none with 5 runs yet; leading so far young, local (2 runs)" in only_young[2]
@@ -176,3 +177,14 @@ def test_a_taught_seat_starts_a_new_row_so_runs_before_and_after_do_not_blend(tm
     )
     merged = module.merge_by_model(groups)
     assert len(merged) == 1, "the ranking still judges the model as one"
+
+
+def test_stopped_runs_rank_as_a_share_so_a_model_is_not_rewarded_for_fewer_runs() -> None:
+    """A real case: 1 stop in 6 runs beat 2 stops in 42, though the second is four times steadier."""
+    module = load_report()
+    tried_twice = group(module, "tried, local", 6, 1, 6, 6, 6, 6, 12000)
+    tried_often = group(module, "often, local", 42, 2, 42, 42, 42, 42, 17000)
+    lines = module.best_local_table([tried_twice, tried_often])
+    row = next(line for line in lines if line.startswith("| writer |"))
+    assert "often, local" in row.split("|")[2], "the steadier model wins on the share"
+    assert "| 2 (5%) |" in row, "the count is shown with the share it ranked on"
