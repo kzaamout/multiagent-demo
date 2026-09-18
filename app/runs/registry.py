@@ -123,7 +123,6 @@ class SeatSwap:
     applied: str
 
 
-
 @dataclass
 class ReplaySource:
     kind: str
@@ -374,8 +373,16 @@ class Registry:
     ) -> Orchestrator:
         if mode == "single":
             return self._build_single(
-                dataset_id, names=names, seed=seed, start=start, pace=pace, record=record, run_id=run_id,
-                clock=clock, id_factory=id_factory, model_key=model_key,
+                dataset_id,
+                names=names,
+                seed=seed,
+                start=start,
+                pace=pace,
+                record=record,
+                run_id=run_id,
+                clock=clock,
+                id_factory=id_factory,
+                model_key=model_key,
             )
         info = self.dataset(dataset_id)
         missing = [name for name, version in tools_available().items() if version is None]
@@ -469,11 +476,15 @@ class Registry:
             raise ValueError("no model chosen for the Single-model run")
         config = base.with_seat("single", key)
         agent = single_agent(self.settings.workflow, seed=seed, name=(names or {}).get("single"))
-        team_roster = self.roster_with_config(build_roster(self.settings.workflow, seed=seed, names=names), config)
+        team_roster = self.roster_with_config(
+            build_roster(self.settings.workflow, seed=seed, names=names), config
+        )
         agent = agent.model_copy(update={"model": config.seat_spec("single").model_object()})
         recorder = Recorder(self.settings.runs_dir, rid) if record else None
         knowledge_path = (
-            recorder.knowledge_path if recorder else self.settings.runs_dir / "_ephemeral" / rid / "knowledge.md"
+            recorder.knowledge_path
+            if recorder
+            else self.settings.runs_dir / "_ephemeral" / rid / "knowledge.md"
         )
         run_folder = recorder.folder if recorder else knowledge_path.parent
         scenario: Any
@@ -511,7 +522,10 @@ class Registry:
             run_id=rid,
             workflow=self.settings.workflow,
             dataset=DatasetRef(
-                dataset_id=info.id, label=info.display, client_id=info.client_id, knowledge_seed=info.knowledge_seed
+                dataset_id=info.id,
+                label=info.display,
+                client_id=info.client_id,
+                knowledge_seed=info.knowledge_seed,
             ),
             scenario=scenario,
             # The Orchestrator seat is the run engine's voice (stage changes, dispatch, termination) in every mode.
