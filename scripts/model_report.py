@@ -297,12 +297,12 @@ def current_versions() -> dict[str, str]:
         return {}
 
 
-def reason_table(groups: list[Group]) -> list[str]:
+def reason_table(groups: list[Group], current: dict[str, str] | None = None) -> list[str]:
     """Every seat and model pair on the instructions that seat runs on now, including the pairs never sent
     back, so absence is visible. Rejections against wording that has since been rewritten are counted
     separately rather than mixed in: they say what an earlier prompt did, not what to fix today.
     """
-    current = current_versions()
+    current = current_versions() if current is None else current
     lines = ["| Seat | Model | Rejections | Reasons |", "|---|---|---|---|"]
     merged: dict[tuple[str, str], dict[str, int]] = {}
     superseded: dict[str, int] = {}

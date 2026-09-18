@@ -63,7 +63,9 @@ def test_reasons_table_lists_every_pair_including_none() -> None:
     quiet = group(module, "quiet, local", 3, 0, 3, 3, 3, 3, 1000)
     noisy = group(module, "noisy, local", 3, 0, 3, 3, 1, 3, 1000)
     noisy.reasons = {"json_shape": 2}
-    lines = module.reason_table([quiet, noisy])
+    # both rows are on the wording the Writer runs on now, so both belong in the table
+    quiet.instructions = noisy.instructions = "cur12345"
+    lines = module.reason_table([quiet, noisy], current={"writer": "cur12345"})
     assert "| writer | quiet, local | 0 | none |" in lines
     assert "| writer | noisy, local | 2 | json_shape 2 |" in lines
 
@@ -188,3 +190,16 @@ def test_stopped_runs_rank_as_a_share_so_a_model_is_not_rewarded_for_fewer_runs(
     row = next(line for line in lines if line.startswith("| writer |"))
     assert "often, local" in row.split("|")[2], "the steadier model wins on the share"
     assert "| 2 (5%) |" in row, "the count is shown with the share it ranked on"
+
+
+def test_reasons_against_rewritten_instructions_are_set_aside_not_mixed_in() -> None:
+    """A failure fixed by teaching a seat should stop reading as something still to fix."""
+    module = load_report()
+    now = group(module, "same, local", 3, 0, 3, 3, 3, 3, 1000)
+    now.instructions, now.reasons = "cur12345", {"no_json": 1}
+    before = group(module, "same, local", 9, 0, 9, 9, 9, 9, 1000)
+    before.instructions, before.reasons = "old99999", {"provenance_tags": 12}
+    lines = module.reason_table([now, before], current={"writer": "cur12345"})
+    assert "| writer | same, local | 1 | no_json 1 |" in lines
+    assert not any("provenance_tags" in line for line in lines), "the old wording's failures are not listed"
+    assert any("12 rejections against instructions that have since been rewritten" in line for line in lines)
