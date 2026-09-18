@@ -72,8 +72,19 @@ def expand(plan: dict[str, Any], config: ModelConfig) -> tuple[list[Job], list[s
     datasets = [str(d) for d in plan.get("datasets", [])]
     repeats = int(plan.get("repeats", 1))
     vary = plan.get("vary") or {}
-    configs: list[tuple[str, str, str, dict[str, str]]] = [("baseline", "", "", baseline)]
+    configs: list[tuple[str, str, str, dict[str, str]]] = []
     skipped: list[str] = []
+    if plan.get("baseline_job", True):
+        configs.append(("baseline", "", "", baseline))
+    # `pairs` names the seat and model combinations to run, for a stage that repeats only what an earlier
+    # stage found worth measuring. `vary` builds the cross product instead, for a screening stage.
+    for pair in plan.get("pairs") or []:
+        seat, model_key = str(pair["seat"]), str(pair["model"])
+        ok, why = eligible(config, seat, model_key)
+        if not ok:
+            skipped.append(f"{seat}={model_key}: {why}")
+            continue
+        configs.append((f"{seat}={model_key}", seat, model_key, {**baseline, seat: model_key}))
     for model_key in vary.get("models", []):
         for seat in vary.get("seats", []):
             if baseline.get(seat) == model_key:

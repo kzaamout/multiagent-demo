@@ -62,3 +62,26 @@ def test_a_job_is_claimed_once_and_its_result_is_appended(tmp_path: Path) -> Non
     assert [line["status"] for line in lines] == ["claimed", "done"]
     assert lines[1]["job"] == "t/baseline/clean-run/0" and lines[1]["run_id"] == "r1"
     assert not (tmp_path / "runs" / "_sweep" / "t.lock").exists()
+
+
+def test_a_repeat_stage_runs_only_the_named_pairs_without_a_baseline_job() -> None:
+    """Stage 2 repeats what stage 1 found worth measuring, so it names pairs instead of a cross product."""
+    sweep = load_sweep()
+    plan = {
+        "label": "s2",
+        "datasets": ["clean-run"],
+        "repeats": 3,
+        "baseline_job": False,
+        "baseline": PLAN["baseline"],
+        "pairs": [
+            {"seat": "pricing", "model": "llama3-1-8b"},
+            {"seat": "reviewer", "model": "llama3-1-8b"},
+        ],
+    }
+    jobs, skipped = sweep.expand(plan, ModelConfig.load())
+    assert [j.config_key for j in jobs] == ["pricing=llama3-1-8b"] * 3
+    assert skipped == [
+        "reviewer=llama3-1-8b: llama3.1 8b, local cannot read images, which the reviewer needs"
+    ]
+    assert [j.repeat for j in jobs] == [0, 1, 2]
+    assert jobs[0].seats["pricing"] == "llama3-1-8b" and jobs[0].seats["writer"] == "qwen3-5-9b"
