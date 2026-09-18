@@ -19,6 +19,15 @@ Generated with `docs/model-performance.md` and `docs/model-performance-runs.csv`
 - **Seconds per call**: average wall time per call, measured around the call
 - **Cost per run**: estimated spend per run from the registry's prices; zero for local models
 
+## Extra columns of the local model table
+
+The same meanings as above, except where a per-model view changes them.
+
+- **Seats**: how many different seats this model held across the runs counted
+- **Runs**: recordings the model appears in at all, counted once however many seats it filled in that run
+- **Stopped runs**: runs this model ended by running out of attempts in any seat, with the share of its runs
+- **Tokens in/out per call**: average prompt and completion tokens per call, across its seats
+
 ## Columns of model-performance-runs.csv
 
 - **run_id**: the run folder under runs/

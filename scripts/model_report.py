@@ -69,6 +69,19 @@ TABLE_COLUMNS: list[tuple[str, str]] = [
     ("Cost per run", "estimated spend per run from the registry's prices; zero for local models"),
 ]
 
+LOCAL_TABLE_NOTES: list[tuple[str, str]] = [
+    ("Seats", "how many different seats this model held across the runs counted"),
+    (
+        "Runs",
+        "recordings the model appears in at all, counted once however many seats it filled in that run",
+    ),
+    (
+        "Stopped runs",
+        "runs this model ended by running out of attempts in any seat, with the share of its runs",
+    ),
+    ("Tokens in/out per call", "average prompt and completion tokens per call, across its seats"),
+]
+
 CSV_COLUMNS: list[tuple[str, str]] = [
     ("run_id", "the run folder under runs/"),
     ("started_at", "when the run started, from run.started"),
@@ -410,6 +423,65 @@ def best_local_table(groups: list[Group]) -> list[str]:
     return lines
 
 
+def _one_or_varies(values: list[str]) -> str:
+    """One value when a model was given the same one everywhere, else how many it saw."""
+    distinct = sorted({v for v in values if v})
+    if not distinct:
+        return "not recorded"
+    return distinct[0] if len(distinct) == 1 else f"varies, {len(distinct)} of them"
+
+
+def local_model_table(runs: list[dict[str, Any]]) -> list[str]:
+    """One row per local model, across every seat it held.
+
+    A model can hold several seats in one run, so runs are counted as the distinct recordings it appears
+    in rather than summed per seat, which would count the baseline model five times over. Settings and the
+    prompt belong to the seat rather than the model, so a model that held several seats says so.
+    """
+    totals: dict[str, dict[str, Any]] = {}
+    for data in runs:
+        for seat in data.get("seats", []):
+            if seat.get("provider") != "ollama" or not (seat["calls"] or seat["replies"]):
+                continue
+            row = totals.setdefault(
+                seat["model"] or "unknown",
+                {"run_ids": set(), "seats": set(), "settings": [], "prompts": [], "checks": [0, 0]},
+            )
+            row["run_ids"].add(data["run_id"])
+            row["seats"].add(seat["agent_id"])
+            row["settings"].append(settings_text(seat.get("settings") or {}))
+            row["prompts"].append(seat.get("instructions", ""))
+            for name in ("calls", "tokens_in", "tokens_out", "wall_ms", "replies", "corrections"):
+                row[name] = row.get(name, 0) + seat[name]
+            row["first"] = row.get("first", 0) + seat["accepted_first_time"]
+            row["stopped"] = row.get("stopped", 0) + seat.get("stopped_run", 0)
+            row["cost"] = row.get("cost", 0.0) + seat["est_cost"]
+            checks = seat.get("checks") or {}
+            row["checks"][0] += sum(1 for met in checks.values() if met)
+            row["checks"][1] += len(checks)
+    lines = [
+        "| Model | Settings | Prompt | Seats | Runs | Calls | Stopped runs | Accuracy | First time | "
+        "Corrections | Tokens in/out per call | Seconds per call | Cost per run |",
+        "|" + "---|" * 13,
+    ]
+    for model, row in sorted(totals.items(), key=lambda kv: -len(kv[1]["run_ids"])):
+        runs_count, calls = len(row["run_ids"]), row.get("calls", 0)
+        met, total = row["checks"]
+        accuracy = f"{met}/{total} ({met / total * 100:.0f}%)" if total else "n/a"
+        first = f"{row['first'] / row['replies'] * 100:.0f}%" if row.get("replies") else "n/a"
+        stopped = f"{row.get('stopped', 0)} ({row.get('stopped', 0) / runs_count * 100:.0f}%)"
+        per_call = f"{round(row.get('tokens_in', 0) / calls) if calls else 0}/{round(row.get('tokens_out', 0) / calls) if calls else 0}"
+        seconds = f"{row.get('wall_ms', 0) / calls / 1000:.1f}" if calls else "0.0"
+        lines.append(
+            f"| {model} | {_one_or_varies(row['settings'])} | {_one_or_varies(row['prompts'])} | "
+            f"{len(row['seats'])} | {runs_count} | {calls} | {stopped} | {accuracy} | {first} | "
+            f"{row.get('corrections', 0)} | {per_call} | {seconds} | ${row.get('cost', 0.0) / runs_count:.2f} |"
+        )
+    if len(lines) == 2:
+        lines.append("| no local model has run yet | | | | | | | | | | | | |")
+    return lines
+
+
 def raw_rows(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for data in runs:
@@ -486,6 +558,12 @@ def columns_document() -> str:
             "## Columns of the report tables",
             "",
             *definitions(TABLE_COLUMNS),
+            "",
+            "## Extra columns of the local model table",
+            "",
+            "The same meanings as above, except where a per-model view changes them.",
+            "",
+            *definitions(LOCAL_TABLE_NOTES),
             "",
             "## Columns of model-performance-runs.csv",
             "",
@@ -637,6 +715,15 @@ def report(groups: list[Group], runs: list[dict[str, Any]], probe: bool = True) 
         "accuracy, then first-time rate, then seconds per call (owner decision 2026-09-17).",
         "",
         *best_local_table(groups),
+        "",
+        "## Local model performance",
+        "",
+        "Each local model across every seat it held, which answers what a model is like rather than what it "
+        "is like in one chair. Runs count the recordings a model appears in, not the seats it filled, so a "
+        "model holding five seats in one run counts once. Settings and the prompt belong to the seat, so a "
+        "model that held several says how many it saw.",
+        "",
+        *local_model_table(runs),
         "",
         "## Every seat and model",
         "",

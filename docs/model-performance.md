@@ -35,6 +35,18 @@ Ranked among Ollama models with at least 5 runs on the seat: fewest stopped runs
 | reviewer | gemma4 12b, local, temperature 0.2, num_ctx 16384, think off, max_tokens model default | 54 | 1 (2%) | 23/54 (43%) | 96% | 14.8 | none qualified |
 | single | none with 5 runs yet; leading so far qwen3.5 9b, local (2 runs) | | | | | | |
 
+## Local model performance
+
+Each local model across every seat it held, which answers what a model is like rather than what it is like in one chair. Runs count the recordings a model appears in, not the seats it filled, so a model holding five seats in one run counts once. Settings and the prompt belong to the seat, so a model that held several says how many it saw.
+
+| Model | Settings | Prompt | Seats | Runs | Calls | Stopped runs | Accuracy | First time | Corrections | Tokens in/out per call | Seconds per call | Cost per run |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| qwen3.5 9b, local | varies, 4 of them | varies, 8 of them | 7 | 196 | 2398 | 76 (39%) | 312/596 (52%) | 54% | 231 | 11778/755 | 14.4 | $0.00 |
+| gemma4 12b, local | varies, 4 of them | varies, 6 of them | 6 | 68 | 239 | 9 (13%) | 40/85 (47%) | 88% | 5 | 6339/308 | 11.2 | $0.00 |
+| qwen3.5 4b, local | varies, 3 of them | varies, 6 of them | 6 | 28 | 147 | 7 (25%) | 13/35 (37%) | 51% | 16 | 10423/581 | 7.8 | $0.00 |
+| deepseek-r1 14b, local | varies, 2 of them | varies, 5 of them | 4 | 21 | 36 | 5 (24%) | 9/23 (39%) | 35% | 12 | 3963/1160 | 58.9 | $0.00 |
+| llama3.1 8b, local | varies, 3 of them | varies, 4 of them | 4 | 20 | 110 | 5 (25%) | 10/22 (45%) | 55% | 5 | 6772/233 | 4.6 | $0.00 |
+
 ## Every seat and model
 
 | Seat | Model | Settings | Prompt | Runs | Calls | Stopped runs | Accuracy | First time | Corrections | Tokens in per call | Tokens out per call | Seconds per call | Cost per run |

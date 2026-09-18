@@ -203,3 +203,47 @@ def test_reasons_against_rewritten_instructions_are_set_aside_not_mixed_in() -> 
     assert "| writer | same, local | 1 | no_json 1 |" in lines
     assert not any("provenance_tags" in line for line in lines), "the old wording's failures are not listed"
     assert any("12 rejections against instructions that have since been rewritten" in line for line in lines)
+
+
+def test_a_model_holding_several_seats_in_one_run_counts_that_run_once(tmp_path: Path) -> None:
+    """Summing seats would count the baseline model five times for a single recording."""
+    module = load_report()
+
+    def seat(agent_id: str, model: str, stopped: int = 0) -> dict[str, Any]:
+        return {
+            "agent_id": agent_id,
+            "role": agent_id,
+            "model": model,
+            "provider": "ollama",
+            "calls": 2,
+            "tokens_in": 100,
+            "tokens_out": 20,
+            "wall_ms": 4000,
+            "est_cost": 0.0,
+            "tool_calls": 0,
+            "replies": 2,
+            "accepted_first_time": 2,
+            "corrections": 0,
+            "stopped_run": stopped,
+            "reasons": {},
+            "settings": {"temperature": 0.1},
+            "instructions": "v1",
+            "checks": {"ok": True},
+        }
+
+    runs = [
+        {
+            "run_id": "r1",
+            "seats": [seat("intake", "q, local"), seat("writer", "q, local"), seat("reviewer", "g, local")],
+        },
+        {"run_id": "r2", "seats": [seat("intake", "q, local", stopped=1)]},
+    ]
+    lines = module.local_model_table(runs)
+    q = next(line for line in lines if line.startswith("| q, local |"))
+    cells = [c.strip() for c in q.split("|")]
+    assert cells[4] == "2", "two recordings, not the three seats it filled"
+    assert cells[5] == "2" and cells[6] == "6", "seats held and calls still sum"
+    assert cells[7] == "1 (50%)", "the stop is a share of its runs"
+    assert "varies" not in cells[2], "one setting everywhere reads as that setting"
+    g = next(line for line in lines if line.startswith("| g, local |"))
+    assert [c.strip() for c in g.split("|")][4] == "1"
