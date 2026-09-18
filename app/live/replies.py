@@ -235,12 +235,30 @@ def checklist_markings(path: Path, sections: tuple[str, ...] = GRADED_SECTIONS) 
 
 
 def _marking(item: str, markings: Mapping[str, str]) -> str | None:
-    """The checklist marking for a graded item, allowing for a seat that shortened or extended its wording."""
+    """The checklist marking for a graded item, allowing for a seat that shortened, extended or renamed it.
+
+    A seat routinely writes the item as a field name, `bid_security_requirement`, where the checklist has
+    a sentence, "Bid security requirement stated, such as a bid bond". Matching on the raw text missed
+    that, so an item the checklist closes with a default was read as an open gap and the run was refused
+    for raising no question about it. That accounted for a large share of this seat's refusals, and it was
+    our matching rather than the model. Words carry the match: every significant word of the shorter name
+    must appear in the longer, which joins the two spellings without joining two different items.
+    """
     name = item.strip().lower()
     if name in markings:
         return markings[name]
     for known, marking in markings.items():
         if known.startswith(name) or name.startswith(known):
+            return marking
+    asked = set(_words(name))
+    if not asked:
+        return None
+    for known, marking in markings.items():
+        known_words = set(_words(known))
+        if not known_words:
+            continue
+        shorter, longer = sorted((asked, known_words), key=len)
+        if shorter and shorter <= longer:
             return marking
     return None
 

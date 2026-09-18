@@ -129,3 +129,34 @@ def test_a_blocker_with_no_claim_of_absence_is_left_alone() -> None:
         )
         is None
     )
+
+
+def test_a_checklist_item_written_as_a_field_name_still_finds_its_marking() -> None:
+    """Intake's largest refusal category was our matching, not the model (spec 010, phase 1.5).
+
+    The seat writes `bid_security_requirement` where the checklist has "Bid security requirement stated,
+    such as a bid bond". Matching on raw text missed that, so an item the checklist closes with a default
+    was read as an open gap and the reply was refused for asking no question about it.
+    """
+    from app.config import ROOT
+    from app.live.replies import checklist_markings, needs_a_question
+
+    marks = checklist_markings(ROOT / "config" / "electrical-bid" / "readiness-checklist.md")
+    for closed in ("bid_security_requirement", "insurance_requirements", "site_address"):
+        assert not needs_a_question(closed, marks), f"{closed} is closed by a checklist default"
+    for open_gap in ("submission_deadline", "scope_statement"):
+        assert needs_a_question(open_gap, marks), f"{open_gap} is blocking and still needs asking"
+    assert needs_a_question("something_invented_entirely", marks), "an unknown item is not quietly closed"
+
+
+def test_word_matching_does_not_join_two_different_checklist_items() -> None:
+    """Loose matching is only safe while it cannot mark a real gap as already covered."""
+    from app.live.replies import _marking
+
+    marks = {
+        "submission deadline, present and in the future": "blocking",
+        "bid security requirement stated, such as a bid bond": "default: none required",
+    }
+    assert _marking("submission_deadline", marks) == "blocking"
+    assert _marking("bid_security", marks) == "default: none required"
+    assert _marking("deadline for questions about security", marks) is None, "part words are not a match"
