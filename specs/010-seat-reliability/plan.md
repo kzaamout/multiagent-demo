@@ -39,15 +39,23 @@ The model stops being asked for things that are computable. No new seats, no ros
 
 **1.5 A graded checklist item carries its clarification.** Built, but narrower than planned, and the reason matters. Intake's largest failure by far, 83 refusals, is "items are not pass but there are 0 clarifications". I wrote above that the engine could build the stub from the checklist entry. It cannot: a gap needs a clarification only when the checklist leaves it open, so the items that trigger these refusals are exactly the ones with no default to propose, and the question wording has to come from the request. Authoring them would put invented words in front of a prospect. What the engine can do, and now does, is hand back the skeleton with the question ids already correct, one object per gap, so the second attempt is filling rather than composing. The same division as the tag advice: the engine does the lookup, the seat writes the content.
 
+**1.6 A draft's figures agree with each other and with Pricing.** Approved 2026-09-18 after the phase 1 measurement. Six of twelve runs ended `retry_exhausted` and every one of the 23 blocker findings said the same thing: the total in the executive summary does not match the pricing summary, the material cost differs between sections, the parts do not sum to the whole. The Writer is copying Pricing's totals by hand into three places. Pricing's `cost_summary` is the truth and is already structured, so the check compares every figure the draft repeats against it and against itself, and refuses a draft whose numbers disagree, naming the section and the figure. This is phase 1 work, not phase 2: it is code doing something a model should not be asked to do. I first wrote it as part of 2.1, which was wrong.
+
 **Tests.** Unit tests per check with a negative case each, which is where the risk is: refusing a real blocker, attributing a figure to the wrong specialist, demanding a concern already carried, or accepting a grade the model never justified. Phase 1's blocker check already failed this way once and the existing integration tests caught it.
 
 **Measure.** 12 runs on `writer=qwen3.5 9b`, the worst pair with a real sample. Targets set beforehand: Writer stops under 20% against 38%, provenance and dropped-concern refusals under 0.10 per Writer run, no invented blockers, Missing sheet still exits `blocker_escalated`, dataset correctness at or above current. For 1.4 and 1.5 a further 12 runs with Intake and the Estimator watched.
+
+## Teaching, which runs alongside every phase
+
+Not a phase, because it never finishes. `scripts/prompt_review.py` reads the refusals a seat still produces on the wording it runs on now, and the lesson is written into that seat's instructions by a person (decision 23). It has already taken Pricing from fifteen tool-skipping refusals to none and removed narration at three seats.
+
+**Approved 2026-09-18: the Estimator, from its fourteen refusals in the phase 1 runs.** Seven narration, five wrong shape, one broken JSON, one tool skipped. It is now the seat producing the most refusals on the team, having been overtaken by nothing else improving. Its earlier lessons covered narration, and narration is still its largest failure, so this one has to work differently from a fourth worked example: the reviewer's own output should say which shape it is getting wrong.
 
 ## Phase 2: make each seat better at what is left
 
 Changes inside a seat's own loop. Still no new seats.
 
-**2.1 The Writer returns sections, not one object holding a document.** Its 18 invalid-JSON refusals come from wrapping a whole markdown document in a JSON string, which is the fragile case, and it produces 987 output tokens per call, the most of any seat. Returning the sections the template already names, assembled by the existing `template_render`, makes each reply smaller and the JSON simpler. This is an output-shape change, not a split: one seat, one dispatch.
+**2.1 The Writer returns sections, not one object holding a document.** Approved 2026-09-18, to follow 1.6 and only if 1.6 leaves the problem standing. Its 18 invalid-JSON refusals come from wrapping a whole markdown document in a JSON string, which is the fragile case, and it produces 987 output tokens per call, the most of any seat. Returning the sections the template already names, assembled by the existing `template_render`, makes each reply smaller and the JSON simpler. This is an output-shape change, not a split: one seat, one dispatch.
 
 **2.2 A bounded self-check before the reply is sent.** The research's shape is generate, verify deterministically, reflect only on failure, repair once or twice, escalate past that. We have the verification and the repair loop, but the seat learns it failed only after a refusal costs an attempt. Letting a seat run the same deterministic checks itself before replying converts a refusal into a self-correction. The risk is cost: an extra call per reply, and this hardware has no spare capacity, so it is measured on wall clock as well as on failures.
 
@@ -81,9 +89,15 @@ So this continues without someone reading refusal logs by hand.
 
 **4.3 A regression gate for prompt edits.** Teaching a seat currently has no safety net: the Intake edit may have made that seat slower, and I only noticed because I was watching. A small scripted suite, run against a prompt change before it is committed, that replays recorded seat inputs and asserts the reply still parses and still satisfies its requirements.
 
+**4.5 The engine's version recorded beside the prompt's.** Found on 2026-09-18 and it undermines the tables until fixed. Every run records the instruction version of each seat, so teaching a seat separates before from after. Almost all of phase 1 was engine code, not seat wording, and that changes no version at all, so the reasons table pools runs from before and after a fix and reports as "still worth fixing" things that are already fixed: Intake showed 109 grading refusals on the day the last twelve produced two. A hash over the files that decide seat behaviour, recorded per run like the prompt version, makes every later comparison honest.
+
 **4.4 Golden logs re-recorded from current behaviour.** They match 23 of 105 runs and were generated from stubs written in the first slice, with a roster of models we no longer use. Until they are re-recorded, route drift means nothing, which is why the reviewer reports it as an observation rather than a lesson. This is S9's job and should stay there, but phases 2 and 3 both invalidate goldens again, so the order matters: re-record last.
 
 **Tests.** Each of these is a tool for us rather than the demo, so unit tests and one worked example each. 4.3 is itself a test harness and needs to be proved to fail when given a prompt that breaks a requirement.
+
+## What the retry budget is not
+
+Asked on 2026-09-18 and answered by the data: raising it would change nothing. All six exhausted runs stopped with `stop_reason: no_progress` after one retry from a budget of three, so the budget was never what ended them. The engine stopped them because a review cycle failed to reduce the blocker findings. Seat attempts are the same story: two to three cut stops from five in twelve to one, and a fourth has nothing left to bite on at one in twelve. A seat that reproduces the same disagreement on every attempt is not short of attempts, which is the argument for 1.6.
 
 ## What would make me stop
 
