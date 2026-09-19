@@ -239,14 +239,15 @@ def estimator_disagreements(
     total = number(labour.get("total_hours"))
     latest = number(calls[-1].get("total_hours"))
     if latest == 0 and total not in (None, Decimal("0")):
-        # The commonest way to get here: the items carried no unit_hours, so the tool had nothing to roll
-        # up, and the seat filled the gap itself. Saying only that the figures differ sent the same reply
-        # back twice, so the refusal says what to change in the call.
+        # The tool reads the unit hours table itself, so 0 hours means no line found a row in it, and
+        # the seat filled the gap with a figure of its own. Saying only that the figures differ brought
+        # the same reply back twice, so the refusal says what to change in the call.
         problems.append(
             f"labour total_hours is {labour.get('total_hours')}, and quantity_calculate returned 0 hours "
-            "because the items you sent carried no unit_hours. Call quantity_calculate again with "
-            "unit_hours on every line, taken from the unit labour hours table in the estimating "
-            "conventions, then copy its total_hours and hours_by_group. Do not work the hours out yourself"
+            "because none of the lines you sent matched the unit labour hours table. Call it again with "
+            "each description written as the materials schedule writes it, and pass unit_hours only for a "
+            "line it returns with hours_source none. Then copy its total_hours and hours_by_group. Do not "
+            "work the hours out yourself"
         )
         return problems
     if not (_same(total, latest, HUNDREDTH) or _same(total, hours, HUNDREDTH)):

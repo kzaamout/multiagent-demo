@@ -283,7 +283,7 @@ def test_hours_written_by_the_seat_when_the_tool_rolled_up_none() -> None:
     problems = estimator_disagreements(BOM, labour, [("quantity_calculate", empty)])
     assert (
         len(problems) == 1
-        and "carried no unit_hours" in problems[0]
-        and "Call quantity_calculate again" in problems[0]
+        and "matched the unit labour hours table" in problems[0]
+        and "Call it again" in problems[0]
     )
     assert estimator_disagreements(BOM, {"total_hours": 0}, [("quantity_calculate", empty)]) == []

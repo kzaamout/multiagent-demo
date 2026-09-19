@@ -171,7 +171,9 @@ class _Observer(HookProvider):
         args_summary, result_summary = self.log.summaries.get(use_id, ("", ""))
         ok = event.exception is None and event.result.get("status") == "success"
         if not ok and not result_summary:
-            result_summary = "the tool reported an error"
+            # What the error was is the first thing anyone diagnosing a stopped run needs, and the seat
+            # was the only one who ever saw it.
+            result_summary = f"the tool reported an error: {_tool_error(event)}".rstrip(": ")
         if not args_summary:
             args_summary = ", ".join(sorted(str(k) for k in (tool_use.get("input") or {})))[:200]
         self.queue.put_nowait(
@@ -186,6 +188,15 @@ class _Observer(HookProvider):
                 ),
             )
         )
+
+
+def _tool_error(event: AfterToolCallEvent) -> str:
+    """The error a failed tool call gave, in one line."""
+    if event.exception is not None:
+        return " ".join(str(event.exception).split())[:150]
+    content = (event.result or {}).get("content") or []
+    texts = [str(block.get("text", "")) for block in content if isinstance(block, dict)]
+    return " ".join(" ".join(texts).split())[:150]
 
 
 def compose_prompt(task: str, context_text: str) -> str:

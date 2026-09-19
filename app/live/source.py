@@ -141,7 +141,9 @@ def pricing_used_lookup(reply: BaseModel, tools_used: list[str]) -> str | None:
     if isinstance(reply, PricingReply) and "price_list_lookup" not in tools_used:
         return (
             "no price came from price_list_lookup. Call the price_list_lookup tool with every bill of materials "
-            "line, the markup rate, the labour hours, and the labour rate, then copy its prices and totals"
+            "line, the markup rate, the labour hours, and the labour rate, then copy its prices and totals."
+            " If you did call it and it reported an error, the call priced nothing: read the error, correct "
+            "the arguments and call it again before you reply"
         )
     return None
 
@@ -165,7 +167,10 @@ def estimator_used_calculator(reply: BaseModel, tools_used: list[str]) -> str | 
     if isinstance(reply, EstimatorReply) and reply.blocker is None and "quantity_calculate" not in tools_used:
         return (
             "the bill of materials was not totalled with quantity_calculate. Call quantity_calculate with every "
-            "counted and measured line, then copy its quantities with waste and its labour hours into your reply"
+            "counted and measured line, then copy its quantities with waste and its labour hours into your "
+            "reply. If you did call it and it reported an error, the call totalled nothing: read the error, "
+            "correct the arguments (each item has description, unit, category, counts as a list of numbers, "
+            "group, and unit_hours as a number) and call it again before you reply"
         )
     return None
 

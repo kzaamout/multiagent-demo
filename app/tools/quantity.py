@@ -8,9 +8,12 @@ rounded to 0.1 metre. Labour hours use the installed quantity before waste.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
+
+from app.tools.unit_hours import UnitHourRow, hours_for
 
 Category = Literal["wire", "conduit", "device", "fixture", "equipment", "other"]
 
@@ -44,6 +47,10 @@ class QuantityLine:
     waste_rate: Decimal
     quantity_with_waste: Decimal
     hours: Decimal | None
+    unit_hours: Decimal | None = None
+    hours_source: str = ""
+    """Where the unit hours came from: the table row's name, "seat" for a figure the seat passed because
+    the table has no entry, or "none" when the line carries no hours at all."""
 
 
 @dataclass(frozen=True)
@@ -59,7 +66,13 @@ def _round_quantity(value: Decimal, unit: str) -> Decimal:
     return value.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
 
 
-def calculate(items: list[QuantityItem]) -> QuantityResult:
+def calculate(items: list[QuantityItem], table: Sequence[UnitHourRow] = ()) -> QuantityResult:
+    """Total each line, apply waste, and roll up labour hours.
+
+    Unit hours come from the conventions' table whenever it has a row for the line, whatever the seat
+    passed. A seat's own figure is used only for a line the table does not list, and the line says so,
+    because the conventions make such a line low confidence.
+    """
     lines: list[QuantityLine] = []
     hours_by_group: dict[str, Decimal] = {}
     for item in items:
@@ -68,10 +81,17 @@ def calculate(items: list[QuantityItem]) -> QuantityResult:
         base = sum(item.counts, Decimal("0"))
         rate = WASTE[item.category]
         with_waste = _round_quantity(base * (Decimal("1") + rate), item.unit)
+        row = hours_for(item.description, item.unit, table)
+        unit_hours = row.hours if row is not None else item.unit_hours
+        source = f"table: {row.item}" if row is not None else "seat" if unit_hours is not None else "none"
         hours = None
-        if item.unit_hours is not None:
-            hours = (base * item.unit_hours).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        if unit_hours is not None:
+            hours = (base * unit_hours).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             hours_by_group[item.group] = hours_by_group.get(item.group, Decimal("0")) + hours
-        lines.append(QuantityLine(item.description, item.unit, item.group, base, rate, with_waste, hours))
+        lines.append(
+            QuantityLine(
+                item.description, item.unit, item.group, base, rate, with_waste, hours, unit_hours, source
+            )
+        )
     total = sum(hours_by_group.values(), Decimal("0"))
     return QuantityResult(tuple(lines), hours_by_group, total)

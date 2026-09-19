@@ -17,11 +17,12 @@ from typing import Any
 from strands import ToolContext, tool
 
 from app.live.documents import parse_pdf, render_page_png
-from app.live.materials import DatasetFiles
+from app.live.materials import CONFIG_DIR, DatasetFiles
 from app.live.replies import without_em_dashes
 from app.tools.price_list import LookupRequest, PriceList, totals
 from app.tools.quantity import QuantityItem, calculate
 from app.tools.template import render
+from app.tools.unit_hours import table_from_conventions
 
 MAX_PAGE_TEXT = 6000
 
@@ -80,6 +81,10 @@ def build_tools(
     """The tools this seat may use, per the roster. Unknown seats get none. `prepared_dir` is where
     prepare_documents put the per-sheet files; a path starting with prepared/ or a sheet name found there
     resolves to the prepared file first, so a multi-sheet binder is read one sheet at a time."""
+
+    # The calculator owns the unit labour hours table, read from the conventions the Estimator also reads.
+    conventions = CONFIG_DIR / "estimating-conventions.md"
+    unit_hours_table = table_from_conventions(conventions) if conventions.is_file() else []
 
     def _prepared(name: str) -> Path | None:
         if prepared_dir is None or not prepared_dir.is_dir():
@@ -164,7 +169,8 @@ def build_tools(
 
     @tool(context=True)
     def quantity_calculate(items: list[dict[str, Any]], tool_context: ToolContext) -> dict[str, Any]:
-        """Total counts and lengths, apply the waste factors, and roll up labour hours.
+        """Total counts and lengths, apply the waste factors, and roll up labour hours from the unit
+        labour hours table in the estimating conventions, which the tool reads itself.
 
         Required before a completed takeoff: a reply whose quantities or labour hours were not produced
         by this tool is refused. Call it once with every counted and measured line, after reading the
@@ -173,7 +179,11 @@ def build_tools(
 
         Args:
             items: Lines, each with description, unit, category (wire, conduit, device, fixture,
-                equipment, other), counts (list of numbers to add), group, and optional unit_hours.
+                equipment, other), counts (list of numbers to add), and group. Write the description
+                as the materials schedule writes it, because that is how the tool finds the line's unit
+                hours in the table. Each returned line says where its hours came from. Pass unit_hours
+                only for a line the tool returns with hours_source "none", meaning the table has no
+                entry for it, and give that line confidence low in your reply.
         """
         parsed = [
             QuantityItem(
@@ -186,7 +196,7 @@ def build_tools(
             )
             for i in items
         ]
-        result = calculate(parsed)
+        result = calculate(parsed, unit_hours_table)
         data = {
             "lines": [
                 {
@@ -197,6 +207,8 @@ def build_tools(
                     "waste_rate": str(line.waste_rate),
                     "quantity_with_waste": str(line.quantity_with_waste),
                     "hours": None if line.hours is None else str(line.hours),
+                    "unit_hours": None if line.unit_hours is None else str(line.unit_hours),
+                    "hours_source": line.hours_source,
                 }
                 for line in result.lines
             ],

@@ -90,7 +90,7 @@ It is the only component that changes stage, speaks to the human, writes the kno
 |---|---|
 | **Sees** | the brief, the drawing sheets as images, the estimating conventions, findings routed to it |
 | **Does not see** | prices, Pricing's output, the knowledge file |
-| **Tools** | `vision_read_drawing`, `quantity_calculate` |
+| **Tools** | `vision_read_drawing`, `quantity_calculate` (which reads the unit labour hours table itself, so the seat never supplies an hour figure the table holds) |
 | **Returns** | either a takeoff (`headline`, `summary`, `bom`, `labour`, `assumptions`, `concerns`) or a `blocker` alone |
 | **Refused when** | quantities did not come from the calculator, or a quantity or labour figure differs from what the calculator returned; a concern describes something the conventions call a blocker; a blocker names a sheet the run holds; a concern says a sheet is missing and the run really does not hold it, which the conventions make a blocker; the reply is not JSON or lacks required fields |
 
