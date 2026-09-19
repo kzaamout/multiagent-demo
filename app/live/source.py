@@ -533,6 +533,7 @@ class LiveAgentSource:
                 expected_items=expected_items,
                 markings=markings,
                 request_files=[p.name for p in self.ctx.files.request_files()],
+                knowledge_text=self.ctx.knowledge.read(self.client_id),
             ),
         ):
             if emit is not None:

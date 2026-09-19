@@ -310,6 +310,36 @@ def pin_question_ids(clarifications: list[Clarification], items: list[str]) -> N
             clarification.question_id = canonical_question_id(best)
 
 
+ANSWER_ID = re.compile(r"\bq_[a-z0-9_]+")
+
+
+def answered_ids(knowledge_text: str) -> set[str]:
+    """The question ids the client knowledge file records an answer for."""
+    found: set[str] = set()
+    for line in knowledge_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("-"):
+            found.update(ANSWER_ID.findall(stripped.split(":", 1)[0]))
+    return found
+
+
+def closed_by_knowledge(grade: Any, answered: set[str]) -> bool:
+    """Whether this graded item is closed by an answer the knowledge file really holds.
+
+    The Intake instructions are explicit that an answer in the file settles an item, whatever the request
+    says, and that the seat records the entry it used in the note and asks nothing. The engine then
+    demanded a question for that item anyway, which refused the seat for obeying its first rule: 9 of the
+    refusals recorded on 2026-09-19 were this, every one of them on a correctly graded reply.
+
+    The note must name an id the file actually carries, so a seat cannot close a gap by claiming an answer
+    that does not exist.
+    """
+    if not answered:
+        return False
+    note = str(getattr(grade, "note", "") or "")
+    return any(name in answered for name in ANSWER_ID.findall(note))
+
+
 def needs_a_question(item: str, markings: Mapping[str, str]) -> bool:
     """A gap needs a clarification only when the checklist leaves it open. An item the checklist hands to the
     Estimator, or closes with a default of its own, is graded and carried instead."""
@@ -348,6 +378,7 @@ class IntakeReply(BaseModel):
         expected_items: list[str] | None = None,
         markings: Mapping[str, str] | None = None,
         request_files: list[str] | None = None,
+        knowledge_text: str = "",
     ) -> None:
         # Only the items the checklist marks blocking stop a run. A fail on any other item, such as a missing
         # panel schedule or an index that lists a sheet not provided, counts as assumed and is carried forward
@@ -378,7 +409,12 @@ class IntakeReply(BaseModel):
                     )
         if expected_items:
             pin_question_ids(self.clarifications, expected_items)
-        gaps = [c for c in failing + assumed if needs_a_question(c.item, marks)]
+        answered = answered_ids(knowledge_text)
+        gaps = [
+            c
+            for c in failing + assumed
+            if needs_a_question(c.item, marks) and not closed_by_knowledge(c, answered)
+        ]
         # A not_ready run ends before any question is asked, so its gaps need grades, not questions.
         if expected != "not_ready" and len(self.clarifications) < len(gaps):
             # The seat's largest failure by a distance (83 refusals): it grades the items correctly and

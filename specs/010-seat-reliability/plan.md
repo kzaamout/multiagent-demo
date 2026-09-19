@@ -134,6 +134,31 @@ The link before it was the Estimator, which raised the rating concern in 11 of t
 
 The same finding twice in one day, at two seats: a rule kept in a reference file the seat is told to follow is applied now and then, and the same rule written as a step in the seat's own checklist is applied every time. The middle link, the Writer carrying the concern, was handled by item 1.3, which hands it the concerns to carry. Whether the whole chain now holds is measured by the Planted inconsistency runs in the `writer-reviewer-rerun` sweep: the scenario expects the first review to fail on the rating and the run to pass after one rework.
 
+**1.12 An item the knowledge file answers needs no question.** Built 2026-09-19, found in the first hour of
+the `writer-reviewer-rerun` sweep. Intake's instructions are emphatic that an answer in the client
+knowledge file settles an item whatever the request says, that the seat grades it assumed, quotes the entry
+in the note and asks nothing, and that rule 1 comes first. The engine then demanded a clarification for
+that item anyway, because the check counted every not-pass item the checklist leaves open. So the seat was
+refused for obeying its first rule: 9 refusals on 2026-09-19, every one on a correctly graded reply, one
+per run on almost every run of the sweep. `closed_by_knowledge` now exempts a graded item whose note names
+an entry the knowledge file really holds. The id must exist in the file, so a seat cannot close a gap by
+claiming an answer that was never given.
+
+Beside it, one piece of curation under roadmap decision 22. A Missing sheet run had written
+`q_drawing_index: Assume E-003 is missing and will be provided later if needed` into the shared client
+knowledge file at 00:40 that morning. Every later run of any scenario read it: Intake graded the drawing
+index assumed "per knowledge file entry q_drawing_index" on the Clean run, and one Planted inconsistency
+draft told the prospect in its executive summary that "the proposal assumes E-003 is missing and will be
+provided later", on a job where no sheet is missing. That is the failure decision 22 describes, returning
+by the same route, and the guard it set is curation: the line was removed, with the file kept as
+`knowledge/fictional-prospect-ltd.md.bak-2026-09-19` beside it. The knowledge file is local and never
+committed. A scenario that plants a defect will keep writing its answer to the shared file, so this needs
+watching after any batch of Missing sheet runs, or a rule that an answer naming a sheet is not stored.
+
+Both were found by reading one run of a sweep that had 37 runs still to go, and the sweep was stopped and
+restarted rather than measure 37 Writers and Reviewers through a wasted Intake attempt and a false sentence
+in every draft. Five runs were discarded, relabelled `writer-reviewer-rerun-pre-1.12`, about an hour.
+
 **Queued, found during the `writer-reviewer-rerun` sweep and not fixed while it was in flight.** The
 refusal for a dropped concern ends "naming the sheets E-002 and the values that disagree" whatever the
 concern says. In 54 of the 62 such refusals on record no quoted concern was about disagreeing values, so

@@ -8,6 +8,7 @@ draft already carries.
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import Any
 
 from app.live.deterministic import (
     assumptions_block,
@@ -312,3 +313,59 @@ def test_a_dollar_sign_outside_the_tag_does_not_hide_the_amount() -> None:
         with_dollars_inside("{{$5.00|src:a}} and {{25 troffers|src:b}}")
         == "{{$5.00|src:a}} and {{25 troffers|src:b}}"
     )
+
+
+KNOWLEDGE = """# Fictional Prospect Ltd.
+
+## Answers from previous runs
+- q_bid_security: No bid security required (run a, 2026-09-15T20:31:52Z)
+- q_panel_schedules: Assume all panels are accounted for unless advised otherwise. (run b, 2026-09-18T02:06:46Z)
+"""
+
+
+def graded(item: str, status: str, note: str) -> Any:
+    from app.live.replies import ChecklistGrade
+
+    return ChecklistGrade(item=item, status=status, note=note)
+
+
+def test_an_item_the_knowledge_file_answers_needs_no_question() -> None:
+    """9 of the refusals recorded on 2026-09-19 were the engine demanding a question for an item Intake had
+    correctly closed with a knowledge file answer, which its first rule tells it to do."""
+    from app.live.replies import answered_ids, closed_by_knowledge
+
+    answered = answered_ids(KNOWLEDGE)
+    assert answered == {"q_bid_security", "q_panel_schedules"}
+    closed = graded(
+        "consistency_panels_single_line",
+        "assumed",
+        "Only one panel (LP-1) shown; schedule present. Consistency assumed per knowledge file entry q_panel_schedules.",
+    )
+    assert closed_by_knowledge(closed, answered)
+
+
+def test_a_claimed_answer_the_file_does_not_hold_closes_nothing() -> None:
+    """The note has to name an entry the file really carries, or a seat could close any gap by claiming one."""
+    from app.live.replies import answered_ids, closed_by_knowledge
+
+    answered = answered_ids(KNOWLEDGE)
+    invented = graded(
+        "consistency_panels_single_line", "assumed", "Closed per knowledge file entry q_invented."
+    )
+    silent = graded(
+        "consistency_panels_single_line", "assumed", "Only one panel shown, so nothing to compare."
+    )
+    assert not closed_by_knowledge(invented, answered)
+    assert not closed_by_knowledge(silent, answered)
+    assert not closed_by_knowledge(graded("x", "assumed", "per q_bid_security"), set())
+
+
+def test_the_answers_read_are_the_entry_ids_not_words_from_the_answer() -> None:
+    from app.live.replies import answered_ids
+
+    text = (
+        "## Answers from previous runs\n"
+        "- q_site_project: ask q_something_else next time (run c, 2026-09-17T00:00:00Z)\n"
+    )
+    assert answered_ids(text) == {"q_site_project"}, "an id inside the answer text is not an answered id"
+    assert answered_ids("no answers here") == set()
