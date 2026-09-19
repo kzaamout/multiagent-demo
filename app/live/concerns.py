@@ -42,24 +42,28 @@ def concern_problems(
     section = assumptions_section(markdown)
     for concern in concerns:
         text = str(concern.get("text", "")).strip()
-        # A seat puts one sheet in drawing_ref and names two more in the sentence. Taking only the field
-        # told the Writer to name E-002 for a concern about E-001 and E-002 both, so the sheets are every
-        # one the concern mentions, either way.
-        sheets = list(dict.fromkeys(sheets_in(str(concern.get("drawing_ref", ""))) + sheets_in(text)))
+        # What the Writer must carry is the concern's own sentence, so the sheets to look for are the ones
+        # that sentence names. The reference field is the fallback for a concern that names none, and it
+        # is offered as advice, never required: a concern reading "225 A on E-002 does not match ... on
+        # E-002" with a reference field of "E-001, E-002" was refused three times for an E-001 its own
+        # words never mention, while the draft carried it faithfully.
+        filed = sheets_in(str(concern.get("drawing_ref", "")))
+        sheets = sheets_in(text) or filed
         if not sheets:
             continue
+        advise = list(dict.fromkeys(sheets + filed))
         quoted = text[:90].rstrip() + ("..." if len(text) > 90 else "")
         if section is None:
             problems.append(
                 f'the draft has no Assumptions section, so the {role}\'s concern is not carried: "{quoted}" '
-                f"(sheets {', '.join(sheets)}). Add an Assumptions section with one line for this concern naming the sheets"
+                f"(sheets {', '.join(advise)}). Add an Assumptions section with one line for this concern naming the sheets"
             )
             continue
         missing = [s for s in sheets if s not in section]
         if missing:
             problems.append(
                 f'the {role}\'s concern is not carried in the Assumptions section: "{quoted}". '
-                f"Add one line for it there, in your own words, naming {', '.join(sheets)} and keeping any "
+                f"Add one line for it there, in your own words, naming {', '.join(advise)} and keeping any "
                 "figures the concern states"
             )
     return problems

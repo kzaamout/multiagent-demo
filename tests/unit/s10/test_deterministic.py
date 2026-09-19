@@ -386,3 +386,23 @@ def test_a_dropped_concern_is_asked_for_in_words_the_concern_itself_uses() -> No
     assert "values that disagree" not in concern_problems(draft, plain)[0]
     carried = "# Draft\n\n## Assumptions\n\n- Schedule E-002 lists a spare exit sign, carried as counted.\n"
     assert concern_problems(carried, plain) == []
+
+
+def test_a_concern_carried_in_its_own_words_is_carried() -> None:
+    """Run cb33b02d: the concern's sentence named only E-002 while its reference field named E-001 too.
+    Requiring both refused a draft that copied the concern faithfully, three times, and ended the run."""
+    from app.live.concerns import concern_problems
+
+    concern = [
+        {
+            "text": "Panel LP-1 bus rating of 225 A on E-002 does not match the main breaker of 200 A on E-002.",
+            "drawing_ref": "E-001, E-002",
+        }
+    ]
+    carried = (
+        "# Draft\n\n## Assumptions\n\n"
+        "- Panel LP-1 bus rating of 225 A on E-002 does not match the main breaker of 200 A on E-002.\n"
+    )
+    assert concern_problems(carried, concern) == [], "the concern's own sentence is what must be carried"
+    message = concern_problems("# Draft\n\n## Assumptions\n\nNothing.\n", concern)[0]
+    assert "E-002, E-001" in message or "E-001, E-002" in message, "the reference field still advises"
