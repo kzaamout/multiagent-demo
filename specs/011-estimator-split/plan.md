@@ -140,6 +140,51 @@ What would make me stop: B leaving the rule lines under 50 percent right would m
 applying the rule even when the tool does the arithmetic, which is a model limit and an argument for the
 hosted model after all. A raising the stop rate would mean the handovers cost more than the focus gains.
 
+## Option B measured, 12 runs, 2026-09-19
+
+`config/sweep/estimator-tools.yaml`, the same bed as `figures-check-2` and `deterministic-check`: every
+seat on Qwen 3.5 9B, the Reviewer on Gemma 4 12B, three runs each of the four scenarios. The bed was
+started twice; the first attempt was stopped after four runs when one of them exposed a regression in the
+dropped-concern check made the same morning, and those four are kept as `estimator-tools-pre-fix`.
+
+Line by line, against the dataset's reference quantities. The middle column is this bed, the right is the
+42 run sweep before option B.
+
+| Takeoff line | How the drawings give it | After | Before |
+|---|---|---|---|
+| Panelboard | one item on the single-line | 100% | 77% |
+| Transformer | one item on the single-line | 100% | 97% |
+| Troffers | four figures in the schedule to add | 87% | 68% |
+| Exit signs | stated in the schedule | 87% | 76% |
+| Battery units | stated in the schedule | 87% | 63% |
+| Receptacles | eight figures in the schedule to add | 87% | 68% |
+| Conductor | a rule: 3 conductors per metre of run | 62% | 16% |
+| Feeder | a length on the single-line | 62% | 60% |
+| Breakers | 11 in use plus 4 spares, no waste | 37% | 9% |
+| Conduit | a rule: 25 m per circuit in use | 37% | 18% |
+| Switches | symbols on the plan, nowhere in text | 12% | 8% |
+
+Every line improved. Overall the takeoff went from 57 to 69 percent of lines right, and the median price
+difference from the reference from 17.6 to 17.0 percent with the worst case falling from 59 to 52 percent
+over and the best reaching 1.3 percent under. Two of eight priced runs landed within 5 percent, against
+six of 42.
+
+The targets set before the runs were 80 percent of lines right and 8 percent median price. Neither was met.
+
+**Why the price barely moved while the takeoff improved a lot.** The bed's price errors are 1.3, 3.5, 7.6,
+16.2, 17.9, 23.5, 23.8 and 52.2 percent. The two best are runs where the takeoff was 10 of 11 right. The
+rest are dominated by one or two wrong lines, and a single wrong length now carries further than it did,
+because the calculator multiplies what it is given: one run sent 42 circuits, the panel's capacity, where
+the schedule says 11 in use, and 75 metres each where the conventions say 25, and the tool faithfully
+returned 3,307 metres of conduit against a reference of 289. Across the bed the seat sent 11 circuits in
+10 of 12 calls, so the reading is usually right and occasionally catastrophic.
+
+**What this says about the split.** The seat now reads the schedule correctly most of the time and the
+plan symbols almost never. Conduit and breakers sit at 37 percent not because the rule is wrong but
+because the count feeding it is sometimes wrong, and that count is a figure written in the panel schedule's
+header. That is the case for a seat that does nothing but read schedules, and for the engine comparing two
+independently produced counts rather than trusting one. Option B was worth doing and is not enough.
+
 ## The owner's answers, 2026-09-19
 
 1. **B first.** The tool changes, measured, and A only as far as the measurement still asks for. Building
