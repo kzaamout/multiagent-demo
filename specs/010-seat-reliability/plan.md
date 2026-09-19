@@ -134,6 +134,16 @@ The link before it was the Estimator, which raised the rating concern in 11 of t
 
 The same finding twice in one day, at two seats: a rule kept in a reference file the seat is told to follow is applied now and then, and the same rule written as a step in the seat's own checklist is applied every time. The middle link, the Writer carrying the concern, was handled by item 1.3, which hands it the concerns to carry. Whether the whole chain now holds is measured by the Planted inconsistency runs in the `writer-reviewer-rerun` sweep: the scenario expects the first review to fail on the rating and the run to pass after one rework.
 
+**Queued, found during the `writer-reviewer-rerun` sweep and not fixed while it was in flight.** The
+refusal for a dropped concern ends "naming the sheets E-002 and the values that disagree" whatever the
+concern says. In 54 of the 62 such refusals on record no quoted concern was about disagreeing values, so
+the seat was told to add something that does not exist: "Exit sign quantity includes a spare listed on
+schedule" has no two values. The sentence was written for the rating disagreement, which is the case that
+prompted the check, and it never generalised. Fix in `app/live/concerns.py` when the sweep ends, by naming
+the sheets and quoting the concern's own words instead. Nothing runs against this until then, because
+changing a check the Writer is measured against mid-sweep mixes code states, which cost three restarts of
+the previous bed.
+
 ## Teaching, which runs alongside every phase
 
 Not a phase, because it never finishes. `scripts/prompt_review.py` reads the refusals a seat still produces on the wording it runs on now, and the lesson is written into that seat's instructions by a person (decision 23). It has already taken Pricing from fifteen tool-skipping refusals to none and removed narration at three seats.

@@ -58,7 +58,7 @@ def test_best_local_ranks_stopped_runs_before_accuracy_and_needs_five_runs() -> 
     lines = module.best_local_table([sharp, steady, young])
     row = next(line for line in lines if line.startswith("| writer |"))
     assert row.startswith(
-        "| writer | steady, local, temperature 0.1 | 6 | 0 (0%) | 3/6 (50%) | 50% | 40.0 | "
+        "| writer | steady, local, temperature 0.1 | 6 | 0 (0%) | 3/6 (50%) |  | 50% | 40.0 | "
         "sharp, local (6 runs) |"
     )
     only_young = module.best_local_table([young])
@@ -292,3 +292,35 @@ def test_the_seat_table_measures_the_seat_across_every_model_that_held_it() -> N
     assert cell(lines, "| writer |", "Stopped runs") == "2 (67%)", "it stopped two of its three runs"
     assert cell(lines, "| writer |", "Accuracy") == "0/3 (0%)"
     assert cell(lines, "| writer |", "First time") == "0%"
+
+
+def test_at_the_estimator_the_takeoff_outranks_behaviour(monkeypatch: Any) -> None:
+    """The owner kept price out of the reported Accuracy and left the ranking to the author (2026-09-19).
+    A Clean run's whole Estimator check is that it raised no blocker, which a model passes while reading
+    half the drawing wrong, so at that seat the takeoff ranks second and behaviour third."""
+    module = load_report()
+
+    def estimator(model: str, met: int, right: int, lines_total: int) -> Any:
+        g = group(module, model, 6, 0, met, 6, 6, 6, 10000)
+        g.agent_id, g.role = "estimator", "Estimator"
+        g.takeoff_right, g.takeoff_lines = right, lines_total
+        return g
+
+    obedient = estimator("obedient, local", 6, 30, 100)  # behaves perfectly, reads the drawings badly
+    observant = estimator("observant, local", 3, 90, 100)  # behaves worse, reads the drawings well
+    row = next(
+        line for line in module.best_local_table([obedient, observant]) if line.startswith("| estimator |")
+    )
+    assert "observant, local" in row.split("|")[2], "the model that reads the drawings wins the seat"
+    assert "| 90/100 (90%) |" in row, "the share it ranked on is shown"
+    assert "| 3/6 (50%) |" in row, "behaviour is still reported, unchanged"
+
+    # Every other seat ranks as the owner set it, whatever the takeoff numbers say.
+    for g in (obedient, observant):
+        g.agent_id, g.role = "writer", "Writer"
+    writer_row = next(
+        line for line in module.best_local_table([obedient, observant]) if line.startswith("| writer |")
+    )
+    assert "obedient, local" in writer_row.split("|")[2], (
+        "accuracy still ranks second away from the Estimator"
+    )

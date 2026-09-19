@@ -159,6 +159,8 @@ class Group:
     stopped_run: int = 0
     checks_met: int = 0
     checks_total: int = 0
+    takeoff_right: int = 0
+    takeoff_lines: int = 0
     reasons: dict[str, int] = field(default_factory=dict)
 
     @property
@@ -168,6 +170,15 @@ class Group:
     @property
     def accuracy(self) -> float | None:
         return self.checks_met / self.checks_total if self.checks_total else None
+
+    @property
+    def takeoff_accuracy(self) -> float | None:
+        """The share of scheduled materials whose quantity matches the dataset's reference.
+
+        Only the Estimator has this, and only on scenarios that state their own quantities. It is kept out
+        of `accuracy`, which stays a measure of behaviour (owner decision 1b, 2026-09-19).
+        """
+        return self.takeoff_right / self.takeoff_lines if self.takeoff_lines else None
 
     @property
     def seconds_per_call(self) -> float:
@@ -275,6 +286,11 @@ def collect(runs_dir: Path = RUNS) -> tuple[list[Group], list[dict[str, Any]]]:
             checks = seat.get("checks") or {}
             group.checks_met += sum(1 for met in checks.values() if met)
             group.checks_total += len(checks)
+            # The takeoff belongs to the Estimator's model, and the run's price check measured it.
+            price = data.get("price_check") or {}
+            if seat["agent_id"] == "estimator" and price.get("takeoff_lines"):
+                group.takeoff_right += int(price.get("takeoff_lines_right") or 0)
+                group.takeoff_lines += int(price["takeoff_lines"])
             for reason, count in seat["reasons"].items():
                 group.reasons[reason] = group.reasons.get(reason, 0) + count
     return sorted(
@@ -350,19 +366,26 @@ def reason_table(groups: list[Group], current: dict[str, str] | None = None) -> 
     return lines
 
 
-def rank_key(g: Group) -> tuple[float, float, float, float]:
+def rank_key(g: Group) -> tuple[float, ...]:
     """Owner ranking (2026-09-17): fewest stopped runs, then accuracy, then first-time rate, then speed.
 
     Stopped runs ranks as a share of the model's runs, not as a count. Counting them made a model look
     better for having been tried less: on the Clean run, 1 stop in 6 runs beat 2 stops in 42, though the
     second is four times steadier and seven times better evidenced. The other three were already shares.
+
+    At the Estimator, how well the takeoff matches the reference ranks second, ahead of behaviour. The
+    owner kept the price out of the reported Accuracy column and left the ranking to me (2026-09-19), and
+    the Estimator is the one seat where behaviour says almost nothing: its whole check on a Clean run is
+    that it raised no blocker, which a model passes while reading half the drawing wrong. Reading the
+    drawings is that seat's job, and it is the only seat whose output this measures. Every other seat
+    ranks exactly as the owner set it.
     """
-    return (
-        g.stopped_run / g.runs if g.runs else 1.0,
-        -(g.accuracy if g.accuracy is not None else 0.0),
-        -g.first_time_rate,
-        g.seconds_per_call,
-    )
+    stop_share = g.stopped_run / g.runs if g.runs else 1.0
+    behaviour = -(g.accuracy if g.accuracy is not None else 0.0)
+    rest = (behaviour, -g.first_time_rate, g.seconds_per_call)
+    if g.agent_id == "estimator" and g.takeoff_lines:
+        return (stop_share, -(g.takeoff_accuracy or 0.0), *rest)
+    return (stop_share, *rest)
 
 
 def merge_by_model(groups: list[Group]) -> list[Group]:
@@ -387,6 +410,8 @@ def merge_by_model(groups: list[Group]) -> list[Group]:
             "stopped_run",
             "checks_met",
             "checks_total",
+            "takeoff_right",
+            "takeoff_lines",
         ):
             setattr(into, name, getattr(into, name) + getattr(g, name))
         into.est_cost += g.est_cost
@@ -401,8 +426,9 @@ def merge_by_model(groups: list[Group]) -> list[Group]:
 
 def best_local_table(groups: list[Group]) -> list[str]:
     lines = [
-        "| Seat | Best local model | Runs | Stopped runs | Accuracy | First time | Seconds per call | Runner-up |",
-        "|---|---|---|---|---|---|---|---|",
+        "| Seat | Best local model | Runs | Stopped runs | Accuracy | Takeoff lines right | First time | "
+        "Seconds per call | Runner-up |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for seat in SEAT_ORDER:
         local = merge_by_model([g for g in groups if g.agent_id == seat and g.provider == "ollama"])
@@ -413,7 +439,7 @@ def best_local_table(groups: list[Group]) -> list[str]:
             leader = min(local, key=rank_key)
             lines.append(
                 f"| {seat} | none with {MIN_RUNS_FOR_BEST} runs yet; leading so far {leader.model} ({leader.runs} runs) "
-                f"| | | | | | |"
+                f"| | | | | | | |"
             )
             continue
         best = qualified[0]
@@ -421,10 +447,15 @@ def best_local_table(groups: list[Group]) -> list[str]:
             f"{qualified[1].model} ({qualified[1].runs} runs)" if len(qualified) > 1 else "none qualified"
         )
         first = f"{best.first_time_rate * 100:.0f}%" if best.replies else "n/a"
+        takeoff = (
+            f"{best.takeoff_right}/{best.takeoff_lines} ({best.takeoff_accuracy * 100:.0f}%)"
+            if best.takeoff_accuracy is not None
+            else ""
+        )
         lines.append(
             f"| {seat} | {best.model}, {best.settings} | {best.runs} | "
             f"{best.stopped_run} ({best.stopped_run / best.runs * 100:.0f}%) | {_accuracy(best)} | "
-            f"{first} | {best.seconds_per_call:.1f} | {runner} |"
+            f"{takeoff} | {first} | {best.seconds_per_call:.1f} | {runner} |"
         )
     return lines
 
@@ -729,7 +760,11 @@ def columns_document() -> str:
             "",
             f"Among local (Ollama) models with at least {MIN_RUNS_FOR_BEST} runs on the seat: fewest stopped runs "
             "first, then the highest accuracy, then the highest first-time rate, then the fastest call "
-            "(owner decision 2026-09-17).",
+            "(owner decision 2026-09-17). At the Estimator only, the share of takeoff lines matching the "
+            "dataset's reference quantities ranks second, ahead of accuracy, because that seat's behaviour "
+            "checks amount to whether it raised a blocker while its real job is reading the drawings. The "
+            "reported Accuracy column is behaviour everywhere, and the price is reported separately (owner "
+            "decisions 1b of 2026-09-19 and the ranking left to the author).",
             "",
         ]
     )
@@ -858,7 +893,10 @@ def report(groups: list[Group], runs: list[dict[str, Any]], probe: bool = True) 
         "## Best local model per seat",
         "",
         f"Ranked among Ollama models with at least {MIN_RUNS_FOR_BEST} runs on the seat: fewest stopped runs, then "
-        "accuracy, then first-time rate, then seconds per call (owner decision 2026-09-17).",
+        "accuracy, then first-time rate, then seconds per call (owner decision 2026-09-17). At the Estimator, "
+        "and only there, how well the takeoff matches the dataset's reference quantities ranks second, ahead "
+        "of behaviour: that seat's behaviour checks are nearly silent, and reading the drawings is its job. "
+        "Accuracy itself stays a measure of behaviour everywhere.",
         "",
         *best_local_table(groups),
         "",

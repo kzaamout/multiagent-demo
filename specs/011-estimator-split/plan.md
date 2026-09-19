@@ -1,7 +1,9 @@
 # Splitting the Estimator: a plan for approval
 
-Status: proposal, written 2026-09-19 for the owner's decision (roadmap decision 28: the Estimator stays on
-a local model, and the seat is split before a hosted model is considered for it). Nothing here is built.
+Status: written 2026-09-19 and answered the same day. Option B is approved and comes first; A follows only
+as far as the measurement after B still asks for it. Nothing here is built yet, and building waits for the
+`writer-reviewer-rerun` sweep to finish. Background: roadmap decision 28, the Estimator stays on a local
+model and the seat is reshaped before a hosted model is considered for it.
 
 ## Why this seat
 
@@ -138,15 +140,29 @@ What would make me stop: B leaving the rule lines under 50 percent right would m
 applying the rule even when the tool does the arithmetic, which is a model limit and an argument for the
 hosted model after all. A raising the stop rate would mean the handovers cost more than the focus gains.
 
-## Questions for the owner
+## The owner's answers, 2026-09-19
 
-1. B first, then A only if needed, as recommended? Or A directly?
-2. If A: are three seats acceptable on the roster and in the demo's story, or should the split stay
-   invisible, shown as one Estimator card with three steps inside it?
-3. If A: which local model for the Schedule Reader? It needs no vision, so Llama 3.1 8B and DeepSeek R1 14B
-   become candidates, and the sweep would have to measure them.
-4. Should the appraisal workflow get the same split when it is built, or is this electrical only?
-5. Is a 1.5 times longer Estimator stage acceptable in a live demo?
-6. Are the targets above the right ones, in particular 3 percent as the price difference worth stopping at?
-7. Should takeoff accuracy stay out of the accuracy score for these measurements too, as decided on
-   2026-09-19, and be read from the price tables only?
+1. **B first.** The tool changes, measured, and A only as far as the measurement still asks for. Building
+   waits for the `writer-reviewer-rerun` sweep to finish: the Estimator is that sweep's constant, and
+   changing the calculator mid-flight would give the later runs different takeoffs to write and review.
+2. **Open**, and only reached if A follows: three seats on the roster, or one Estimator card with three
+   steps inside it.
+3. **Open**, and only reached if A follows: which local model reads the schedules, a seat that needs no
+   vision and so opens the text-only models to it.
+4. **The appraisal workflow gets the same split** when it is built, so the shape settled here is the shape
+   S8 inherits. Whatever B moves into the calculator has an appraisal equivalent to move into its own
+   tools, and the Schedule Reader and Plan Counter have appraisal counterparts: the document that states
+   figures, and the evidence that has to be looked at.
+5. **A 1.5 times longer Estimator stage is acceptable** in a live demo.
+6. **The targets stand as written.** Three percent from the reference price is the point worth stopping at.
+7. **The price stays out of the reported Accuracy column**, which remains a measure of behaviour
+   everywhere. The owner left the ranking to me, and I made one change, in `scripts/model_report.py`:
+   at the Estimator, and only there, the share of takeoff lines matching the reference ranks second,
+   ahead of behaviour. The reason is that the Estimator's behaviour checks are nearly silent, its whole
+   Clean run check being that it raised no blocker, which a model passes while reading half the drawing
+   wrong; and the takeoff is the one seat output the reference can measure. Every other seat ranks exactly
+   as the owner set it on 2026-09-17.
+
+## Questions still open
+
+Numbers 2 and 3 above, and only if the measurement after B says a split is still needed.
