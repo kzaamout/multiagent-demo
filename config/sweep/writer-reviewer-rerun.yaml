@@ -1,0 +1,32 @@
+# The Writer and Reviewer seats of the model sweep, run again (owner decision 4b, 2026-09-19).
+# Every figure recorded for these two seats before 2026-09-19 understates the model in it. The page text
+# handed to the Reviewer glued each provenance marker to its figure, so one price read as several, and
+# 113 of the Reviewer's 125 blocker findings said figures disagreed. The Writer was then sent back for
+# faults it had not made, and refused for amounts the engine misread. The other seats were not touched by
+# that fault, so they are not rerun. Run with:
+#   uv run python scripts/sweep.py config/sweep/writer-reviewer-rerun.yaml --worker laptop
+#
+# Three scenarios reach both seats, and each asks something different of the Reviewer: Clean run must
+# pass first time, Planted inconsistency must fail first time on the rating and pass after one rework,
+# Missing price must pass with the exclusion stated. Two repeats of each, since one run of a pair says
+# little. The baseline is run as well: its earlier runs are the ones most distorted.
+# 5 Writer models and 3 Reviewer models that can read an image, less the two baseline pairs already
+# covered by the baseline job: 7 configurations, 42 runs, about nine hours on one card.
+label: writer-reviewer-rerun
+datasets: [clean-run, planted-inconsistency, missing-price]
+repeats: 2
+ceiling: 1.00
+max_minutes: 20
+blocker: answer            # none of these scenarios plants a blocker, so one raised is invented
+baseline_job: true
+baseline:
+  orchestrator: qwen3-5-9b
+  intake: qwen3-5-9b
+  estimator: qwen3-5-9b
+  pricing: qwen3-5-9b
+  writer: qwen3-5-9b
+  reviewer: gemma4-12b
+vary:
+  models: [qwen3-5-9b, gemma4-12b, llama3-1-8b, deepseek-r1-14b, qwen3-5-4b]
+  seats: [writer, reviewer]
+whole: []

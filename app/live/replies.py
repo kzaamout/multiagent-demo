@@ -235,12 +235,30 @@ def checklist_markings(path: Path, sections: tuple[str, ...] = GRADED_SECTIONS) 
 
 
 def _marking(item: str, markings: Mapping[str, str]) -> str | None:
-    """The checklist marking for a graded item, allowing for a seat that shortened or extended its wording."""
+    """The checklist marking for a graded item, allowing for a seat that shortened, extended or renamed it.
+
+    A seat routinely writes the item as a field name, `bid_security_requirement`, where the checklist has
+    a sentence, "Bid security requirement stated, such as a bid bond". Matching on the raw text missed
+    that, so an item the checklist closes with a default was read as an open gap and the run was refused
+    for raising no question about it. That accounted for a large share of this seat's refusals, and it was
+    our matching rather than the model. Words carry the match: every significant word of the shorter name
+    must appear in the longer, which joins the two spellings without joining two different items.
+    """
     name = item.strip().lower()
     if name in markings:
         return markings[name]
     for known, marking in markings.items():
         if known.startswith(name) or name.startswith(known):
+            return marking
+    asked = set(_words(name))
+    if not asked:
+        return None
+    for known, marking in markings.items():
+        known_words = set(_words(known))
+        if not known_words:
+            continue
+        shorter, longer = sorted((asked, known_words), key=len)
+        if shorter and shorter <= longer:
             return marking
     return None
 
@@ -292,6 +310,36 @@ def pin_question_ids(clarifications: list[Clarification], items: list[str]) -> N
             clarification.question_id = canonical_question_id(best)
 
 
+ANSWER_ID = re.compile(r"\bq_[a-z0-9_]+")
+
+
+def answered_ids(knowledge_text: str) -> set[str]:
+    """The question ids the client knowledge file records an answer for."""
+    found: set[str] = set()
+    for line in knowledge_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("-"):
+            found.update(ANSWER_ID.findall(stripped.split(":", 1)[0]))
+    return found
+
+
+def closed_by_knowledge(grade: Any, answered: set[str]) -> bool:
+    """Whether this graded item is closed by an answer the knowledge file really holds.
+
+    The Intake instructions are explicit that an answer in the file settles an item, whatever the request
+    says, and that the seat records the entry it used in the note and asks nothing. The engine then
+    demanded a question for that item anyway, which refused the seat for obeying its first rule: 9 of the
+    refusals recorded on 2026-09-19 were this, every one of them on a correctly graded reply.
+
+    The note must name an id the file actually carries, so a seat cannot close a gap by claiming an answer
+    that does not exist.
+    """
+    if not answered:
+        return False
+    note = str(getattr(grade, "note", "") or "")
+    return any(name in answered for name in ANSWER_ID.findall(note))
+
+
 def needs_a_question(item: str, markings: Mapping[str, str]) -> bool:
     """A gap needs a clarification only when the checklist leaves it open. An item the checklist hands to the
     Estimator, or closes with a default of its own, is graded and carried instead."""
@@ -330,6 +378,7 @@ class IntakeReply(BaseModel):
         expected_items: list[str] | None = None,
         markings: Mapping[str, str] | None = None,
         request_files: list[str] | None = None,
+        knowledge_text: str = "",
     ) -> None:
         # Only the items the checklist marks blocking stop a run. A fail on any other item, such as a missing
         # panel schedule or an index that lists a sheet not provided, counts as assumed and is carried forward
@@ -360,14 +409,33 @@ class IntakeReply(BaseModel):
                     )
         if expected_items:
             pin_question_ids(self.clarifications, expected_items)
-        gaps = [c for c in failing + assumed if needs_a_question(c.item, marks)]
+        answered = answered_ids(knowledge_text)
+        gaps = [
+            c
+            for c in failing + assumed
+            if needs_a_question(c.item, marks) and not closed_by_knowledge(c, answered)
+        ]
         # A not_ready run ends before any question is asked, so its gaps need grades, not questions.
         if expected != "not_ready" and len(self.clarifications) < len(gaps):
+            # The seat's largest failure by a distance (83 refusals): it grades the items correctly and
+            # then raises no question for them. The engine cannot write these questions, because a gap
+            # needs one only when the checklist leaves it open, so there is no default to propose and the
+            # wording has to come from the request. What it can do is hand over the skeleton with the ids
+            # already right, which turns composing into filling (spec 010, phase 1.5).
+            asked = {c.question_id for c in self.clarifications}
+            skeleton = ", ".join(
+                f'{{"question_id": "{canonical_question_id(c.item)}", "question": ..., '
+                f'"why_it_matters": ..., "proposed_default": ..., "blocking": ...}}'
+                for c in gaps
+                if canonical_question_id(c.item) not in asked
+            )
             names = "; ".join(c.item for c in gaps)
             raise ReplyError(
                 f"{len(gaps)} checklist items are not pass but there are {len(self.clarifications)} clarifications. "
-                f"Add one clarification with a proposed default for each of: {names}. Mark it blocking when the "
-                "request says the item must be settled before submitting"
+                f"Add one clarification for each of: {names}. Use these ids exactly, one object each, and fill "
+                f"the rest from the request: {skeleton}. The proposed default is your best reading of what the "
+                "client would answer, so the human can accept it in one click. Mark it blocking when the request "
+                "says the item must be settled before submitting"
             )
 
 
@@ -455,7 +523,10 @@ class PricingReply(BaseModel):
 class WriterReply(BaseModel):
     markdown: str = Field(min_length=1)
     note: str = ""
-    tags: list[dict[str, str]] = Field(default_factory=list)
+    # The engine never read this field: the provenance tags a draft carries are parsed out of the
+    # markdown, and the hover markers come from those. It was validated and dropped, and 19 replies were
+    # refused over its shape, ending 10 runs. Anything a seat still sends under it is ignored (2026-09-19).
+    tags: Any = None
     gaps: list[str] = Field(default_factory=list)
 
     def check(self) -> None:

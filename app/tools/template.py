@@ -47,7 +47,12 @@ SOURCE_ID = re.compile(r"\(source id: ([A-Za-z0-9_.:-]+)\)")
 
 def provenance_problems(markdown: str, offered_context: str) -> list[str]:
     """What stops a draft's provenance from being checkable: no tags, tags naming sources the Writer was
-    never given, or dollar amounts left untagged in the body. The appendix is excluded."""
+    never given. The appendix is excluded.
+
+    It once refused any dollar amount without a tag. Deciding which figures need a tag is a judgment, and
+    the rule refused zeros, the labour rate and line extensions while proving nothing about where a number
+    came from. An untagged amount is now held against what the Writer was given instead, in
+    app.live.figures.amounts_not_in_context (spec 010, phase 1.7)."""
     body = markdown.split("\n## Provenance", 1)[0]
     tags = find_tags(body)
     offered = set(SOURCE_ID.findall(offered_context))
@@ -62,13 +67,36 @@ def provenance_problems(markdown: str, offered_context: str) -> list[str]:
         )
     unknown = sorted({tag.source_id for tag in tags if tag.source_id not in offered})
     if unknown:
-        problems.append("these tags name a source id that is not in your context: " + ", ".join(unknown[:5]))
-    untagged = MONEY.findall(TAG.sub("", body))
-    if untagged:
+        # Every one of the twelve refusals on record named the knowledge file, and eight of those runs
+        # stopped: the refusal said the id was wrong and never said which ids were right.
         problems.append(
-            "these dollar amounts have no provenance tag: " + ", ".join(dict.fromkeys(untagged[:6]))
+            "these tags name a source id that is not in your context: "
+            + ", ".join(unknown[:5])
+            + ". Your source ids are: "
+            + ", ".join(sorted(offered))
+            + ". A fact from the knowledge file or the request is tagged with the brief's source id"
         )
     return problems
+
+
+DOLLAR_OUTSIDE = re.compile(r"\$\s?\{\{\s*(?=\d)")
+
+
+def with_dollars_inside(markdown: str) -> str:
+    """A draft with every "${{1,234.00|src:x}}" read as "{{$1,234.00|src:x}}".
+
+    Writers put the dollar sign outside the tag in 30 of 137 recorded drafts. Every check on amounts looks
+    for a dollar sign attached to the number, so in those drafts they saw no amounts at all, and a labour
+    figure of 42,161.07 passed for Pricing's 42,161.00. The draft is not changed: both forms render the
+    same, and this reading is used for checking only.
+    """
+    return DOLLAR_OUTSIDE.sub("{{$", markdown)
+
+
+def untagged_money(markdown: str) -> list[str]:
+    """Dollar amounts in the body that carry no provenance tag, in the order they appear (spec 010)."""
+    body = markdown.split("\n## Provenance", 1)[0]
+    return list(dict.fromkeys(MONEY.findall(TAG.sub("", body))))
 
 
 def find_tags(markdown: str) -> list[Tag]:

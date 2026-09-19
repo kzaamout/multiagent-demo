@@ -180,6 +180,30 @@ def unavailable_seats(config: ModelConfig, availability: dict[str, Availability]
     return problems
 
 
+def resolved_settings(spec: ModelSpec, choice: SeatChoice) -> dict[str, Any]:
+    """The hyperparameters a seat runs with, in one shape for every provider. A value the provider fixes or
+    the model defaults is named as such rather than guessed."""
+    if choice.temperature is not None:
+        temperature: Any = choice.temperature
+    elif spec.temperature is False:
+        temperature = "fixed by the provider"
+    else:
+        temperature = "model default"
+    options = spec.options or {}
+    extra = spec.additional_args or {}
+    think: Any = "model default"
+    if "think" in extra:
+        think = bool(extra["think"])
+    elif isinstance(extra.get("thinking"), dict) and "type" in extra["thinking"]:
+        think = extra["thinking"]["type"] != "disabled"
+    return {
+        "temperature": temperature,
+        "num_ctx": options.get("num_ctx", "model default"),
+        "think": think,
+        "max_tokens": spec.max_tokens or "model default",
+    }
+
+
 def strands_model_for(config: ModelConfig, agent_id: str) -> SeatModel:
     """Build the real Strands model for a seat. Only called for live runs with providers available."""
     spec = config.seat_spec(agent_id)
@@ -227,6 +251,7 @@ def strands_model_for(config: ModelConfig, agent_id: str) -> SeatModel:
         price_in=spec.price_in,
         price_out=spec.price_out,
         image_input=spec.image_input,
+        settings=resolved_settings(spec, choice),
     )
 
 

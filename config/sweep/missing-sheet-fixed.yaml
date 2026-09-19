@@ -1,0 +1,23 @@
+# The same six Missing sheet runs as missing-sheet-check, after plan item 1.8: a concern that a sheet is
+# missing, when the manifest agrees, goes back to the Estimator as a blocker (spec 010). Run with:
+#   uv run python scripts/sweep.py config/sweep/missing-sheet-fixed.yaml --worker laptop
+#
+# Reading fixed before the runs: 5 or 6 escalations of 6 means the fix holds. Anything the check-batch
+# escalated or fewer means the seat is not filing the concern in words the check can read, and the
+# refused replies say which.
+label: missing-sheet-fixed
+datasets: [missing-sheet]
+repeats: 6
+ceiling: 1.00
+max_minutes: 20
+blocker: escalate
+baseline_job: true
+baseline:
+  orchestrator: qwen3-5-9b
+  intake: qwen3-5-9b
+  estimator: qwen3-5-9b
+  pricing: qwen3-5-9b
+  writer: qwen3-5-9b
+  reviewer: gemma4-12b
+vary: {models: [], seats: []}
+whole: []

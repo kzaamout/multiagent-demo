@@ -121,6 +121,30 @@ def _typst_pdf(typ_path: Path, pdf_path: Path) -> None:
     _run(["typst", "compile", typ_path.name, pdf_path.name], typ_path.parent, "typst pdf")
 
 
+def _page_texts(typ_path: Path, pdf_path: Path) -> list[str]:
+    """The text of each page as the Reviewer reads it, with each provenance marker written " [n]".
+
+    Extracted from the page as displayed, a superscript marker is glued to its figure, so one price
+    tagged five times reads $79,063.751 to $79,063.755. The Reviewer failed that as five different
+    prices: 113 of its 125 blocker findings say figures disagree, and 14 of the 22 runs that spent their
+    whole review budget failed on a disagreement that exists only in this text. So the text comes from a
+    second compile in which the template writes the marker in brackets. That compile is for reading only
+    and is removed; if it fails, the displayed page's text is better than none.
+    """
+    text_pdf = pdf_path.with_name(pdf_path.stem + ".text.pdf")
+    try:
+        _run(
+            ["typst", "compile", "--input", "markers=text", typ_path.name, text_pdf.name],
+            typ_path.parent,
+            "typst text",
+        )
+        return [p.text for p in parse_pdf(text_pdf)]
+    except CompileError:
+        return [p.text for p in parse_pdf(pdf_path)]
+    finally:
+        text_pdf.unlink(missing_ok=True)
+
+
 def _typst_pages(typ_path: Path, stem: str) -> list[Path]:
     folder = typ_path.parent
     for old in folder.glob(f"{stem}-*.png"):
@@ -190,6 +214,7 @@ def compile_draft(
     sources: Mapping[str, str] | None = None,
     headlines: Mapping[str, str] | None = None,
     template: Path = RESPONSE_TEMPLATE,
+    client: str = "",
 ) -> Compiled:
     """Compile one draft version into `runs/<id>/artifacts/v<N>/` and return the record.
 
@@ -210,6 +235,12 @@ def compile_draft(
     pdf_path = folder / f"{stem}.pdf"
     variables = {
         "prospect-name": brand.prospect_name,
+        # Whose letterhead this is, and who it is for, are two different names. The cover used the
+        # prospect's name for both, so a proposal on the bidder's letterhead said it was prepared for the
+        # bidder, while the body addressed the client the brief names. Reviewers raised that 12 times in
+        # the 42 run sweep of 2026-09-19, as a blocker 10 times, and it ended 3 runs with the review
+        # budget spent, because no rework can change a cover that comes from configuration.
+        "client-name": client,
         "logo-path": _stage_logo(brand, folder),
         "primary-colour": brand.primary_colour,
         "version": str(version),
@@ -218,7 +249,7 @@ def compile_draft(
     _typst_pdf(typ_path, pdf_path)
     pages = _typst_pages(typ_path, stem)
     markers = _typst_markers(typ_path, drafts)
-    texts = [p.text for p in parse_pdf(pdf_path)]
+    texts = _page_texts(typ_path, pdf_path)
     if len(texts) < len(pages):
         texts += [""] * (len(pages) - len(texts))
 

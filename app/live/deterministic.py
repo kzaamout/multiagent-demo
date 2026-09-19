@@ -1,0 +1,238 @@
+"""Work the engine can do exactly, so a seat is not asked to remember or judge it (spec 010).
+
+Three of the largest failures on this team were the model being asked for something the run already
+knows. The Estimator raised blockers for sheets that were in the set and had been parsed minutes earlier.
+The Writer was told which figures had no provenance tag but not which source to tag them with, so it
+guessed. The Writer was asked to remember every specialist concern when the concerns were sitting in the
+event log in structured form.
+
+Each function here answers one of those from recorded data. None of them writes into a deliverable: a
+provenance tag inserted by string matching could attribute a number to the wrong specialist while looking
+authoritative, and provenance is the claim the whole demo rests on. The engine does the lookup and the
+seat still makes the attribution.
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Iterable, Mapping
+from typing import Any
+
+# A sheet as the trade writes it: one or two letters, a dash, digits. E-001, LP-2, M-101.
+SHEET = re.compile(r"\b([A-Z]{1,2}-\d{1,3})\b")
+SOURCE_HEADING = re.compile(r"\(source id:\s*([a-z0-9_]+)\)", re.I)
+
+
+def sheets_named(text: str) -> list[str]:
+    """Every sheet identifier a piece of text names, in the order it names them."""
+    return list(dict.fromkeys(SHEET.findall(text.upper())))
+
+
+def present_sheets(prepared: Any) -> set[str]:
+    """Sheet identifiers the run actually holds, from the prepared manifest.
+
+    Both the sheet number read from the title block and the prepared file's own name count, because a
+    sheet whose title block could not be read is still a sheet the seat can open.
+    """
+    found: set[str] = set()
+    for sheet in getattr(prepared, "sheets", []) or []:
+        for value in (getattr(sheet, "sheet_number", ""), getattr(sheet, "sheet_id", "")):
+            found.update(SHEET.findall(str(value).upper()))
+    return found
+
+
+MISSING_WORDS = ("missing", "not in", "not included", "absent", "not present", "no schedule", "not provided")
+CLAUSE = re.compile(r"[.;]|\bbut\b|\bthough\b|\balthough\b|\bwhile\b|\bhowever\b", re.I)
+
+
+def _claims_of_absence(description: str) -> list[str]:
+    """The clauses of a blocker that say something is not there.
+
+    A blocker usually names a sheet it can see as well as the one it cannot: "LP-2 appears on E-001 but
+    its schedule E-003 is not in the set". Only the second clause is a claim of absence, and judging the
+    whole sentence at once would refuse a blocker for a sheet that really is missing.
+    """
+    return [c for c in CLAUSE.split(description) if any(w in c.lower() for w in MISSING_WORDS)]
+
+
+def blocker_names_a_present_sheet(description: str, prepared: Any) -> str | None:
+    """A blocker claiming a sheet is missing, when the run holds that sheet.
+
+    Returns the refusal, or None when the blocker stands. Conservative in three ways, because refusing a
+    real blocker is worse than letting an invented one through: it reads only the clauses claiming
+    absence, it ignores identifiers that are not shaped like this set's sheet numbers (a panel called
+    LP-1 is not a sheet), and it stays silent unless every sheet claimed missing is one the run holds.
+    """
+    if not description:
+        return None
+    held = present_sheets(prepared)
+    if not held:
+        return None
+    prefixes = {sheet.split("-", 1)[0] for sheet in held}
+    claimed = [
+        sheet
+        for clause in _claims_of_absence(description)
+        for sheet in sheets_named(clause)
+        if sheet.split("-", 1)[0] in prefixes
+    ]
+    if not claimed or not all(sheet in held for sheet in claimed):
+        return None
+    names = ", ".join(dict.fromkeys(claimed))
+    return (
+        f"this blocker says {names} is missing, and {names} is in the drawing set: it was prepared and "
+        "read at Intake, and you can open it. Read it with vision_read_drawing and finish the takeoff. "
+        "Raise a blocker only for a sheet the drawing index lists that the set does not contain"
+    )
+
+
+def concern_names_an_absent_sheet(texts: Iterable[str], prepared: Any) -> str | None:
+    """A concern or assumption saying a sheet is missing, when the run really does not hold that sheet.
+
+    The mirror of the check above. On the Missing sheet scenario the Estimator saw the problem exactly,
+    wrote "Panel schedule LP-2 (E-003) referenced on E-001 and E-102 but not in drawing set per drawing
+    index" as a concern, and finished the takeoff: six of seven runs that failed to escalate did this. The
+    conventions make a panel with no schedule a blocker, and the manifest settles whether the sheet is
+    absent, so the seat is not asked to judge it twice.
+
+    It fires when the text names a sheet, shaped like this set's sheets, that the manifest does not hold.
+    A sheet the run holds never triggers it, so a concern about a rating disagreement between two present
+    sheets is left alone. It first also required a word such as missing or absent, and the next miss read
+    "schedule E-003 will be provided later and is not required for initial tender". A list of words for
+    absence is a guess about phrasing; the manifest is the evidence. Without the word list it stays silent
+    on all 103 recorded takeoffs from the other datasets and catches 8 of 9 on Missing sheet, against 6.
+    """
+    held = present_sheets(prepared)
+    if not held:
+        return None
+    prefixes = {sheet.split("-", 1)[0] for sheet in held}
+    for text in texts:
+        absent = [
+            sheet for sheet in sheets_named(text) if sheet.split("-", 1)[0] in prefixes and sheet not in held
+        ]
+        if absent:
+            names = ", ".join(absent)
+            return (
+                f"your reply names {names}, and {names} is not in the drawing set you were given: "
+                f'"{text[:140]}". The estimating conventions make a sheet the drawings rely on and the set '
+                "lacks a blocker, not a concern, even when the brief expects it to arrive later, because its "
+                "quantities cannot be counted. Reply with the blocker shape alone, "
+                '{"blocker": {"description", "needs_human": true, "route_back_to": null}}, naming the sheet '
+                "and where it is referenced. If you mistyped the sheet number, correct it instead"
+            )
+    return None
+
+
+def sources_of_figure(figure: str, offered_context: str) -> list[str]:
+    """Which offered sources contain this figure, by the headings the context slice is built from.
+
+    The context slice carries each specialist output under a heading naming its source id. A figure that
+    appears under exactly one of them can be attributed without guessing; one appearing under several, or
+    none, cannot, and the seat is told which case it is.
+    """
+    sections: list[tuple[str, str]] = []
+    position = 0
+    for match in SOURCE_HEADING.finditer(offered_context):
+        if sections:
+            sections[-1] = (sections[-1][0], offered_context[position : match.start()])
+        sections.append((match.group(1).lower(), ""))
+        position = match.end()
+    if sections:
+        sections[-1] = (sections[-1][0], offered_context[position:])
+    # A specialist output reaches the Writer as JSON, where a price is 31338.31 with no currency symbol
+    # and no thousands separator, while the draft writes $31,338.31, so the comparison is on the number.
+    # It was first made on the number's text, and JSON also drops a trailing zero: Pricing's labour of
+    # 13284.8 is the Writer's $13,284.80. A correct draft on a near perfect takeoff was refused three
+    # times for that and the run stopped, so the two are now compared as numbers.
+    from app.live.figures import held_to_the_cent, number, numbers_in
+
+    value = number(figure.rstrip("."))
+    if value is None:
+        return []
+    return sorted({name for name, body in sections if held_to_the_cent(value, numbers_in(body))})
+
+
+def tag_advice(untagged: Iterable[str], offered_context: str) -> str | None:
+    """For each untagged figure, the source to tag it with when exactly one offered output carries it."""
+    known: list[str] = []
+    ambiguous: list[str] = []
+    missing: list[str] = []
+    for figure in dict.fromkeys(untagged):
+        sources = sources_of_figure(figure, offered_context)
+        if len(sources) == 1:
+            known.append(f"{{{{{figure}|src:{sources[0]}}}}}")
+        elif sources:
+            ambiguous.append(f"{figure} appears in {' and '.join(sources)}, so choose the one it came from")
+        else:
+            missing.append(figure)
+    parts: list[str] = []
+    if known:
+        parts.append("write these exactly: " + ", ".join(known))
+    if ambiguous:
+        parts.append("; ".join(ambiguous))
+    if missing:
+        parts.append(
+            "these are in no output you were given, so they cannot be tagged and do not belong in the "
+            "document: " + ", ".join(missing)
+        )
+    return ". ".join(parts) if parts else None
+
+
+def money_disagreements(markdown: str, offered_context: str) -> list[str]:
+    """Tagged money in the draft whose value is not in the output the tag names (spec 010, phase 1.6).
+
+    A tagged figure was never checked against its source: the tag proved the Writer named an output, not
+    that the number came from it. Six of twelve runs then exhausted their review budget on 23 findings
+    that all said the same thing, that a total in one section disagreed with the same total in another,
+    including one draft carrying $36,882.581 for a price of $36,882.58. The seat is copying Pricing's
+    totals by hand into three places and mistyping them, which is not something more attempts can fix.
+
+    Pricing's own numbers are the truth and are already in the context, so each tagged amount is looked up
+    in the output it claims. Money only, because that is where every one of those findings was and a
+    quantity repeated in prose has honest reasons to differ. The provenance appendix is excluded, as it is
+    everywhere else.
+    """
+    from app.tools.template import MONEY, find_tags, with_dollars_inside
+
+    body = with_dollars_inside(markdown).split("\n## Provenance", 1)[0]
+    problems: list[str] = []
+    for tag in find_tags(body):
+        if not MONEY.fullmatch(tag.value.strip()):
+            continue
+        sources = sources_of_figure(tag.value.strip(), offered_context)
+        if tag.source_id in sources:
+            continue
+        if sources:
+            problems.append(
+                f"{tag.value} is tagged src:{tag.source_id} but that figure is in "
+                f"{' and '.join(sources)}, so either the figure or the tag is wrong"
+            )
+        else:
+            problems.append(
+                f"{tag.value} is tagged src:{tag.source_id} and no output holds that figure. Copy the "
+                "number from the output rather than retyping it, and use the same one in every section"
+            )
+    return problems
+
+
+def assumptions_block(concerns: Iterable[tuple[str, Mapping[str, Any]]]) -> str:
+    """The assumptions the Writer must carry, prepared from the concerns rather than left to memory.
+
+    Handing the seat the sentences turns remembering into copying, which is the difference between the
+    Writer's largest failure and no failure at all. The wording stays the specialist's own.
+    """
+    lines: list[str] = []
+    for role, concern in concerns:
+        text = str(concern.get("text", "")).strip()
+        if not text:
+            continue
+        reference = str(concern.get("drawing_ref", "") or "").strip()
+        lines.append(f"- {text}" + (f" ({reference})" if reference else "") + f" [from the {role}]")
+    if not lines:
+        return ""
+    return (
+        "## Assumptions to carry\n"
+        "Every line below is a concern a specialist raised on this job. Each one goes into the "
+        "Assumptions section of your draft, in your own sentence, keeping the figures and the sheet "
+        "names as written. A concern you leave out is a disagreement the reader never sees.\n"
+        + "\n".join(lines)
+    )

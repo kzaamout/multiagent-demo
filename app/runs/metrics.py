@@ -24,14 +24,39 @@ MANIFEST_FILE = "run.json"
 
 # Why a reply was sent back, grouped so that a pattern is visible across runs. First match wins.
 CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("json_shape", ("is not valid json", "no json object", "expected", "field required", "input should")),
+    # json_shape held three failures with three different fixes, so it is split (owner decision
+    # 2026-09-17): the seat never replied, the seat replied with broken JSON, or the seat replied with
+    # valid JSON in the wrong structure. missing_fields was the third of those said in other words, so it
+    # is folded in rather than kept beside it.
+    ("no_json", ("no json object",)),
+    ("invalid_json", ("is not valid json",)),
+    # Early: this refusal quotes the seat's own concern, which may use any later category's words.
+    ("blocker_as_concern", ("blocker, not a concern",)),
+    # Grading comes before shape. A correction naming the fix often contains the words "must" or "needs",
+    # so bare "must" and "needs" in the shape list swallowed 68 Intake grading refusals and reported the
+    # seat's largest problem as the wrong one. Shape now matches on the validator's own words.
     ("checklist_grading", ("checklist", "verdict", "clarification")),
+    ("wrong_shape", ("expected", "field required", "input should", "needs headline")),
     ("compile_failed", ("does not compile",)),
     ("concern_dropped", ("concern is not carried", "no assumptions section")),
+    # A figure that is not the one its tool returned, or not the Estimator's, and an amount in a draft
+    # that nothing upstream holds (spec 010, phase 1.7). Before the tool names below, which they mention.
+    (
+        "figures_not_from_tool",
+        (
+            "the lookup returned",
+            "quantity_calculate returned",
+            "returned no result",
+            "never sent to price_list_lookup",
+            "no single price_list_lookup",
+            "the estimator's is",
+            "not a line of the estimator's",
+            "not a figure quantity_calculate",
+        ),
+    ),
+    ("amount_not_in_sources", ("appear in nothing you were given",)),
     ("provenance_tags", ("provenance", "src:", "source id")),
     ("tool_not_used", ("price_list_lookup", "quantity_calculate", "as text instead of calling")),
-    ("blocker_as_concern", ("blocker, not a concern",)),
-    ("missing_fields", ("needs headline", "needs", "must")),
     ("output_limit", ("output limit", "max tokens")),
     ("provider_error", ("could not be reached",)),
 )
@@ -55,6 +80,10 @@ class SeatAttempt:
     attempt: int
     accepted: bool
     error: str = ""
+    settings: dict[str, Any] = field(default_factory=dict)
+    """temperature, num_ctx, think, max_tokens as the seat resolved them (decision 5a); empty on old lines."""
+    instructions: str = ""
+    """The version of the seat's instructions this attempt ran on; empty on lines recorded before capture."""
 
     def line(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False)
@@ -77,8 +106,15 @@ class SeatRow:
     replies: int = 0
     accepted_first_time: int = 0
     corrections: int = 0
-    invalid_twice: int = 0
+    stopped_run: int = 0
+    """Set when this seat ran out of attempts and the run ended because of it."""
     reasons: dict[str, int] = field(default_factory=dict)
+    settings: dict[str, Any] = field(default_factory=dict)
+    """The hyperparameters the seat ran with, from its attempt lines; empty when the run predates capture."""
+    instructions: str = ""
+    """The version of the seat's instructions, so a lesson taught to a seat starts a new row in the report."""
+    checks: dict[str, bool] = field(default_factory=dict)
+    """Correctness checks the dataset defines for this seat, each met or not (app/runs/expectations.py)."""
 
     def add_reason(self, error: str) -> None:
         name = categorise(error)
@@ -208,7 +244,11 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
         elif event.type == "tool.called":
             seat.tool_calls += 1
 
+    last = events[-1] if events else None
+    exit_value = str((last.payload or {}).get("exit", "")) if last is not None else ""
+
     logged = (folder / ATTEMPTS_FILE).exists()
+    final_rejected: dict[str, bool] = {}
     for attempt in read_attempts(folder):
         agent_id = attempt.agent_id or _seat_of(attempt.prompt_ref, folder)
         seat = row(agent_id)
@@ -216,6 +256,11 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
             continue
         if attempt.model and not seat.model:
             seat.model, seat.provider = attempt.model, attempt.provider
+        if attempt.settings:
+            seat.settings = dict(attempt.settings)
+        if attempt.instructions:
+            seat.instructions = attempt.instructions
+        final_rejected[agent_id] = not attempt.accepted
         if attempt.accepted:
             seat.replies += 1
             if attempt.attempt == 1:
@@ -224,10 +269,17 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
                 seat.corrections += 1
         else:
             seat.add_reason(attempt.error)
-            if attempt.attempt == 2:
-                seat.invalid_twice += 1
-                if logged:
-                    seat.replies += 1
+
+    # A seat stopped the run when it ran out of attempts: its last attempt was refused and the run ended
+    # `stopped`. Counting the second refusal instead was right only while a seat had two attempts; three
+    # attempts (decision 2026-09-17) made a second refusal survivable, and runs that went on to pass were
+    # being charged with a stop. The failed final attempt still counts as a reply the seat produced.
+    for agent_id, rejected in final_rejected.items():
+        seat = row(agent_id)
+        if seat is not None and rejected and exit_value == "stopped":
+            seat.stopped_run += 1
+            if logged:
+                seat.replies += 1
 
     if not logged:
         # Before the attempt log, only the rejected replies were kept. One recorded bundle is one seat
@@ -238,16 +290,30 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
             if seat is None:
                 continue
             rejections = sum(seat.reasons.values())
-            seat.corrections = max(rejections - seat.invalid_twice * 2, 0)
+            seat.corrections = max(rejections - seat.stopped_run * 2, 0)
             seat.replies = bundles
-            seat.accepted_first_time = max(bundles - seat.corrections - seat.invalid_twice, 0)
+            seat.accepted_first_time = max(bundles - seat.corrections - seat.stopped_run, 0)
 
-    last = events[-1] if events else None
-    exit_value = str((last.payload or {}).get("exit", "")) if last is not None else ""
+    from app.runs.expectations import golden_match, seat_checks
+
+    for agent_id, checks in seat_checks(dataset, events, folder).items():
+        seat = row(agent_id)
+        if seat is not None:
+            seat.checks = checks
+    matched, note = golden_match(dataset, events)
+    from app.config import load_settings
+    from app.runs.reference import price_check
+
     return {
         "run_id": folder.name,
+        "started_at": events[0].ts if events else "",
         "dataset_id": dataset,
         "exit": exit_value,
+        "golden_match": matched,
+        "golden_note": note,
+        # The run's price and takeoff beside what the job should cost, where the scenario has a reference.
+        # Accuracy above never looks at a number; this does (owner decision 1b, 2026-09-19).
+        "price_check": price_check(dataset, events, load_settings().datasets_dir),
         "events": len(events),
         "seats": [asdict(seat) for seat in rows.values()],
     }

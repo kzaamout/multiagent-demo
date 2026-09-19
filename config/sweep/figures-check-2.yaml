@@ -1,0 +1,29 @@
+# Do the figure checks hold on live runs? (spec 010, items 1.7 to 1.9). The first bed, figures-check, was
+# stopped after two runs that both stopped at the Estimator for a cause item 1.9 removes. This is that
+# bed again, on the code where the calculator owns the unit labour hours table. Same bed as deterministic-check so the
+# two can be compared: every seat on qwen3.5 9b, the Reviewer on gemma4 12b. Run with:
+#   uv run python scripts/sweep.py config/sweep/figures-check-2.yaml --worker laptop
+#
+# Targets fixed before the runs: Writer refusals for amounts fall from 0.88 per Writer reply to under 0.15,
+# no accepted Pricing reply differs from its tool result (scripts/replay_figures.py reads the recorded
+# tool results), figure refusals at the Estimator and Pricing stay under 0.25 per reply, and passes stay
+# at or above 8 of 12. A rise in stopped runs at the Estimator means the calculator check is refusing
+# honest work, and it is loosened rather than the result explained away.
+label: figures-check-2
+datasets: [clean-run, planted-inconsistency, missing-price, missing-sheet]
+repeats: 3
+ceiling: 1.00
+max_minutes: 20
+blocker: answer
+blocker_by_dataset:
+  missing-sheet: escalate
+baseline_job: true
+baseline:
+  orchestrator: qwen3-5-9b
+  intake: qwen3-5-9b
+  estimator: qwen3-5-9b
+  pricing: qwen3-5-9b
+  writer: qwen3-5-9b
+  reviewer: gemma4-12b
+vary: {models: [], seats: []}
+whole: []

@@ -41,10 +41,13 @@ def concern_problems(
     problems: list[str] = []
     section = assumptions_section(markdown)
     for concern in concerns:
-        sheets = sheets_in(str(concern.get("drawing_ref", "")))
+        text = str(concern.get("text", "")).strip()
+        # A seat puts one sheet in drawing_ref and names two more in the sentence. Taking only the field
+        # told the Writer to name E-002 for a concern about E-001 and E-002 both, so the sheets are every
+        # one the concern mentions, either way.
+        sheets = list(dict.fromkeys(sheets_in(str(concern.get("drawing_ref", ""))) + sheets_in(text)))
         if not sheets:
             continue
-        text = str(concern.get("text", "")).strip()
         quoted = text[:90].rstrip() + ("..." if len(text) > 90 else "")
         if section is None:
             problems.append(
@@ -56,7 +59,8 @@ def concern_problems(
         if missing:
             problems.append(
                 f'the {role}\'s concern is not carried in the Assumptions section: "{quoted}". '
-                f"Add one line for it there naming the sheets {', '.join(sheets)} and the values that disagree"
+                f"Add one line for it there, in your own words, naming {', '.join(sheets)} and keeping any "
+                "figures the concern states"
             )
     return problems
 

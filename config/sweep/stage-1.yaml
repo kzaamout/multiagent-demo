@@ -1,0 +1,29 @@
+# Model sweep, stage 1 (owner decisions 2026-09-17): the Clean run only, one seat varied at a time against
+# a local baseline, plus every seat on one model. Local models only. Hyperparameters stay as the registry
+# sets them; each run records what it used. Run with:
+#   uv run python scripts/sweep.py config/sweep/stage-1.yaml --worker laptop
+label: stage-1
+datasets: [clean-run]
+repeats: 1
+ceiling: 1.00
+max_minutes: 30
+blocker: answer            # escalate ends the run, and stage 1 holds no scenario with a real blocker, so a
+                           # blocker here is the seat inventing one. Answering is what a presenter would do when
+                           # they judge it spurious, and it keeps the later seats running. The invented blocker is
+                           # still recorded: the Clean run check `no_blocker` fails for that Estimator.
+# Temperature per seat comes from config/models.yaml and cannot be set here. The Estimator's line carries
+# no temperature (Bedrock's sonnet-5 rejects a non-default one), so a local model in that seat runs at the
+# model default while the other seats run at 0.1. Every run records what it used, and the report groups by
+# settings, so comparisons within a seat (which is what "best model per seat" needs) stay like for like;
+# only a comparison across seats would be affected.
+baseline:                  # decision 4a: Qwen takes the Estimator, since the sweep is local only
+  orchestrator: qwen3-5-9b
+  intake: qwen3-5-9b
+  estimator: qwen3-5-9b
+  pricing: qwen3-5-9b
+  writer: qwen3-5-9b
+  reviewer: gemma4-12b
+vary:
+  models: [qwen3-5-9b, gemma4-12b, llama3-1-8b, deepseek-r1-14b, qwen3-5-4b]   # the baseline model is listed so the seats it does not hold (the Reviewer) get it too
+  seats: [orchestrator, intake, estimator, pricing, writer, reviewer]
+whole: [qwen3-5-9b, gemma4-12b, qwen3-5-4b]   # every seat on one model; a text-only model cannot fill the Estimator, so it is not listed

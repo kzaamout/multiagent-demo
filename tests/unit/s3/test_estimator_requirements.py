@@ -48,3 +48,21 @@ def test_a_raised_blocker_is_never_corrected() -> None:
         )
     )
     assert estimator_requirements(reply, []) is None, "a blocker needs no calculator call"
+
+
+def test_a_concern_naming_a_sheet_the_manifest_lacks_goes_back_as_a_blocker() -> None:
+    """None of the blocked words appear here, which is how six Missing sheet runs slipped past the rule
+    above. The manifest settles whether the sheet is absent (spec 010)."""
+    from types import SimpleNamespace
+
+    held = ("E-000", "E-001", "E-002", "E-101", "E-102")
+    prepared = SimpleNamespace(sheets=[SimpleNamespace(sheet_number=n, sheet_id=n) for n in held])
+    reply = takeoff("Panel schedule LP-2 (E-003) referenced on E-001 and E-102 but not in drawing set.")
+    message = estimator_requirements(reply, TOOLS, prepared=prepared)
+    assert message is not None and "E-003" in message and "blocker, not a concern" in message
+    assert (
+        estimator_requirements(
+            takeoff("E-002 rating is not provided for the spare."), TOOLS, prepared=prepared
+        )
+        is None
+    )

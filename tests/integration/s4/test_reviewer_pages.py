@@ -33,6 +33,12 @@ async def test_reviewer_bundle_carries_pages_and_page_text(tmp_path: Path) -> No
     assert "Proposal" in bundle.context_slice, "the page text carries the document's words"
     assert "## Draft v1" not in bundle.context_slice and "{{" not in bundle.context_slice
     assert "## Reviewer criteria" in bundle.context_slice and "## Brief" in bundle.context_slice
+    # What the engine verified is told to the Reviewer as facts, with the price tool's own sum, and with
+    # nothing that tells it what not to raise (owner decision 2026-09-19).
+    assert "## What the engine checked before this draft reached you" in bundle.context_slice
+    assert "material 3,715.60 + markup 557.34 + labour 2,090.00 = total 6,362.94" in bundle.context_slice
+    assert "do not limit what you may find" in bundle.context_slice
+    assert "do not raise" not in bundle.context_slice.lower()
     # The scripted model saw one image block per page on its first message.
     reviewer_model = cast(Any, orchestrator.scenario).seat_models["reviewer"].strands_model
     first = reviewer_model.messages[0]

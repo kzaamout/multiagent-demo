@@ -107,6 +107,25 @@ models:
     options: {num_ctx: 16384}
     price_in: 0
     price_out: 0
+  qwen3-5-4b:
+    provider: ollama
+    model_id: qwen3.5:4b
+    label: qwen3.5 4b, local
+    image_input: true
+    temperature: true
+    options: {num_ctx: 65536}     # the small sibling of the 9b, same context so the drawing pages fit (sweep, 2026-09-17)
+    additional_args: {think: false}
+    price_in: 0
+    price_out: 0
+  deepseek-r1-14b:
+    provider: ollama
+    model_id: deepseek-r1:14b
+    label: deepseek-r1 14b, local
+    image_input: false            # a Qwen 2.5 distillation on R1 reasoning traces; text only, so never the Estimator or the Reviewer
+    temperature: true
+    options: {num_ctx: 16384}     # 9 GB of weights on the 12 GB card leaves no room for a 64K context
+    price_in: 0
+    price_out: 0
 
 # Seat models. Every seat except the Estimator runs locally on Ollama (owner decisions, 2026-09-15). The Estimator
 # runs on Claude through Bedrock and costs cents per run; keep COST_CEILING low in .env as the guard.

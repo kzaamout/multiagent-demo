@@ -195,7 +195,24 @@ def test_reasons_are_grouped_so_a_pattern_shows() -> None:
     assert categorise("the draft has no usable provenance tags") == "provenance_tags"
     assert categorise("no price came from price_list_lookup") == "tool_not_used"
     assert (
+        categorise("L1 troffer: your unit_price is 185.0, the lookup returned 142.00")
+        == "figures_not_from_tool"
+    )
+    assert categorise("price_list_lookup returned no result in this turn") == "figures_not_from_tool"
+    assert categorise("EMT 21 mm: your quantity is 32.0, the Estimator's is 5.0") == "figures_not_from_tool"
+    assert (
+        categorise("these dollar amounts appear in nothing you were given: $36,882.58")
+        == "amount_not_in_sources"
+    )
+    assert (
+        categorise("the Estimator's concern is not carried in the Assumptions section") == "concern_dropped"
+    )
+    assert (
         categorise("verdict ready_with_assumptions contradicts the checklist grades") == "checklist_grading"
+    )
+    quoted = 'a concern says E-003 is missing: "per the checklist the lookup returned". The estimating conventions make that a blocker, not a concern'
+    assert categorise(quoted) == "blocker_as_concern", (
+        "a quoted concern cannot pull the refusal into another category"
     )
     assert categorise("something new") == "other"
 

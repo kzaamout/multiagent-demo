@@ -108,7 +108,10 @@ def test_family_detection() -> None:
     config = ModelConfig.load(MODELS_PATH)
     families = {key: family_of(spec) for key, spec in config.models.items()}
     for key, family in families.items():
-        assert family in {"claude", "gemini", "llama", "qwen", "gemma", "grok", "granite"}, (key, family)
+        assert family in {"claude", "gemini", "llama", "qwen", "gemma", "grok", "granite", "deepseek"}, (
+            key,
+            family,
+        )
     fixture = ModelConfig.load(FIXTURE)
     assert family_of(fixture.models["export-opus"]) == "claude"
     assert family_of(fixture.models["export-gemini"]) == "gemini"

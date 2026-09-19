@@ -8,6 +8,7 @@ turns into one tool.called event.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -16,11 +17,12 @@ from typing import Any
 from strands import ToolContext, tool
 
 from app.live.documents import parse_pdf, render_page_png
-from app.live.materials import DatasetFiles
+from app.live.materials import CONFIG_DIR, DatasetFiles
 from app.live.replies import without_em_dashes
 from app.tools.price_list import LookupRequest, PriceList, totals
 from app.tools.quantity import QuantityItem, calculate
 from app.tools.template import render
+from app.tools.unit_hours import table_from_conventions
 
 MAX_PAGE_TEXT = 6000
 
@@ -30,6 +32,15 @@ class ToolLog:
     """Summaries written by tools, read by the seat call's after-tool hook."""
 
     summaries: dict[str, tuple[str, str]] = field(default_factory=dict)
+    results: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
+    """What each successful call returned, in order, so a reply's figures can be held against it."""
+
+    sink: Callable[[str, dict[str, Any]], None] | None = None
+
+    def keep(self, tool_name: str, data: dict[str, Any]) -> None:
+        self.results.append((tool_name, data))
+        if self.sink is not None:
+            self.sink(tool_name, data)
 
     def record(self, context: ToolContext, args_summary: str, result_summary: str) -> None:
         self.summaries[str(context.tool_use["toolUseId"])] = (
@@ -71,6 +82,10 @@ def build_tools(
     prepare_documents put the per-sheet files; a path starting with prepared/ or a sheet name found there
     resolves to the prepared file first, so a multi-sheet binder is read one sheet at a time."""
 
+    # The calculator owns the unit labour hours table, read from the conventions the Estimator also reads.
+    conventions = CONFIG_DIR / "estimating-conventions.md"
+    unit_hours_table = table_from_conventions(conventions) if conventions.is_file() else []
+
     def _prepared(name: str) -> Path | None:
         if prepared_dir is None or not prepared_dir.is_dir():
             return None
@@ -82,6 +97,12 @@ def build_tools(
     @tool(context=True)
     def document_parse_pdf(file: str, tool_context: ToolContext) -> dict[str, Any]:
         """Read a request document or drawing sheet: text and a legibility confidence for each page.
+
+        Read every document and every prepared sheet before grading the checklist. A sheet you have not
+        opened cannot be graded from its file name, and a document absent from the list is the one fact
+        you can state without reading. The confidence is the page's legibility, not your confidence in
+        what it says. This returns text only: a drawing's symbols and title block need an eye, so a grade
+        that depends on what a drawing shows belongs to the Estimator as a concern, not to you.
 
         Args:
             file: A prepared sheet or page, for example "prepared/E-001.pdf", or a path in the inputs
@@ -97,7 +118,12 @@ def build_tools(
 
     @tool(context=True)
     def document_extract_attachments(tool_context: ToolContext) -> dict[str, Any]:
-        """List the request files and drawing sheets provided with the request, and the prepared sheets."""
+        """List the request files and drawing sheets provided with the request, and the prepared sheets.
+
+        Call this first, before reading anything: it is the record of what the request actually came with.
+        A document the request names that does not appear here is genuinely missing and is graded so; a
+        document that appears here has been provided, whatever the request says about it. Use it to decide
+        what to read, not to decide what a document contains."""
         request = [p.name for p in files.request_files()]
         sheets = [p.stem for p in files.drawing_files()]
         prepared = (
@@ -115,6 +141,11 @@ def build_tools(
     @tool(context=True)
     def vision_read_drawing(sheet: str, tool_context: ToolContext, page: int = 1) -> dict[str, Any]:
         """Look at one drawing sheet as an image, with any text the sheet's PDF carries.
+
+        Use this for any sheet in the drawing set, including one you have not opened yet. A sheet you
+        have not read is not a missing sheet: read it here before deciding anything about it, and raise a
+        blocker only for a sheet the drawing index lists that the set does not contain. Use it once per
+        sheet you need; it returns what the sheet shows with a confidence, not an interpretation.
 
         Args:
             sheet: Sheet name as listed in the drawing sheets, for example "E-001".
@@ -138,11 +169,21 @@ def build_tools(
 
     @tool(context=True)
     def quantity_calculate(items: list[dict[str, Any]], tool_context: ToolContext) -> dict[str, Any]:
-        """Total counts and lengths, apply the waste factors, and roll up labour hours.
+        """Total counts and lengths, apply the waste factors, and roll up labour hours from the unit
+        labour hours table in the estimating conventions, which the tool reads itself.
+
+        Required before a completed takeoff: a reply whose quantities or labour hours were not produced
+        by this tool is refused. Call it once with every counted and measured line, after reading the
+        sheets and before writing your reply, then copy its numbers. Do not add, multiply or apply a waste
+        factor yourself, and do not use it to decide what to count.
 
         Args:
             items: Lines, each with description, unit, category (wire, conduit, device, fixture,
-                equipment, other), counts (list of numbers to add), group, and optional unit_hours.
+                equipment, other), counts (list of numbers to add), and group. Write the description
+                as the materials schedule writes it, because that is how the tool finds the line's unit
+                hours in the table. Each returned line says where its hours came from. Pass unit_hours
+                only for a line the tool returns with hours_source "none", meaning the table has no
+                entry for it, and give that line confidence low in your reply.
         """
         parsed = [
             QuantityItem(
@@ -155,7 +196,7 @@ def build_tools(
             )
             for i in items
         ]
-        result = calculate(parsed)
+        result = calculate(parsed, unit_hours_table)
         data = {
             "lines": [
                 {
@@ -166,6 +207,8 @@ def build_tools(
                     "waste_rate": str(line.waste_rate),
                     "quantity_with_waste": str(line.quantity_with_waste),
                     "hours": None if line.hours is None else str(line.hours),
+                    "unit_hours": None if line.unit_hours is None else str(line.unit_hours),
+                    "hours_source": line.hours_source,
                 }
                 for line in result.lines
             ],
@@ -173,6 +216,7 @@ def build_tools(
             "total_hours": str(result.total_hours),
         }
         log.record(tool_context, f"{len(parsed)} items", f"{len(parsed)} lines, {result.total_hours} hours")
+        log.keep("quantity_calculate", data)
         return _text(data)
 
     @tool(context=True)
@@ -184,6 +228,12 @@ def build_tools(
         labour_rate: float | None = None,
     ) -> dict[str, Any]:
         """Price bill of materials lines from the supplier fixture and return extended costs and totals.
+
+        Required before a priced reply: a reply whose prices or totals did not come from this tool is
+        refused. Call it once with every bill of materials line, plus the markup rate, the labour hours
+        and the labour rate, then copy its prices, its extensions and its totals. A price you remember or
+        work out yourself is not a price from the fixture, even when it looks right. An item the fixture
+        does not carry comes back unpriced, which is an exception to report rather than a price to invent.
 
         Args:
             items: Lines, each with line_ref, description, quantity, unit, and optional item_code.
@@ -230,12 +280,18 @@ def build_tools(
             data["totals"] = {k: str(v) for k, v in t.__dict__.items()}
         priced = sum(1 for line in lines if line.status == "priced")
         log.record(tool_context, f"{len(lines)} lines", f"{priced} priced, {len(lines) - priced} exceptions")
+        log.keep("price_list_lookup", data)
         return _text(data)
 
     @tool(context=True)
     def template_render(sections: dict[str, str], tool_context: ToolContext) -> dict[str, Any]:
         """Fill the response template. Sections: executive_summary, scope, pricing_summary,
         schedule_of_values, assumptions, exclusions. Returns the markdown, tags found, and gaps.
+
+        It reports the provenance tags it can see and the sections it found empty, which is what the
+        engine checks your draft against, so calling it before you reply shows you what will be refused
+        while you can still fix it. It fills the template around your text; it does not write the text,
+        and it cannot tag a figure for you.
 
         Args:
             sections: Section name to markdown text.
@@ -252,6 +308,9 @@ def build_tools(
     def compile_trigger(version: int, tool_context: ToolContext) -> dict[str, Any]:
         """Ask for the draft to be committed and compiled. The draft from your final reply is
         committed as the given version and compiled to pages for the Reviewer.
+
+        Call this once, when the draft is finished. It is not a preview: the version it commits is what
+        the Reviewer judges and what the human sees. Use template_render while you are still working.
 
         Args:
             version: The draft version you are committing, starting at 1.

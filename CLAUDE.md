@@ -32,10 +32,14 @@ A sales demo that shows several AI agents, under an orchestrator, taking a busin
 - Scenario datasets and curation checklist: `datasets/`
 - Sales playbook (humans only, do not load unless asked): `docs/sales-playbook.md`
 - Approved slice roadmap and pre-S1 decisions: `docs/roadmap.md`
+- What happens at each seat, its input, output, checks, and every route and exit: `docs/seat-flow.md`
 - Frozen event schema: `docs/schema/events-v1.1.0.md`, an additive amendment of `events-v1.0.0.md` (typed models in `app/schema/`)
 - Dependency rationale record: `docs/dependencies.md`
 - Deviations found while building (design/ is never edited): `docs/design-deviations.md`
-- Model performance per seat, captured on every run: `docs/model-performance.md`, refreshed with `uv run python scripts/model_report.py --write`
+- Model performance per seat, captured on every run: `docs/model-performance.md` with the raw rows in `docs/model-performance-runs.csv` and every column defined in `docs/model-performance-columns.md`, refreshed with `uv run python scripts/model_report.py --write`; sweeps over seats and models: `uv run python scripts/sweep.py config/sweep/<plan>.yaml`
+- What the runs say to teach a seat next, suggested from its own refusals and never applied automatically: `uv run python scripts/prompt_review.py --write` writes `docs/prompt-review.md`
+- Figure checks (a specialist's numbers against its tool's result, Pricing's quantities against the Estimator's, the draft's amounts against what the Writer was given): `app/live/figures.py`; replayed over recorded runs at no model cost with `uv run python scripts/replay_figures.py`
+- A run's price against what the job should cost, stored per run as `price_check` and reported apart from accuracy: `app/runs/reference.py`
 - Quality gates: `uv run python scripts/check.py`; screenshots and browser tests: `uv run pytest -m visual`
 
 ## Stack (verify current versions before pinning)

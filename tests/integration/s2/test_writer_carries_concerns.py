@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any, cast
 
@@ -21,6 +22,13 @@ CONCERN = {
     "text": "Main breaker rating disagrees between sheets: E-001 shows 225 A, the schedule on E-002 states 200 A.",
     "drawing_ref": "E-001, E-002",
 }
+
+
+def with_the_schedule_sheet(tmp_path: Path) -> None:
+    """The concern compares E-001 with the schedule on E-002, so the set has to hold E-002. A concern naming a
+    sheet the run does not hold is a blocker, not a concern (spec 010, plan item 1.8)."""
+    drawings = h.dataset(tmp_path) / "inputs" / "drawings"
+    shutil.copyfile(drawings / "E-001.pdf", drawings / "E-002.pdf")
 
 
 def estimator_with_concern() -> list[Turn]:
@@ -57,6 +65,7 @@ def writer_turns(carry: bool) -> list[Turn]:
 async def test_dropped_concern_is_sent_back_once_then_the_carried_draft_commits(tmp_path: Path) -> None:
     turns = h.full_turns(blocking=False)
     turns["estimator"] = estimator_with_concern()
+    with_the_schedule_sheet(tmp_path)
     turns["writer"] = [writer_turns(False)[0], writer_turns(False)[1], writer_turns(True)[1]]
     run_id = "60000000-0000-4000-8000-000000000601"
     orchestrator = h.build(tmp_path, turns, run_id)
@@ -80,6 +89,7 @@ async def test_dropped_concern_is_sent_back_once_then_the_carried_draft_commits(
 async def test_a_concern_carried_first_time_is_not_sent_back(tmp_path: Path) -> None:
     turns = h.full_turns(blocking=False)
     turns["estimator"] = estimator_with_concern()
+    with_the_schedule_sheet(tmp_path)
     turns["writer"] = writer_turns(True)
     run_id = "60000000-0000-4000-8000-000000000602"
     orchestrator = h.build(tmp_path, turns, run_id)

@@ -9,6 +9,7 @@ extended costs and totals so the local model copies numbers rather than calculat
 from __future__ import annotations
 
 import csv
+import re
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
@@ -19,6 +20,21 @@ REQUIRED_COLUMNS = ("item_code", "description", "unit", "price", "supplier", "le
 
 def _norm(text: str) -> str:
     return " ".join(text.lower().split())
+
+
+SCHEDULE_MARK = re.compile(r"^[A-Za-z]{1,2}-?\d{1,3}[\s:.)-]+")
+"""The mark a materials schedule puts before a material, as in "M1 2x4 LED troffer"."""
+
+
+def _without_mark(text: str) -> str:
+    """A description without its leading schedule mark.
+
+    The match stays strict: the material's name must still be the fixture's, word for word. But an
+    Estimator that copies the schedule's mark into the description, which one takeoff in twelve does,
+    sent every line back unpriced, and a proposal went out priced at labour alone. The mark is the
+    schedule's numbering, not part of the material's name.
+    """
+    return SCHEDULE_MARK.sub("", text.strip(), count=1)
 
 
 def _money(value: Decimal) -> Decimal:
@@ -103,7 +119,8 @@ class PriceList:
             found = self._by_code.get(_norm(request.item_code), [])
             if found:
                 return found
-        return self._by_description.get(_norm(request.description), [])
+        found = self._by_description.get(_norm(request.description), [])
+        return found or self._by_description.get(_norm(_without_mark(request.description)), [])
 
     def lookup(
         self,

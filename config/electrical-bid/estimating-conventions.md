@@ -35,6 +35,8 @@ Raise a concern (proceed, but flag) when a quantity is inferred by rule rather t
 Structured BOM as described, followed by a labour summary, followed by a list of assumptions and a list of concerns, each with a drawing reference. Every figure must be traceable to a sheet or to a named rule in this file.
 
 ## Unit labour hours (demo table, illustrative)
+quantity_calculate reads this table itself and applies it to every line whose description it finds here. A line it cannot find has no labour figure from the table and carries confidence low.
+
 | Item | Unit | Hours |
 |---|---|---|
 | Duplex receptacle, 15A, incl. box and device | each | 0.5 |

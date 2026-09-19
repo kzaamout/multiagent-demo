@@ -87,3 +87,25 @@ def test_malformed_markup_raises_compile_error(tmp_path: Path) -> None:
     with pytest.raises(CompileError) as caught:
         compile_draft(tmp_path / "run", 1, bad, read_brand(dataset))
     assert "typst" in str(caught.value)
+
+
+def test_a_marker_is_never_read_as_part_of_its_figure(tmp_path: Path) -> None:
+    """Run 0c99f479: one price tagged five times reached the Reviewer as 79,063.751 to 79,063.755, and
+    it failed the draft for stating five different prices. 113 of its 125 blocker findings say figures
+    disagree. In the page text a marker is now written in brackets, apart from the figure."""
+    import re
+
+    dataset = tmp_path / "dataset"
+    dataset.mkdir()
+    (dataset / "brand.yaml").write_text('prospect_name: "Fictional Prospect Ltd."\n', encoding="utf-8")
+    markdown = (
+        "# Proposal\n\n## Executive summary\n\nOur price is {{$79,063.75|src:pricing}} for {{45 troffers|src:takeoff}}.\n\n"
+        "## Pricing summary\n\nThe total is {{$79,063.75|src:pricing}}, labour {{$13,284.80|src:pricing}}.\n"
+    )
+    record = compile_draft(tmp_path / "run", 1, markdown, read_brand(dataset))
+    folder = tmp_path / "run" / "artifacts" / "v1"
+    text = " ".join(json.loads((folder / "pages.json").read_text(encoding="utf-8")))
+    assert "$79,063.75 [1]" in text and "$79,063.75 [3]" in text and "45 troffers [2]" in text
+    assert not re.search(r"\d\.\d{3,}", text), "no figure gains a decimal place from its marker"
+    assert record.marker_count == 4, "the displayed page keeps its superscript markers and their positions"
+    assert not list(folder.glob("*.text.pdf")), "the reading compile is removed"

@@ -1,0 +1,26 @@
+# Model sweep, stage 2 (owner decision 2026-09-18): repeats, so the ranking can name a winner.
+# Stage 1 screened every local model at every seat once, which is enough to say what survives and not
+# enough to rank. This repeats only the pairs that completed a run in stage 1, five times each, which is
+# the minimum a model needs before the report will rank it. The baseline model already has its runs, so
+# no baseline job is added here. Run with:
+#   uv run python scripts/sweep.py config/sweep/stage-2.yaml --worker laptop
+label: stage-2
+datasets: [clean-run]
+repeats: 5
+ceiling: 1.00
+max_minutes: 30
+blocker: answer
+baseline_job: false        # qwen3.5 9b throughout already has more than five runs at every seat
+baseline:
+  orchestrator: qwen3-5-9b
+  intake: qwen3-5-9b
+  estimator: qwen3-5-9b
+  pricing: qwen3-5-9b
+  writer: qwen3-5-9b
+  reviewer: gemma4-12b
+pairs:                     # the five that completed a run in stage 1; 25 jobs at five repeats
+  - {seat: orchestrator, model: gemma4-12b}
+  - {seat: orchestrator, model: qwen3-5-4b}
+  - {seat: pricing, model: gemma4-12b}
+  - {seat: pricing, model: llama3-1-8b}
+  - {seat: intake, model: deepseek-r1-14b}

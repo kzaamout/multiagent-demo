@@ -6,6 +6,7 @@ builder (app/live/context.py); tools are enforced when the agent is built.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -137,6 +138,16 @@ SEAT_DEFINITIONS: dict[str, SeatDefinition] = {
 
 class InstructionsError(ValueError):
     pass
+
+
+def instructions_version(agent_id: str, seats_dir: Path = SEATS_DIR) -> str:
+    """A short version of a seat's instructions as the file stands, so a run records which wording it ran
+    on. Hashing the file rather than the filled prompt keeps the version stable across runs, since the
+    placeholders carry a per-run name and review limit. A seat taught something new gets a new version,
+    which keeps runs before and after the lesson from blending in the report (owner request 2026-09-17)."""
+    definition = SEAT_DEFINITIONS[agent_id]
+    text = (seats_dir / definition.instructions_file).read_bytes()
+    return hashlib.sha256(text).hexdigest()[:8]
 
 
 def load_instructions(
