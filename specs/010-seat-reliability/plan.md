@@ -77,6 +77,39 @@ The lesson for the plan's method: every one of these was found by reading a live
 
 **Measure.** 12 runs on `writer=qwen3.5 9b`, the worst pair with a real sample. Targets set beforehand: Writer stops under 20% against 38%, provenance and dropped-concern refusals under 0.10 per Writer run, no invented blockers, Missing sheet still exits `blocker_escalated`, dataset correctness at or above current. For 1.4 and 1.5 a further 12 runs with Intake and the Estimator watched.
 
+**Measured, 2026-09-19, items 1.7 to 1.10.** The same bed as before, every seat on Qwen 3.5 9B and the Reviewer on Gemma 4 12B, three runs each of Clean run, Planted inconsistency, Missing price and Missing sheet, under the label `figures-check-2`. It was restarted three times in its first hour, each time after one or two runs, because reading those runs end to end kept finding a fault in the engine; the early runs are kept under `figures-check-2-early` and are not in these figures. The targets were fixed in `config/sweep/figures-check.yaml` before any run.
+
+| | `deterministic-check` | `figures-check-2` |
+|---|---|---|
+| Runs ending the way the scenario expects | 8 of 12 | 10 of 12 |
+| Runs that spent their whole review budget | 2 | 0 |
+| Review verdicts that failed the draft | 8 of 16 | 1 of 8 |
+| Retries used | 6 | 1 |
+| Writer replies refused | 16 of 32 | 4 of 12 |
+| Writer refusals over tags or amounts | 14 | 2, both the source id `knowledge` |
+| Accepted specialist replies differing from their recorded tool result | not recorded | 0 |
+| Estimator replies refused over figures | not checked | 2 of 20 |
+| Pricing replies refused | 0 of 13 | 0 of 9 |
+| Missing sheet runs escalated | 1 of 3 | 3 of 3 |
+| Median price difference from the reference | 23.4% | 15.0% |
+| Priced runs within 25 percent of the reference | 4 of 8 | 7 of 8 |
+
+Every target was met: amount refusals at the Writer under 0.15 per reply (none), no accepted Pricing reply differing from its tool, figure refusals at the specialists under 0.25 per reply (0.10 at the Estimator, none at Pricing), and passes at or above the earlier bed's. The one review failure in the bed was false: the Reviewer said a total did not equal the sum of its parts and wrote the correct sum in its own evidence. Both stopped runs were on Missing price, and both were a correct refusal with advice that did not help: a source id the Writer invented for the knowledge file, refused without saying which ids were valid, and a panelboard sent to the calculator under a category that carries waste, refused without saying the call could be corrected. Both wordings were fixed after the bed.
+
+Missing sheet, six runs before item 1.8 and six after, the same bed:
+
+| | `missing-sheet-check`, before | `missing-sheet-fixed`, after |
+|---|---|---|
+| Escalated, which is the right ending | 3 of 6 | 6 of 6 |
+| Passed review with no blocker raised | 2 | 0 |
+| Stopped | 1 | 0 |
+| Blocker raised by the seat unaided | 4, one in the run that then stopped | 2 |
+| Blocker raised after the check sent the concern back | not built | 4 |
+
+So the fall from 3 of 3 to 1 of 3 was real and not noise, the cause was a concern filed where a blocker belonged and not the loss of the progress lines, and the seat on its own still gets it right only a third of the time: four of the six escalations are the check's doing. With the three Missing sheet runs inside the bed, the scenario has escalated nine times in nine since the fix.
+
+What the bed says is still wrong, and what no item in this phase touches. Planted inconsistency passed first time in all three runs, where the scenario expects the Reviewer to fail the first draft on the 200 A against 225 A disagreement: the draft carries it and the Reviewer lets it through. Intake's grading refusals were 6 of 19 replies against 2 of 17, which may be noise. And the price is still a median 15 percent from the reference, which is the local Estimator misreading the drawings: with Claude in that seat the same measure is 0.3 percent over 18 runs. No deterministic check reaches a miscount, so that gap is a model choice or a split of the seat, not more engine work.
+
 ## Teaching, which runs alongside every phase
 
 Not a phase, because it never finishes. `scripts/prompt_review.py` reads the refusals a seat still produces on the wording it runs on now, and the lesson is written into that seat's instructions by a person (decision 23). It has already taken Pricing from fifteen tool-skipping refusals to none and removed narration at three seats.

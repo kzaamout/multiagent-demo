@@ -8,11 +8,11 @@ Counted findings need 3 or more refusals on the instructions that seat runs on n
 
 Instructions: `config/electrical-bid/seats/orchestrator.md`
 
-### route_drift (detected, 37)
+### route_drift (detected, 57)
 
 the run finished but not by the route its golden log records, so a rehearsed demo would show a different path than the one it was rehearsed on.
 
-Runs: 0d198db3, 0e705cf5, 15b6ca7a, 16187608, 17470f65, 34b49132, 35f4f6ff, 445a87ee and more
+Runs: 0179f8b9, 08b54c02, 0bd6cf7d, 0c99f479, 0d198db3, 0e705cf5, 130611ad, 15b6ca7a and more
 
 Where the lesson belongs: the dataset's golden log, or the seat that took the detour.
 
@@ -20,361 +20,118 @@ Where the lesson belongs: the dataset's golden log, or the seat that took the de
 No example drafted: read the golden log first. A run that passes first time legitimately misses a golden that records a rework, and re-recording the golden is the fix. Only chase the seat when the detour is real, such as a route back to Intake nothing asked for.
 ```
 
-A second occurrence, for wording: missing-price: transition 5 is ('review', 'work', 'backward'), golden has ('review', 'handoff', 'forward')
+A second occurrence, for wording: clean-run: transition 5 is ('review', 'assemble', 'backward'), golden has ('review', 'handoff', 'forward')
 
-### invalid_json (counted, 3)
+### invalid_json (counted, 7)
 
 the seat sent JSON that could not be parsed, usually a brace or a quote.
 
-Runs: 445a87ee
+Runs: 0bd6cf7d, 130611ad, 3cadc256, 445a87ee, e10dc15d
 
 Where the lesson belongs: seat instructions.
 
 ```
 2. TITLE THE LESSON IN ONE LINE
-Sent back: {"subtasks":[{"task_id":"est-01","title":"Takeoff and BOM","agent_id":"estimator","depends_on":[],"scope":["brief","drawing_set","estimating_conventions"]},{"task_id":"prc-01","title":"Costing and Mar
-The reason given: the reply is not valid JSON (Expecting ',' delimiter near 'st_outputs","template","knowledge_file"]],"reason":"I assign parallel takeoff an')
+Sent back: { "subtasks": [ { "task_id": "takeoff_main", "title": "Estimate quantities from drawings", "agent_id": "estimator", "depends_on": [], "scope": [ "brief", "drawing_set", "estimating_conventions" ] }, {
+The reason given: the reply is not valid JSON (Expecting ',' delimiter near 'mplate",\n "knowledge_file"\n ]\n ],\n "reason": "I assign the Estimator t')
 Send instead: TO FILL, what the seat should have sent and why it is right
 ```
 
-A second occurrence, for wording: the reply is not valid JSON (Expecting ',' delimiter near 'st_outputs","template","knowledge_file"]],"reason":"I assign parallel takeoff an')
+A second occurrence, for wording: the reply is not valid JSON (Expecting ',' delimiter near 'st_outputs","template","knowledge_file"]],"reason":"I assign takeoff to the Esti')
 
 ## intake
 
 Instructions: `config/electrical-bid/seats/intake.md`
 
-### ready_job_stopped (detected, 27)
+### checklist_grading (counted, 20)
 
-missing-sheet was stopped at Intake, though only the Not ready dataset is meant to stop there, so no specialist did any work.
+the readiness grades and the verdict did not agree, or a gap was left unasked.
 
-Runs: 026784d5, 1a7e6ebe, 42b498bf, 65ea59ff, 737a1147, 745fe52c, 82e8ae33, 82ff0505 and more
+Runs: 0cb817e8, 326fc6a3, 36d64b03, 5924dc2f, 6079b2ec, 61d9e1aa, 6e92011e, 7eeb357c and more
 
 Where the lesson belongs: seat instructions.
 
 ```
 1. TITLE THE LESSON IN ONE LINE
-Sent back: bid_security_requirement: Request states tender must confirm bid security requirement before submitting; knowledge file answer does not override blocking language in 
-The reason given: the run ended not_ready
+Sent back: {"brief": {"project": "Quillbrook Public Library, Main Floor Electrical Fit-out", "client": "Quillbrook Public Library Board", "site_address": "2150 Heron Crescent, Quillbrook, Alberta", "scope": "Sup
+The reason given: 2 checklist items are not pass but there are 0 clarifications. Add one clarification for each of: drawing_index_consistency; panel_consistency_single_line_schedule. Use these ids exactly, one object each, and fill the rest from the request:
 Send instead: TO FILL, what the seat should have sent and why it is right
 ```
 
-A second occurrence, for wording: the run ended not_ready
-
-### checklist_grading (counted, 123)
-
-the readiness grades and the verdict did not agree, or a gap was left unasked.
-
-Runs: 049e4c05, 0ce7b38a, 0e705cf5, 10120931, 1222b0e6, 12c422c3, 150d5000, 16187608 and more
-
-Where the lesson belongs: seat instructions.
-
-```
-2. TITLE THE LESSON IN ONE LINE
-Sent back: {"brief": {"project": "Quillbrook Public Library Main Floor Electrical Fit-out", "client": "Quillbrook Public Library Board", "site_address": "2150 Heron Crescent, Quillbrook, Alberta", "scope": "Supp
-The reason given: verdict ready_with_assumptions contradicts the checklist grades (not_ready)
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: 2 checklist items are not pass but there are 0 clarifications. Add one clarification with a proposed default for each of: bid_security_requirement; panel_schedule_consistency. Mark it blocking when the request says the item must be settled 
-
-### no_json (counted, 25)
-
-the seat ended its turn on a progress line and never sent the JSON object.
-
-Runs: 04853310, 049e4c05, 0d8187d5, 0fe6e2ca, 25965e7a, 2c5d81dc, 37763488, 427076ed and more
-
-Where the lesson belongs: seat instructions.
-
-```
-3. TITLE THE LESSON IN ONE LINE
-Sent back: Reading the invitation to tender pages.
-The reason given: no JSON object found in the reply
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: no JSON object found in the reply
-
-### tool_not_used (counted, 3)
-
-the seat wrote numbers it was supposed to get from a tool.
-
-Runs: f1a70d88
-
-Where the lesson belongs: seat instructions.
-
-```
-4. TITLE THE LESSON IN ONE LINE
-Sent back: Reading the manifest. {"name": "document_parse_pdf", "parameters": {"file":"prepared/division-26-specification-p01.pdf"}}
-The reason given: you wrote a call to document_parse_pdf as text instead of calling the tool. Call document_parse_pdf as a tool, wait for its result, then reply with the required JSON object
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: you wrote a call to document_parse_pdf as text instead of calling the tool. Call document_parse_pdf as a tool, wait for its result, then reply with the required JSON object
+A second occurrence, for wording: 1 checklist items are not pass but there are 0 clarifications. Add one clarification for each of: panel_consistency. Use these ids exactly, one object each, and fill the rest from the request: {"question_id": "q_panel_consistency", "questio
 
 ## estimator
 
 Instructions: `config/electrical-bid/seats/estimator.md`
 
-### invented_blocker (detected, 19)
+### blocker_as_concern (counted, 6)
 
-a blocker was raised on missing-price, which plants none, so the run stopped for a human over something that was not missing.
+something that stops the work was carried as a concern.
 
-Runs: 1222b0e6, 46e90cfa, 50489781, 52391a6f, 5dd22dd1, 60ef9865, 6658d651, 7baa3836 and more
+Runs: 197d253c, 326fc6a3, 6a159267, a9639d05, af66fef9, b8878c0f
 
 Where the lesson belongs: seat instructions.
 
 ```
 1. TITLE THE LESSON IN ONE LINE
-Sent back: Sheet E-002 panel schedule missing; proceed with BOM and flag concern for circuit counts.
-The reason given: the dataset README plants no blocker here
+Sent back: {"headline":"Quillbrook Library electrical fit-out takeoff","summary":"Read all five sheets, totalled items with quantity_calculate, and identified one missing panel schedule (LP-2) as a concern.","bo
+The reason given: your reply names E-003, and E-003 is not in the drawing set you were given: "Panel schedule for LP-2 (sheet E-003) is missing from the drawing set; quantities for LP-2 circuits cannot be confirmed.". The estimating conventions make a sheet 
 Send instead: TO FILL, what the seat should have sent and why it is right
 ```
 
-A second occurrence, for wording: the dataset README plants no blocker here
+A second occurrence, for wording: your reply names E-003, and E-003 is not in the drawing set you were given: "Panel LP-2 schedule E-003 not in drawing set; quantity inferred by rule.". The estimating conventions make a sheet the drawings rely on and the set lacks a blocker
 
-### no_json (counted, 105)
+### no_json (counted, 3)
 
 the seat ended its turn on a progress line and never sent the JSON object.
 
-Runs: 0d8187d5, 0e5c553b, 165d8eae, 17470f65, 17d1bea3, 1c4ae916, 203c489b, 2257a151 and more
+Runs: 4e4596cc, 8da8b3c2, d1396cc5
 
 Where the lesson belongs: seat instructions.
 
 ```
 2. TITLE THE LESSON IN ONE LINE
-Sent back: Reading E-102 confirmed receptacle symbols match the 30 counted from schedule. All quantities from quantity_calculate are now copied into the BOM and labour summary. I will assemble the JSON with head
+Sent back: Now I have the labour hours from quantity_calculate. I will compile the final reply with headline, summary, BOM from tool output, labour summary, assumptions, and concerns. The BOM lines must include 
 The reason given: no JSON object found in the reply
 Send instead: TO FILL, what the seat should have sent and why it is right
 ```
 
 A second occurrence, for wording: no JSON object found in the reply
-
-### wrong_shape (counted, 21)
-
-the seat sent valid JSON missing a field the reply must carry.
-
-Runs: 11086d33, 1222b0e6, 203c489b, 4e03e2aa, 59aa6bb2, 60ef9865, 6b79c76f, b12924f6 and more
-
-Where the lesson belongs: seat instructions.
-
-```
-3. TITLE THE LESSON IN ONE LINE
-Sent back: {"headline": "All sheets read and counted","summary": "I have tallied device counts from the materials schedule, circuit counts from panel schedules, and feeder lengths from the single-line diagram. I
-The reason given: a completed takeoff needs headline, bom, and labour
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: a completed takeoff needs headline, bom, and labour
-
-### tool_not_used (counted, 13)
-
-the seat wrote numbers it was supposed to get from a tool.
-
-Runs: 16187608, 427076ed, 46e90cfa, 783906ea, 802b4479, 848b3ad2, 99742c19, b12924f6 and more
-
-Where the lesson belongs: seat instructions.
-
-```
-4. TITLE THE LESSON IN ONE LINE
-Sent back: {"headline":"Takeoff incomplete; LP-2 schedule missing","summary":"The drawing index lists panel schedule E-003 for LP-2 as present in the set, but that sheet is not readable. I have read all other sh
-The reason given: the bill of materials was not totalled with quantity_calculate. Call quantity_calculate with every counted and measured line, then copy its quantities with waste and its labour hours into your reply
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: the bill of materials was not totalled with quantity_calculate. Call quantity_calculate with every counted and measured line, then copy its quantities with waste and its labour hours into your reply
-
-### invalid_json (counted, 10)
-
-the seat sent JSON that could not be parsed, usually a brace or a quote.
-
-Runs: 445a87ee, 4e03e2aa, 5fc0c3f4, 60ef9865, c88ccc6e, d82bbb69, d8b26fa1, f9dc1661
-
-Where the lesson belongs: seat instructions.
-
-```
-5. TITLE THE LESSON IN ONE LINE
-Sent back: {"headline":"Takeoff complete with waste factors","summary":"Feeder, transformer, panel, breakers, switches, receptacles, fixtures counted; labour rolled up.","bom":[{"group":"Service and distribution
-The reason given: the reply is not valid JSON (Expecting ',' delimiter near 'al conduit from materials schedule"},"{"group":"Service and distribution","descr')
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: the reply is not valid JSON (Expecting property name enclosed in double quotes near 's and devices":145.95,"Lighting":104.7},{"crew":"1 journeyman, 1 apprentice","pr')
-
-### output_limit (counted, 3)
-
-the reply ran past the model's output limit, which is a setting rather than a lesson.
-
-Runs: 2db3b7e6, 93df7371, a3d7e059
-
-Where the lesson belongs: seat instructions.
-
-```
-No example drafted: raise max_tokens for that seat, or ask it for a shorter summary.
-```
-
-A second occurrence, for wording: the reply hit the model's output limit
-
-## pricing
-
-Instructions: `config/electrical-bid/seats/pricing.md`
-
-### tool_not_used (counted, 8)
-
-the seat wrote numbers it was supposed to get from a tool.
-
-Runs: 0d8187d5, 165d8eae, 52391a6f, fffaa366
-
-Where the lesson belongs: seat instructions.
-
-```
-1. TITLE THE LESSON IN ONE LINE
-Sent back: Here is the JSON response: { "name": "price_list_lookup", "parameters": { "items": [ { "line_ref": "E-000 M7", "description": "42-circuit panelboard, 225A, surface", "quantity": 1.0, "unit": "each" },
-The reason given: you wrote a call to price_list_lookup as text instead of calling the tool. Call price_list_lookup as a tool, wait for its result, then reply with the required JSON object
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: no price came from price_list_lookup. Call the price_list_lookup tool with every bill of materials line, the markup rate, the labour hours, and the labour rate, then copy its prices and totals
-
-### invalid_json (counted, 3)
-
-the seat sent JSON that could not be parsed, usually a brace or a quote.
-
-Runs: 165d8eae, c7f52e2a
-
-Where the lesson belongs: seat instructions.
-
-```
-2. TITLE THE LESSON IN ONE LINE
-Sent back: ```json { "headline": "Pricing electrical materials and labour", "summary": "Priced all materials and labour with markup. Exceptions include unpriced items and unit mismatches.", "priced_bom": [ { "li
-The reason given: the reply is not valid JSON (Expecting ',' delimiter near ' "cost_summary": {\n "material": 1200 + 5000 + 360 + 4395 + 1237.5 + 750 + 90 ')
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: the reply is not valid JSON (Expecting ',' delimiter near '"labour": 13924.6,\n "total": 16732.5 + 2509.875 + 13924.6 = 33167.975,\n "c')
 
 ## writer
 
 Instructions: `config/electrical-bid/seats/writer.md`
 
-### concern_dropped (counted, 41)
+### provenance_tags (counted, 10)
 
-a specialist's concern never reached the assumptions section.
+the draft carried figures with no tag saying which output they came from.
 
-Runs: 16187608, 17d1bea3, 2c0279e3, 35994fa3, 427076ed, 4e03e2aa, 4e10f889, 4fcc9ced and more
+Runs: 0179f8b9, 0c99f479, 4e4596cc, 61d9e1aa, 8da8b3c2, e60f2c88
 
 Where the lesson belongs: seat instructions.
 
 ```
 1. TITLE THE LESSON IN ONE LINE
-Sent back: Progress line: Writing draft v1 sections with sourced tags. {"markdown": "# Proposal for Quillbrook Public Library Board\n\nQuillbrook Public Library, Main Floor Electrical Fit-out\n\n## Executive sum
-The reason given: the Estimator's concern is not carried in the Assumptions section: "Panel schedule E-003 for LP-2 is listed in the drawing index but not readable; its circuit...". Add one line for it there naming the sheets E-102 and the values that disagr
+Sent back: {"markdown":"# Proposal for Quillbrook Public Library Board\n\n## Quillbrook Public Library, Main Floor Electrical Fit-out\n\n## Executive summary\n\nWe propose a lump sum tender price of {{$36,953.25
+The reason given: $10,811.00 is tagged src:pricing and no output holds that figure. Copy the number from the output rather than retyping it, and use the same one in every section; $10,811.00 is tagged src:pricing and no output holds that figure. Copy the num
 Send instead: TO FILL, what the seat should have sent and why it is right
 ```
 
-A second occurrence, for wording: the Estimator's concern is not carried in the Assumptions section: "Labour hours copied from quantity_calculate without unit_hours; all groups marked low conf...". Add one line for it there naming the sheets E-000 and the values that disagr
+A second occurrence, for wording: the draft body has no usable provenance tags. Tag every figure in the body, in every section, with the source id of the output it came from, for example {{225 A|src:brief}}. Tags in the provenance appendix do not count. Your source ids are:
 
-### provenance_tags (counted, 36)
+### concern_dropped (counted, 4)
 
-the draft carried figures with no tag saying which output they came from.
+a specialist's concern never reached the assumptions section.
 
-Runs: 0d8187d5, 0e705cf5, 12c422c3, 150d5000, 17470f65, 17d1bea3, 2257a151, 24fa18c2 and more
+Runs: 61d9e1aa, 6e92011e, 8839b28c
 
 Where the lesson belongs: seat instructions.
 
 ```
 2. TITLE THE LESSON IN ONE LINE
-Sent back: {"markdown": "# Proposal for Quillbrook Public Library Board\n\nQuillbrook Public Library, Main Floor Electrical Fit-out\n\n## Executive summary\n\nWe propose a lump sum tender price of {{$36,974.24|s
-The reason given: these dollar amounts have no provenance tag: $95.00
+Sent back: {"markdown": "# Proposal for Quillbrook Public Library Board\n\n## Project\nQuillbrook Public Library, Main Floor Electrical Fit-out\n\nSite Address: 2150 Heron Crescent, Quillbrook, Alberta\n\n## Exe
+The reason given: the Estimator's concern is not carried in the Assumptions section: "Exit signs and emergency battery units counted as 4+3=7 fixtures in circuit 9 per panel sc...". Add one line for it there naming the sheets E-002 and the values that disagr
 Send instead: TO FILL, what the seat should have sent and why it is right
 ```
 
-A second occurrence, for wording: these tags name a source id that is not in your context: knowledge
-
-### invalid_json (counted, 25)
-
-the seat sent JSON that could not be parsed, usually a brace or a quote.
-
-Runs: 0d198db3, 0e5c553b, 11086d33, 2c0279e3, 4e03e2aa, 5ab85367, 6607e196, 6658d651 and more
-
-Where the lesson belongs: seat instructions.
-
-```
-3. TITLE THE LESSON IN ONE LINE
-Sent back: # Proposal for Quillbrook Public Library Board ## Executive summary We propose a lump sum tender price of ${{48,680.13|src:pricing}} CAD for electrical fit-out works at 2150 Heron Crescent. Material c
-The reason given: the reply is not valid JSON (Expecting property name enclosed in double quotes near '{{48,680.13|src:pricing}} CAD for electri')
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: the reply is not valid JSON (Expecting ':' delimiter near ' to pricing source id.", "tags": [{"t01", "pricing"}, {"t02", "pricing"}, {"t03"')
-
-### no_json (counted, 17)
-
-the seat ended its turn on a progress line and never sent the JSON object.
-
-Runs: 150d5000, 35f4f6ff, 50489781, 67702c23, 6b79c76f, 7baa3836, 7e05dbe4, 802b4479 and more
-
-Where the lesson belongs: seat instructions.
-
-```
-4. TITLE THE LESSON IN ONE LINE
-Sent back: Draft v1 committed for review. Please check tags and provenance before next step.
-The reason given: no JSON object found in the reply
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: no JSON object found in the reply
-
-### wrong_shape (counted, 16)
-
-the seat sent valid JSON missing a field the reply must carry.
-
-Runs: 0d8187d5, 17470f65, 2c0279e3, 427076ed, 4e10f889, 4fcc9ced, 50489781, 55efbbf9 and more
-
-Where the lesson belongs: seat instructions.
-
-```
-5. TITLE THE LESSON IN ONE LINE
-Sent back: Progress line for writing cover and executive summary. {"markdown": "# Proposal for Quillbrook Public Library Board\n\nQuillbrook Public Library, Main Floor Electrical Fit-out\n\n## Executive summary\
-The reason given: tags.0.line_item: Input should be a valid string; tags.1.prospect_name: Input should be a valid string
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: tags.0.line_item: Input should be a valid string; tags.1.prospect_name: Input should be a valid string
-
-### tool_not_used (counted, 4)
-
-the seat wrote numbers it was supposed to get from a tool.
-
-Runs: 6c9594a3, 7ffaa32b
-
-Where the lesson belongs: seat instructions.
-
-```
-6. TITLE THE LESSON IN ONE LINE
-Sent back: To assemble draft v1 of the proposal, you can use the following function call: {"name": "template_render", "parameters": {"sections": {"executive_summary": "draft will be generated", "scope": "Electri
-The reason given: you wrote a call to template_render as text instead of calling the tool. Call template_render as a tool, wait for its result, then reply with the required JSON object
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: you wrote a call to template_render as text instead of calling the tool. Call template_render as a tool, wait for its result, then reply with the required JSON object
-
-## reviewer
-
-Instructions: `config/electrical-bid/seats/reviewer.md`
-
-### wrong_shape (counted, 3)
-
-the seat sent valid JSON missing a field the reply must carry.
-
-Runs: 0e705cf5, 8b863d73, c4a9409b
-
-Where the lesson belongs: seat instructions.
-
-```
-1. TITLE THE LESSON IN ONE LINE
-Sent back: ```json { "verdict": "fail", "summary": "The bid fails due to a major arithmetic error where the sum of material, markup, and labour does not equal the total tender price.", "findings": [ { "id": "f1"
-The reason given: findings.0.route_to: Input should be 'work' or 'assemble'
-Send instead: TO FILL, what the seat should have sent and why it is right
-```
-
-A second occurrence, for wording: findings.0.route_to: Input should be 'work' or 'assemble'
+A second occurrence, for wording: the Estimator's concern is not carried in the Assumptions section: "Main breaker shown on single-line as 225 A but panel schedule lists 200 A main; proceeding...". Add one line for it there naming the sheets E-001, E-002 and the values that
