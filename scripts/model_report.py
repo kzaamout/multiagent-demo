@@ -477,6 +477,88 @@ def local_model_table(runs: list[dict[str, Any]]) -> list[str]:
     return lines
 
 
+PRICE_NOTES: list[tuple[str, str]] = [
+    ("Estimator model", "the model in the Estimator seat, whose takeoff drives the price"),
+    ("Priced runs", "runs on a scenario with a reference price that reached a priced total"),
+    (
+        "Median price difference",
+        "the middle value of the run's total minus the reference total, as a percentage of the reference, "
+        "sign ignored. The reference is what the app's own calculator and price lookup give for the "
+        "quantities the drawings state, 36,882.58 CAD on the Clean run",
+    ),
+    ("Within 5%, Within 25%", "priced runs whose total is that close to the reference, either way"),
+    ("Lowest, Highest", "the most a total fell below the reference and the most it rose above it"),
+    (
+        "Median labour difference",
+        "the same measure for the takeoff's labour hours against the reference hours, 139.85 on the Clean run",
+    ),
+    (
+        "Takeoff lines right",
+        "of the materials the drawings schedule, the share whose quantity in the takeoff is within about one "
+        "percent of the reference quantity. The takeoff is the Estimator's list of materials and quantities "
+        "read off the drawings; it is not a price",
+    ),
+]
+
+
+def _median(values: list[float]) -> float | None:
+    ordered = sorted(values)
+    if not ordered:
+        return None
+    middle = len(ordered) // 2
+    return ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
+
+
+def _pct(value: float | None) -> str:
+    return "" if value is None else f"{value:.1f}%"
+
+
+def _price_row(label: str, checks: list[dict[str, Any]]) -> str:
+    errors = [c["total_error_pct"] for c in checks if c.get("total_error_pct") is not None]
+    labour = [abs(c["labour_hours_error_pct"]) for c in checks if c.get("labour_hours_error_pct") is not None]
+    right = sum(c.get("takeoff_lines_right", 0) for c in checks)
+    lines = sum(c.get("takeoff_lines", 0) for c in checks)
+    size = [abs(e) for e in errors]
+    return (
+        f"| {label} | {len(errors)} | {_pct(_median(size))} | "
+        f"{sum(1 for e in size if e <= 5)} | {sum(1 for e in size if e <= 25)} | "
+        f"{_pct(min(errors)) if errors else ''} | {_pct(max(errors)) if errors else ''} | "
+        f"{_pct(_median(labour))} | {_pct(100 * right / lines) if lines else ''} |"
+    )
+
+
+PRICE_HEAD = [
+    "| {first} | Priced runs | Median price difference | Within 5% | Within 25% | Lowest | Highest | "
+    "Median labour difference | Takeoff lines right |",
+    "|---|---|---|---|---|---|---|---|---|",
+]
+
+
+def price_tables(runs: list[dict[str, Any]]) -> list[str]:
+    """The price against the reference: by Estimator model, by how the run ended, and by sweep."""
+    checked = [r for r in runs if r.get("price_check")]
+    if not checked:
+        return ["No run on a scenario with a reference price has been recorded yet."]
+
+    def estimator(run: dict[str, Any]) -> str:
+        seat = next((s for s in run.get("seats", []) if s["agent_id"] == "estimator" and s["calls"]), None)
+        return (seat or {}).get("model") or "no Estimator call"
+
+    out: list[str] = []
+    for first, key in (
+        ("Estimator model", estimator),
+        ("Run ended", lambda r: str(r.get("exit") or "unfinished")),
+        ("Sweep", lambda r: str((r.get("sweep") or {}).get("label") or "not a sweep")),
+    ):
+        grouped: dict[str, list[dict[str, Any]]] = {}
+        for run in checked:
+            grouped.setdefault(key(run), []).append(run["price_check"])
+        out += [PRICE_HEAD[0].format(first=first), PRICE_HEAD[1]]
+        out += [_price_row(label, grouped[label]) for label in sorted(grouped)]
+        out.append("")
+    return out[:-1]
+
+
 def seat_performance_table(runs: list[dict[str, Any]]) -> list[str]:
     """One row per seat, across every model that held it.
 
@@ -630,6 +712,18 @@ def columns_document() -> str:
             "the Writer's first draft carries the disagreement or the exclusion; the Reviewer fails the flawed "
             "first draft and passes the clean one; the Orchestrator takes the golden route. A seat with no check "
             "on a dataset is scored on the run's golden match, and a dataset without a golden scores nothing.",
+            "",
+            "## What Accuracy does not measure, and the price tables that do",
+            "",
+            "Accuracy never looks at a number. Every check above is about behaviour: did the run stop, reach "
+            "Work, raise the blocker, carry the concern, pass review. A Clean run whose only Estimator check is "
+            "that no blocker was raised scores 100 percent with a price a fifth too high. The price tables "
+            "measure the number, for scenarios whose drawings state their own quantities, and are kept out of "
+            "Accuracy and out of the ranking on purpose (owner decision 2026-09-19). The reference is computed "
+            "by `app/runs/reference.py` from the counted quantities with the app's own calculator and price "
+            "lookup, and each run stores its comparison under `price_check` in its `metrics.json`.",
+            "",
+            *definitions(PRICE_NOTES),
             "",
             "## How the best local model is chosen",
             "",
@@ -785,6 +879,18 @@ def report(groups: list[Group], runs: list[dict[str, Any]], probe: bool = True) 
         "moving part of it into a tool.",
         "",
         *seat_performance_table(runs),
+        "",
+        "## Price against the reference",
+        "",
+        "Accuracy in the tables above says whether a run behaved as its scenario expects: it reached Work, "
+        "raised the blocker, carried the concern, passed review. It never looks at a number, so a run that "
+        "passes review with a price a fifth too high scores as accurate. These tables look at the number, "
+        "for the scenarios whose drawings state their own quantities. They are kept apart from accuracy "
+        "on purpose (owner decision 2026-09-19).",
+        "",
+        *definitions(PRICE_NOTES),
+        "",
+        *price_tables(runs),
         "",
         "## Every seat and model",
         "",

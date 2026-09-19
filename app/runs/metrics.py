@@ -301,6 +301,9 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
         if seat is not None:
             seat.checks = checks
     matched, note = golden_match(dataset, events)
+    from app.config import load_settings
+    from app.runs.reference import price_check
+
     return {
         "run_id": folder.name,
         "started_at": events[0].ts if events else "",
@@ -308,6 +311,9 @@ def run_metrics(events: list[Event], folder: Path) -> dict[str, Any]:
         "exit": exit_value,
         "golden_match": matched,
         "golden_note": note,
+        # The run's price and takeoff beside what the job should cost, where the scenario has a reference.
+        # Accuracy above never looks at a number; this does (owner decision 1b, 2026-09-19).
+        "price_check": price_check(dataset, events, load_settings().datasets_dir),
         "events": len(events),
         "seats": [asdict(seat) for seat in rows.values()],
     }

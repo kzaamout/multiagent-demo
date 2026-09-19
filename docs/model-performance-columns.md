@@ -70,6 +70,18 @@ The same meanings as above, except where a per-model view changes them.
 
 Each dataset README states its planted defect and what each seat should do about it. `app/runs/expectations.py` turns that into checks per seat: Intake stops the not-ready request naming the deadline and the specification; the Estimator raises the LP-2 blocker on Missing sheet and names E-001 and E-002 on Planted inconsistency; Pricing reports the exit sign unpriced on Missing price; the Writer's first draft carries the disagreement or the exclusion; the Reviewer fails the flawed first draft and passes the clean one; the Orchestrator takes the golden route. A seat with no check on a dataset is scored on the run's golden match, and a dataset without a golden scores nothing.
 
+## What Accuracy does not measure, and the price tables that do
+
+Accuracy never looks at a number. Every check above is about behaviour: did the run stop, reach Work, raise the blocker, carry the concern, pass review. A Clean run whose only Estimator check is that no blocker was raised scores 100 percent with a price a fifth too high. The price tables measure the number, for scenarios whose drawings state their own quantities, and are kept out of Accuracy and out of the ranking on purpose (owner decision 2026-09-19). The reference is computed by `app/runs/reference.py` from the counted quantities with the app's own calculator and price lookup, and each run stores its comparison under `price_check` in its `metrics.json`.
+
+- **Estimator model**: the model in the Estimator seat, whose takeoff drives the price
+- **Priced runs**: runs on a scenario with a reference price that reached a priced total
+- **Median price difference**: the middle value of the run's total minus the reference total, as a percentage of the reference, sign ignored. The reference is what the app's own calculator and price lookup give for the quantities the drawings state, 36,882.58 CAD on the Clean run
+- **Within 5%, Within 25%**: priced runs whose total is that close to the reference, either way
+- **Lowest, Highest**: the most a total fell below the reference and the most it rose above it
+- **Median labour difference**: the same measure for the takeoff's labour hours against the reference hours, 139.85 on the Clean run
+- **Takeoff lines right**: of the materials the drawings schedule, the share whose quantity in the takeoff is within about one percent of the reference quantity. The takeoff is the Estimator's list of materials and quantities read off the drawings; it is not a price
+
 ## How the best local model is chosen
 
 Among local (Ollama) models with at least 5 runs on the seat: fewest stopped runs first, then the highest accuracy, then the highest first-time rate, then the fastest call (owner decision 2026-09-17).
