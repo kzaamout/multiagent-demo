@@ -29,7 +29,7 @@ from app.live.figures import (  # noqa: E402
 )
 from app.live.materials import supplier_order_from  # noqa: E402
 from app.tools.price_list import LookupRequest, PriceList  # noqa: E402
-from app.tools.template import MONEY, TAG, untagged_money  # noqa: E402
+from app.tools.template import MONEY, TAG, untagged_money, with_dollars_inside  # noqa: E402
 
 RUNS = Path("runs")
 DATASETS = Path("datasets")
@@ -130,7 +130,7 @@ def main() -> None:
                     continue
                 context = json.loads(prompt.read_text(encoding="utf-8")).get("context_slice", "")
                 markdown = draft.read_text(encoding="utf-8")
-                body = markdown.split("\n## Provenance", 1)[0]
+                body = with_dollars_inside(markdown).split("\n## Provenance", 1)[0]
                 count["drafts committed"] += 1
                 count["  dollar amounts in those drafts"] += len(
                     MONEY.findall(TAG.sub(lambda m: m.group(0), body))

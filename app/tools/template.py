@@ -71,6 +71,20 @@ def provenance_problems(markdown: str, offered_context: str) -> list[str]:
     return problems
 
 
+DOLLAR_OUTSIDE = re.compile(r"\$\s?\{\{\s*(?=\d)")
+
+
+def with_dollars_inside(markdown: str) -> str:
+    """A draft with every "${{1,234.00|src:x}}" read as "{{$1,234.00|src:x}}".
+
+    Writers put the dollar sign outside the tag in 30 of 137 recorded drafts. Every check on amounts looks
+    for a dollar sign attached to the number, so in those drafts they saw no amounts at all, and a labour
+    figure of 42,161.07 passed for Pricing's 42,161.00. The draft is not changed: both forms render the
+    same, and this reading is used for checking only.
+    """
+    return DOLLAR_OUTSIDE.sub("{{$", markdown)
+
+
 def untagged_money(markdown: str) -> list[str]:
     """Dollar amounts in the body that carry no provenance tag, in the order they appear (spec 010)."""
     body = markdown.split("\n## Provenance", 1)[0]

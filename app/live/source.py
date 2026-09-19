@@ -71,7 +71,14 @@ from app.schema.bundles import PromptBundle
 from app.schema.events import Event, Subtask
 from app.seats.definitions import SEAT_DEFINITIONS, instructions_version, load_instructions
 from app.tools.prepare import PREPARED_DIR, prepare_documents, read_manifest
-from app.tools.template import MONEY, commit_draft, find_tags, provenance_problems, untagged_money
+from app.tools.template import (
+    MONEY,
+    commit_draft,
+    find_tags,
+    provenance_problems,
+    untagged_money,
+    with_dollars_inside,
+)
 
 if TYPE_CHECKING:
     from app.orchestrator.orchestrator import Orchestrator
@@ -721,7 +728,7 @@ class LiveAgentSource:
             # Every dollar amount has to exist in something the Writer was given. This replaced the rule
             # that every amount must carry a tag, which refused zeros, the labour rate and line extensions
             # and still passed an amount copied from the worked example in the instructions (phase 1.7).
-            body = markdown.split("\n## Provenance", 1)[0]
+            body = with_dollars_inside(markdown).split("\n## Provenance", 1)[0]
             invented = amounts_not_in_context(MONEY.findall(body), bundle.context_slice)
             if invented:
                 return (

@@ -291,3 +291,24 @@ def test_the_concern_check_is_silent_when_nothing_was_prepared() -> None:
     from app.live.deterministic import concern_names_an_absent_sheet
 
     assert concern_names_an_absent_sheet(["E-003 is not in the set."], prepared()) is None
+
+
+def test_a_dollar_sign_outside_the_tag_does_not_hide_the_amount() -> None:
+    """Run 8839b28c: the Writer wrote labour as a dollar sign, then the tag holding 42,161.07, where Pricing
+    said 42161.0. With the sign outside the tag no check saw an amount at all, in 30 of 137 drafts."""
+    from app.live.deterministic import money_disagreements
+    from app.live.figures import amounts_not_in_context
+    from app.tools.template import MONEY, with_dollars_inside
+
+    context = '## Pricing output (source id: pricing)\n{"labour": 42161.0, "total": 104282.45}'
+    draft = "Labour at ${{42,161.07|src:pricing}} within a total of $ {{104,282.45|src:pricing}}."
+    assert money_disagreements(draft, context) == [
+        "$42,161.07 is tagged src:pricing and no output holds that figure. Copy the number from the output "
+        "rather than retyping it, and use the same one in every section"
+    ]
+    body = with_dollars_inside(draft)
+    assert amounts_not_in_context(MONEY.findall(body), context) == ["$42,161.07"]
+    assert (
+        with_dollars_inside("{{$5.00|src:a}} and {{25 troffers|src:b}}")
+        == "{{$5.00|src:a}} and {{25 troffers|src:b}}"
+    )

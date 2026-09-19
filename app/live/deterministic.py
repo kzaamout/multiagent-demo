@@ -194,9 +194,9 @@ def money_disagreements(markdown: str, offered_context: str) -> list[str]:
     quantity repeated in prose has honest reasons to differ. The provenance appendix is excluded, as it is
     everywhere else.
     """
-    from app.tools.template import MONEY, find_tags
+    from app.tools.template import MONEY, find_tags, with_dollars_inside
 
-    body = markdown.split("\n## Provenance", 1)[0]
+    body = with_dollars_inside(markdown).split("\n## Provenance", 1)[0]
     problems: list[str] = []
     for tag in find_tags(body):
         if not MONEY.fullmatch(tag.value.strip()):
