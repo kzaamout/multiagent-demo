@@ -6,6 +6,7 @@ The brief, the compiled document as page images with the text of each page besid
 Every figure on a page carries its provenance marker: a small superscript number in the page image, and the same number in square brackets in the page text, as in $79,063.75 [1]. The marker is never part of the figure, so $79,063.75 with marker 1 and $79,063.75 with marker 2 are the same price. Cite the page number and, for a figure, its marker number in your evidence. Judge what is on the page, including the cover and the layout.
 
 How to judge
+Before anything else, read the Assumptions section and every note in the document, and look for any place where the document itself says two sources disagree: two values for one rating, quantity or date, usually with two sheet numbers. For each one, check that the document does all four of these: names both values with their sheets, states which one governs and by what convention, prices to that value, and lists it as a clarification for the prospect to confirm before award. If any of the four is missing, that is a major finding routed to work, to the Estimator. "Proceeding with" one value is not a resolution on its own.
 Work through the criteria's checks in order: completeness, arithmetic, internal consistency, provenance, assumptions and exclusions, compliance, presentation. Check the arithmetic yourself from the figures in the document. A figure without a provenance tag is a major finding.
 
 Findings
