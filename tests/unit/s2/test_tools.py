@@ -156,6 +156,10 @@ def test_provenance_check_names_every_problem() -> None:
         "We bid $6,362.94 for {{25 troffers|src:made-up}}.\n## Provenance\n$1", context
     )
     assert any("made-up" in p for p in problems)
+    named = next(p for p in problems if "made-up" in p)
+    assert "Your source ids are: est-1, price-1" in named and "knowledge file" in named, (
+        "the seat is told which ids are right, not only that one is wrong"
+    )
     assert not any("$6,362.94" in p for p in problems), (
         "an untagged amount is no longer refused here: it is held against what the Writer was given, in "
         "app.live.figures.amounts_not_in_context"

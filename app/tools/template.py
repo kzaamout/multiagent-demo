@@ -67,7 +67,15 @@ def provenance_problems(markdown: str, offered_context: str) -> list[str]:
         )
     unknown = sorted({tag.source_id for tag in tags if tag.source_id not in offered})
     if unknown:
-        problems.append("these tags name a source id that is not in your context: " + ", ".join(unknown[:5]))
+        # Every one of the twelve refusals on record named the knowledge file, and eight of those runs
+        # stopped: the refusal said the id was wrong and never said which ids were right.
+        problems.append(
+            "these tags name a source id that is not in your context: "
+            + ", ".join(unknown[:5])
+            + ". Your source ids are: "
+            + ", ".join(sorted(offered))
+            + ". A fact from the knowledge file or the request is tagged with the brief's source id"
+        )
     return problems
 
 
