@@ -200,6 +200,30 @@ def blocker_policy(plan: dict[str, Any], dataset_id: str) -> str:
     return str(by_dataset.get(dataset_id, plan.get("blocker", "escalate")))
 
 
+UPSTREAM_TRIES = 3
+
+
+def seat_under_test_ran(runs_dir: Path, run_id: str, seat: str) -> bool:
+    """Whether the seat a job varies ever replied in the run.
+
+    A run that stops at the Estimator says nothing about the Writer it was meant to measure, and its
+    result was being filed against a model that never ran. A job with no varied seat, the baseline, is
+    always a fair sample.
+    """
+    if not seat:
+        return True
+    calls = runs_dir / run_id / "seat-calls.jsonl"
+    if not calls.is_file():
+        return False
+    for line in calls.read_text(encoding="utf-8").splitlines():
+        try:
+            if json.loads(line).get("agent_id") == seat:
+                return True
+        except ValueError:
+            continue
+    return False
+
+
 def drive(api: Api, job: Job, plan: dict[str, Any], log: Any) -> dict[str, Any]:
     """Set the seats, start the run, answer what it asks, approve at Handoff, and say how it ended."""
     for seat, model_key in job.seats.items():
@@ -332,34 +356,45 @@ def main(argv: list[str]) -> int:
         if not claims.claim(job, args.worker):
             continue
         log(f"job {job.key}")
-        started_at = _now()
-        try:
-            result = drive(api, job, plan, log)
-        except Exception as failure:  # noqa: BLE001
-            result = {"status": "failed", "error": str(failure)[:400]}
-            log(f"  failed: {failure}")
-        result["at"] = _now()
+        result: dict[str, Any] = {}
+        for attempt in range(1, UPSTREAM_TRIES + 1):
+            started_at = _now()
+            try:
+                result = drive(api, job, plan, log)
+            except Exception as failure:  # noqa: BLE001
+                result = {"status": "failed", "error": str(failure)[:400]}
+                log(f"  failed: {failure}")
+            result["at"] = _now()
+            run_id = result.get("run_id")
+            # A run that stopped before the seat under test replied is not a sample of that seat. It is
+            # kept under its own label, so the report never counts it against the model, and the job is
+            # run again, up to UPSTREAM_TRIES times.
+            fair = not run_id or seat_under_test_ran(settings.runs_dir, str(run_id), job.varied_seat)
+            last = attempt == UPSTREAM_TRIES
+            if run_id:
+                record = {
+                    **asdict(job),
+                    "job": job.key,
+                    "worker": args.worker,
+                    "started_at": started_at,
+                    "ended_at": result["at"],
+                    "status": result["status"],
+                    "decision": "approved by the sweep, not by a person",
+                }
+                if not fair:
+                    record["label"] = f"{job.label}-upstream-stop"
+                    record["note"] = (
+                        f"the run ended before the {job.varied_seat} seat replied, so it says nothing "
+                        "about the model under test" + ("" if last else "; the job was run again")
+                    )
+                marker = settings.runs_dir / str(run_id) / "sweep.json"
+                marker.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8", newline="\n")
+            if fair or last:
+                if not fair:
+                    result["upstream_stop"] = True
+                break
+            log(f"  the {job.varied_seat} seat never ran (exit {result.get('exit')}); running the job again")
         claims.finish(job, args.worker, result)
-        run_id = result.get("run_id")
-        if run_id:
-            marker = settings.runs_dir / str(run_id) / "sweep.json"
-            marker.write_text(
-                json.dumps(
-                    {
-                        **asdict(job),
-                        "job": job.key,
-                        "worker": args.worker,
-                        "started_at": started_at,
-                        "ended_at": result["at"],
-                        "status": result["status"],
-                        "decision": "approved by the sweep, not by a person",
-                    },
-                    indent=2,
-                )
-                + "\n",
-                encoding="utf-8",
-                newline="\n",
-            )
         if result["status"] == "done":
             done += 1
             log(f"  exit {result.get('exit')} in {result.get('minutes')} min")

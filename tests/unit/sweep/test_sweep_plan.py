@@ -94,3 +94,19 @@ def test_the_blocker_policy_follows_the_dataset_not_the_whole_sweep() -> None:
     assert sweep.blocker_policy(plan, "missing-sheet") == "escalate"
     assert sweep.blocker_policy(plan, "clean-run") == "answer"
     assert sweep.blocker_policy({}, "clean-run") == "escalate", "the old default is unchanged"
+
+
+def test_a_run_that_stopped_upstream_is_not_a_sample_of_the_seat_under_test(tmp_path: Path) -> None:
+    """A Llama Writer was charged with a stop at the Estimator, in a run where it never ran."""
+    import json
+
+    seat_under_test_ran = load_sweep().seat_under_test_ran
+
+    run = tmp_path / "run-1"
+    run.mkdir()
+    lines = [{"agent_id": "intake", "accepted": True}, {"agent_id": "estimator", "accepted": False}]
+    (run / "seat-calls.jsonl").write_text("\n".join(json.dumps(x) for x in lines) + "\n", encoding="utf-8")
+    assert not seat_under_test_ran(tmp_path, "run-1", "writer")
+    assert seat_under_test_ran(tmp_path, "run-1", "estimator"), "a refused reply is still the seat running"
+    assert seat_under_test_ran(tmp_path, "run-1", ""), "the baseline varies no seat and is always a sample"
+    assert not seat_under_test_ran(tmp_path, "no-such-run", "writer")
