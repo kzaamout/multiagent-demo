@@ -84,4 +84,4 @@ Accuracy never looks at a number. Every check above is about behaviour: did the 
 
 ## How the best local model is chosen
 
-Among local (Ollama) models with at least 5 runs on the seat: fewest stopped runs first, then the highest accuracy, then the highest first-time rate, then the fastest call (owner decision 2026-09-17).
+Among local (Ollama) models with at least 5 runs on the seat: fewest stopped runs first, then the highest accuracy, then the highest first-time rate, then the fastest call (owner decision 2026-09-17). At the Estimator only, the share of takeoff lines matching the dataset's reference quantities ranks second, ahead of accuracy, because that seat's behaviour checks amount to whether it raised a blocker while its real job is reading the drawings. The reported Accuracy column is behaviour everywhere, and the price is reported separately (owner decisions 1b of 2026-09-19 and the ranking left to the author).

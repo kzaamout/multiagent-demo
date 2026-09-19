@@ -159,6 +159,50 @@ Both were found by reading one run of a sweep that had 37 runs still to go, and 
 restarted rather than measure 37 Writers and Reviewers through a wasted Intake attempt and a false sentence
 in every draft. Five runs were discarded, relabelled `writer-reviewer-rerun-pre-1.12`, about an hour.
 
+**The Writer and Reviewer measured again, 42 runs, 2026-09-19.** `config/sweep/writer-reviewer-rerun.yaml`:
+five Writer models and three Reviewer models that can read an image, two runs each on the three scenarios
+that reach both seats, with every other seat on Qwen 3.5 9B. Every figure recorded for these two seats
+before this date understates them, because the page text glued each provenance marker to its figure
+(item 1.10). The sweep was started twice and stopped once at five runs, when reading its first runs found
+the Intake fault of item 1.12 and a knowledge file entry that told every scenario a sheet was missing.
+
+| Configuration | Ended as the scenario expects | Stopped | Retries exhausted |
+|---|---|---|---|
+| Baseline, Writer and Reviewer as shipped | 6 of 6 | 0 | 0 |
+| Reviewer on Qwen 3.5 4B | 4 of 6 | 0 | 2 |
+| Reviewer on Qwen 3.5 9B | 4 of 6 | 1 | 1 |
+| Writer on DeepSeek R1 14B | 4 of 6 | 1 | 1 |
+| Writer on Qwen 3.5 4B | 4 of 6 | 2 | 0 |
+| Writer on Gemma 4 12B | 3 of 6 | 3 | 0 |
+| Writer on Llama 3.1 8B | 0 of 6 | 6 | 0 |
+
+The baseline pair is the only configuration that finished every run the way its scenario expects, which
+is the first time any bed has done that. Llama 3.1 8B cannot hold the Writer seat: six stops in six runs,
+on five replies with no JSON object at all, six of the wrong shape and four with no usable provenance tag.
+Gemma 4 12B writes its tags with single braces, `{19,081.02|src:pricing}`, and kept doing so after the
+correct form was quoted back to it. The two smaller models are not simply worse than the larger: Qwen 3.5
+4B matched DeepSeek R1 14B at the Writer, and at the Reviewer it caught the planted disagreement in both
+runs where the 9B model caught it in one.
+
+**What the rating chain now does, and where it still breaks.** Planted inconsistency expects the first
+review to fail on the 200 A against 225 A disagreement and the run to pass after one rework. Over 19
+recorded first reviews before today it failed on it in none. Over the 14 in this sweep it failed on it in
+8. The six misses divide in two: in 2 the Estimator never raised the concern, so nothing reached the
+document; in 4 it did and the Reviewer passed the draft anyway. The Estimator raised it in 10 of 14 live
+runs against 5 of 5 in the replay, so the replay flattered it. The next thing to look at is those 4
+drafts, to see whether the concern is reaching the Assumptions section in a form a Reviewer recognises,
+since the dropped-concern check passed all of them.
+
+**The cover names a different party from the document.** The compiled cover carries `prospect_name` from
+the dataset's brand file, "Fictional Prospect Ltd.", while the brief names the client as the Quillbrook
+Public Library Board and the body addresses the Board. Reviewers raised it 12 times in this sweep, as a
+blocker 10 times on Qwen 3.5 4B, and it ended 3 runs in `retry_exhausted`, because no rework can change a
+cover that comes from configuration. It was flagged 6 times in earlier recorded runs as well, and the
+sharper Reviewer wording makes it more likely, not less. This is the clearest demo-day risk the sweep
+found: a live audience would watch the Reviewer block the run on it, repeatedly, and the team would never
+resolve it. The fix is one line in the dataset's brand file. It waits for the owner because it changes what
+every future run's cover says.
+
 **Queued, found during the `writer-reviewer-rerun` sweep and not fixed while it was in flight.** The
 refusal for a dropped concern ends "naming the sheets E-002 and the values that disagree" whatever the
 concern says. In 54 of the 62 such refusals on record no quoted concern was about disagreeing values, so
