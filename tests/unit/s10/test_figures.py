@@ -330,3 +330,25 @@ def test_the_reviewer_is_told_what_was_checked_and_never_what_to_find() -> None:
     partial = verified_note({"material": 1, "total": None})
     assert "The price tool computed" not in partial, "a sum is only stated when all four figures are there"
     assert "The price tool computed" not in verified_note(None)
+
+
+def test_a_takeoff_totalled_over_several_calls_is_told_the_sum_to_write() -> None:
+    """Run c58cb609: three calls of 32.83, 43.30 and 8.00 hours, a reply of 92.23, and a refusal that quoted
+    only the last call's 8.00. The seat sent the same reply again and the run stopped."""
+    lighting = {
+        "lines": [{**CALCULATOR["lines"][0], "group": "Lighting"}],
+        "hours_by_group": {"Lighting": "18.00"},
+        "total_hours": "18.00",
+    }
+    devices = {
+        "lines": [{**CALCULATOR["lines"][1], "group": "Devices"}],
+        "hours_by_group": {"Devices": "4.00"},
+        "total_hours": "4.00",
+    }
+    results = [("quantity_calculate", lighting), ("quantity_calculate", devices)]
+    problems = estimator_disagreements(BOM, {"total_hours": 30, "by_group": {"Lighting": 26}}, results)
+    assert "You called quantity_calculate 2 times" in problems[0] and "add to 22.00" in problems[0]
+    assert "returned 4.00" not in problems[0], "the last call's total is not the takeoff's total"
+    assert "By group, its hours for the lines in this reply are: lighting 18.00, devices 4.00" in problems[1]
+    good = {"total_hours": 22, "by_group": {"Lighting": 18, "Devices": 4.0}}
+    assert estimator_disagreements(BOM, good, results) == []

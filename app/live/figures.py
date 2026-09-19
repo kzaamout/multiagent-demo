@@ -219,13 +219,17 @@ def estimator_disagreements(
     produced = [(_key(t.get("unit")), number(t.get("quantity_with_waste"))) for t in tool_lines]
     problems: list[str] = []
     hours = Decimal("0")
+    by_line_group: dict[str, Decimal] = {}
     for line in bom:
         quantity = number(line.get("quantity"))
         same = _described(_key(line.get("description")), tool_lines)
         exact = [t for t in same if _same(quantity, number(t.get("quantity_with_waste")), THOUSANDTH)]
         source = exact[-1] if exact else same[-1] if same else None
         if source is not None:
-            hours += number(source.get("hours")) or Decimal("0")
+            line_hours = number(source.get("hours")) or Decimal("0")
+            hours += line_hours
+            group_key = _key(source.get("group"))
+            by_line_group[group_key] = by_line_group.get(group_key, Decimal("0")) + line_hours
             if not exact:
                 problems.append(
                     f"{line.get('description')}: your quantity is {line.get('quantity')}, quantity_calculate "
@@ -260,20 +264,40 @@ def estimator_disagreements(
         )
         return problems
     if not (_same(total, latest, HUNDREDTH) or _same(total, hours, HUNDREDTH)):
-        problems.append(
-            f"labour total_hours is {labour.get('total_hours')}, quantity_calculate returned "
-            f"{calls[-1].get('total_hours')}"
-        )
+        if len(calls) > 1:
+            # A seat that totals its takeoff group by group has several results and no single total, and
+            # quoting the last call's figure told it to copy 8.00 where its three calls came to 84.13.
+            # The engine has the sum, so it says it.
+            problems.append(
+                f"labour total_hours is {labour.get('total_hours')}. You called quantity_calculate "
+                f"{len(calls)} times, and the hours it returned for the lines in this reply add to {hours}. "
+                f"Write {hours}, or call it once with every line and copy its total_hours"
+            )
+        else:
+            problems.append(
+                f"labour total_hours is {labour.get('total_hours')}, quantity_calculate returned "
+                f"{calls[-1].get('total_hours')}"
+            )
     groups = {_key(k): number(v) for data in calls for k, v in (data.get("hours_by_group") or {}).items()}
+    groups_said = ", ".join(f"{name} {value}" for name, value in by_line_group.items() if name)
     for group, value in (labour.get("by_group") or {}).items():
         mine = number(value)
         if mine is None:
             continue
-        named = _same(mine, groups.get(_key(group)), HUNDREDTH)
-        if not named and not any(_same(mine, v, HUNDREDTH) for v in groups.values()):
+        named = _same(mine, groups.get(_key(group)), HUNDREDTH) or _same(
+            mine, by_line_group.get(_key(group)), HUNDREDTH
+        )
+        produced_hours = [*groups.values(), *by_line_group.values()]
+        if not named and not any(_same(mine, v, HUNDREDTH) for v in produced_hours):
             problems.append(
                 f"labour by_group {group} is {value}, which is not a figure quantity_calculate returned"
+                + (
+                    f". By group, its hours for the lines in this reply are: {groups_said}"
+                    if groups_said
+                    else ""
+                )
             )
+            groups_said = ""  # said once
     return problems
 
 
