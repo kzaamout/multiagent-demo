@@ -287,3 +287,27 @@ def test_hours_written_by_the_seat_when_the_tool_rolled_up_none() -> None:
         and "Call it again" in problems[0]
     )
     assert estimator_disagreements(BOM, {"total_hours": 0}, [("quantity_calculate", empty)]) == []
+
+
+def test_a_trailing_zero_dropped_by_json_is_the_same_amount() -> None:
+    """Run e60f2c88: a near perfect takeoff, and a correct draft refused three times because Pricing's
+    labour reached the Writer as 13284.8 and the draft said $13,284.80. The run stopped."""
+    from app.live.deterministic import money_disagreements, sources_of_figure
+
+    context = (
+        '## Pricing output (source id: pricing)\n{"labour": 13284.8, "total": 39110.1, "markup": 3368.52}'
+    )
+    assert sources_of_figure("$13,284.80", context) == ["pricing"]
+    draft = "Labour {{$13,284.80|src:pricing}}, total {{$39,110.10|src:pricing}}, markup {{$3,368.52|src:pricing}}."
+    assert money_disagreements(draft, context) == []
+    assert amounts_not_in_context(["$13,284.80", "$39,110.10"], context) == []
+
+
+def test_an_amount_written_to_the_cent_stands_when_upstream_rounds_to_it() -> None:
+    context = '## Pricing output (source id: pricing)\n{"total": 19127.017, "markup": 2494.839}'
+    assert amounts_not_in_context(["$19,127.02", "$2,494.84"], context) == []
+    assert amounts_not_in_context(["$19,127.03", "$19,127", "$19,127.0171"], context) == [
+        "$19,127.03",
+        "$19,127",
+        "$19,127.0171",
+    ]

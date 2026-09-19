@@ -166,3 +166,23 @@ def test_provenance_check_names_every_problem() -> None:
     assert "appendix do not count" in untagged, "the seat is told where the tags belong"
     assert "est-1, price-1" in untagged, "the seat is told which source ids it may cite"
     assert "<" not in untagged, "no placeholder for a seat to copy literally"
+
+
+def test_a_schedule_mark_before_the_material_does_not_leave_it_unpriced(fixture_csv: Path) -> None:
+    """Run 0c99f479: the Estimator copied the schedule's marks into its descriptions, every line came
+    back unpriced, and the proposal went out priced at labour alone. The name must still match exactly."""
+    from decimal import Decimal
+
+    prices = PriceList.from_csv(fixture_csv)
+    lines = prices.lookup(
+        [
+            LookupRequest("M2", "M2 Exit sign LED", Decimal(5), "each"),
+            LookupRequest("M11", "M11: Copper conductor #12 THHN", Decimal(100), "metre"),
+            LookupRequest("M3", "M3 Exit sign LED, vandal resistant", Decimal(1), "each"),
+            LookupRequest("X", "20A branch circuit breaker", Decimal(1), "each"),
+        ],
+        supplier_order=["Supplier A", "Supplier B", "Supplier C"],
+        long_lead_days=28,
+    )
+    assert [line.status for line in lines] == ["priced", "priced", "unpriced", "unpriced"]
+    assert lines[0].unit_price == Decimal("89.50") and lines[0].description == "M2 Exit sign LED"

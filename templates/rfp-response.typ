@@ -20,7 +20,14 @@
 
 // A provenance marker: a small superscript number beside its figure, plus metadata that
 // `typst query "<prov>"` reports with the page and the position of the marker.
-#let prov(n, src) = [#super(text(size: 6.5pt, fill: brand, weight: 600)[#n])#context [#metadata((n: n, src: src, page: here().page(), x: here().position().x.pt(), y: here().position().y.pt()))<prov>]]
+//
+// Compiled with `--input markers=text`, the marker is written as " [n]" in the running text instead.
+// That compile is never shown to anyone: it exists so the page text handed to the Reviewer reads
+// "79,063.75 [1]". Extracted from the page as displayed, the superscript is glued to its figure and
+// the same price reads 79,063.751, 79,063.752 and 79,063.753, which the Reviewer failed as three
+// different prices in 14 of the 22 runs that spent their whole review budget. No dollar signs in
+// this comment: the file is a pandoc template, where a dollar sign opens a variable.
+#let prov(n, src) = if sys.inputs.at("markers", default: "super") == "text" [ \[#n\]] else [#super(text(size: 6.5pt, fill: brand, weight: 600)[#n])#context [#metadata((n: n, src: src, page: here().page(), x: here().position().x.pt(), y: here().position().y.pt()))<prov>]]
 
 // Cover
 #block(width: 100%, inset: (top: 30mm, bottom: 12mm))[

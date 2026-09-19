@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Mapping, Sequence
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
 ToolResults = Sequence[tuple[str, Mapping[str, Any]]]
@@ -281,6 +281,24 @@ def numbers_in(text: str) -> set[Decimal]:
     return found
 
 
+def held_to_the_cent(value: Decimal | None, held: set[Decimal]) -> bool:
+    """Whether a set of upstream numbers holds this amount, as money is written.
+
+    An exact match always stands. An amount written to the cent also stands when an upstream number rounds
+    to it, because a specialist output once carried 19127.017 and the Writer was right to print
+    $19,127.02. An amount with more than two decimals gets no such room: $36,882.581 is a mistyping.
+    """
+    if value is None:
+        return False
+    if value in held:
+        return True
+    exponent = value.as_tuple().exponent
+    if not isinstance(exponent, int) or exponent < -2:
+        return False
+    cents = Decimal("0.01")
+    return any(h.quantize(cents, rounding=ROUND_HALF_UP) == value for h in held)
+
+
 def amounts_not_in_context(amounts: Iterable[str], offered_context: str) -> list[str]:
     """Dollar amounts a draft carries that appear nowhere in what the Writer was given.
 
@@ -290,7 +308,7 @@ def amounts_not_in_context(amounts: Iterable[str], offered_context: str) -> list
     it is tagged, and it lets through any amount the specialists really produced.
     """
     held = numbers_in(offered_context)
-    return [a for a in dict.fromkeys(amounts) if number(a.rstrip(".")) not in held]
+    return [a for a in dict.fromkeys(amounts) if not held_to_the_cent(number(a.rstrip(".")), held)]
 
 
 def summarise(problems: list[str], limit: int = 6) -> str | None:

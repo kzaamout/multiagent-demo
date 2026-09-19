@@ -139,19 +139,16 @@ def sources_of_figure(figure: str, offered_context: str) -> list[str]:
     if sections:
         sections[-1] = (sections[-1][0], offered_context[position:])
     # A specialist output reaches the Writer as JSON, where a price is 31338.31 with no currency symbol
-    # and no thousands separator, while the draft writes $31,338.31. Comparing the two as written found
-    # nothing and the advice then told the Writer that a real Pricing total did not belong in the
-    # document, which is worse than saying nothing at all. The comparison is on the number.
-    number = figure.lstrip("$").replace(",", "").rstrip(".")
-    if not number:
+    # and no thousands separator, while the draft writes $31,338.31, so the comparison is on the number.
+    # It was first made on the number's text, and JSON also drops a trailing zero: Pricing's labour of
+    # 13284.8 is the Writer's $13,284.80. A correct draft on a near perfect takeoff was refused three
+    # times for that and the run stopped, so the two are now compared as numbers.
+    from app.live.figures import held_to_the_cent, number, numbers_in
+
+    value = number(figure.rstrip("."))
+    if value is None:
         return []
-    whole = number.split(".")[0]
-    pattern = re.compile(
-        rf"(?<![\d.]){re.escape(number)}(?![\d])|(?<![\d.]){re.escape(whole)}(?:\.0+)?(?![\d])"
-        if "." not in number
-        else rf"(?<![\d.]){re.escape(number)}(?![\d])"
-    )
-    return sorted({name for name, body in sections if pattern.search(body.replace(",", ""))})
+    return sorted({name for name, body in sections if held_to_the_cent(value, numbers_in(body))})
 
 
 def tag_advice(untagged: Iterable[str], offered_context: str) -> str | None:

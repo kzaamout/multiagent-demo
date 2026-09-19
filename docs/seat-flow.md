@@ -127,7 +127,7 @@ of the document. It never computes a total; it uses the one Pricing supplied.
 
 | | |
 |---|---|
-| **Sees** | the brief, the compiled page images and their text, the reviewer criteria |
+| **Sees** | the brief, the compiled page images and their text, the reviewer criteria. In the text each provenance marker is written in brackets after its figure, as in $79,063.75 [1], because extracted from the displayed page the superscript reads as extra digits of the figure |
 | **Does not see** | the team's working, the specialist outputs, the drawings |
 | **Tools** | none |
 | **Returns** | `verdict` (pass or fail), `summary`, `findings` each with a severity and where it routes |
