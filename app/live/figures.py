@@ -236,6 +236,15 @@ def estimator_disagreements(
                 f"{line.get('description')}: quantity {line.get('quantity')} {line.get('unit')} is not a "
                 "figure quantity_calculate returned. Send the line to quantity_calculate and copy its result"
             )
+    if any("quantity_calculate returned" in problem for problem in problems):
+        # The tool's figure is only as good as the call. A seat sent a panelboard under a category that
+        # carries waste, the tool rounded 1.02 up to 2, and the seat's own 1 was the right answer. Told
+        # only what the tool returned, it had no way to say the call was wrong, and the run stopped.
+        problems.append(
+            "Copy the tool's figure. If the tool's figure is wrong because of what you sent it, the counts "
+            "or the category, which sets the waste (equipment such as a panelboard or a transformer "
+            "carries none), call quantity_calculate again with the corrected line and copy the new result"
+        )
     total = number(labour.get("total_hours"))
     latest = number(calls[-1].get("total_hours"))
     if latest == 0 and total not in (None, Decimal("0")):

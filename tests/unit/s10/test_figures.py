@@ -203,7 +203,10 @@ def test_a_failed_calculator_call_supports_no_quantity() -> None:
 def test_a_quantity_without_its_waste_is_named() -> None:
     bom = [{"description": "2x4 LED troffer", "quantity": 24, "unit": "each"}, BOM[1]]
     problems = estimator_disagreements(bom, LABOUR, [("quantity_calculate", CALCULATOR)])
-    assert problems == ["2x4 LED troffer: your quantity is 24, quantity_calculate returned 25 with waste"]
+    assert problems[0] == "2x4 LED troffer: your quantity is 24, quantity_calculate returned 25 with waste"
+    assert len(problems) == 2 and "call quantity_calculate again with the corrected line" in problems[1], (
+        "run c5a27415: the seat's 1 panelboard was right and the call was wrong, and it was never told it could fix the call"
+    )
 
 
 def test_a_reworded_line_stands_when_its_number_came_from_the_tool() -> None:
