@@ -39,7 +39,7 @@ $endif$
   #v(10mm)
   #text(size: 22pt, weight: 600)[Bid response]
   #v(2mm)
-  #text(size: 12pt, fill: luma(90))[Prepared for $prospect-name$ · draft version $version$]
+  #text(size: 12pt, fill: luma(90))[Prepared for $if(client-name)$$client-name$$else$$prospect-name$$endif$ · draft version $version$]
   #v(4mm)
   #line(length: 100%, stroke: 1.2pt + brand)
 ]

@@ -214,6 +214,7 @@ def compile_draft(
     sources: Mapping[str, str] | None = None,
     headlines: Mapping[str, str] | None = None,
     template: Path = RESPONSE_TEMPLATE,
+    client: str = "",
 ) -> Compiled:
     """Compile one draft version into `runs/<id>/artifacts/v<N>/` and return the record.
 
@@ -234,6 +235,12 @@ def compile_draft(
     pdf_path = folder / f"{stem}.pdf"
     variables = {
         "prospect-name": brand.prospect_name,
+        # Whose letterhead this is, and who it is for, are two different names. The cover used the
+        # prospect's name for both, so a proposal on the bidder's letterhead said it was prepared for the
+        # bidder, while the body addressed the client the brief names. Reviewers raised that 12 times in
+        # the 42 run sweep of 2026-09-19, as a blocker 10 times, and it ended 3 runs with the review
+        # budget spent, because no rework can change a cover that comes from configuration.
+        "client-name": client,
         "logo-path": _stage_logo(brand, folder),
         "primary-colour": brand.primary_colour,
         "version": str(version),

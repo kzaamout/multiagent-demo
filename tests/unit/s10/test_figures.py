@@ -352,3 +352,21 @@ def test_a_takeoff_totalled_over_several_calls_is_told_the_sum_to_write() -> Non
     assert "By group, its hours for the lines in this reply are: lighting 18.00, devices 4.00" in problems[1]
     good = {"total_hours": 22, "by_group": {"Lighting": 18, "Devices": 4.0}}
     assert estimator_disagreements(BOM, good, results) == []
+
+
+def test_the_writer_is_not_refused_over_a_field_the_engine_never_reads() -> None:
+    """19 replies were refused over the shape of tags, ending 10 runs, and the provenance tags a draft
+    carries have always been parsed out of the markdown instead (2026-09-19)."""
+    from typing import cast
+
+    from app.live.replies import WriterReply, parse_reply
+
+    def written(text: str) -> WriterReply:
+        return cast(WriterReply, parse_reply("writer", text))
+
+    import json
+
+    for sent in ([{"t1": "pricing"}], "t1 from pricing", 3, None, [["t1", "pricing"]]):
+        body = json.dumps({"markdown": "# Draft\n\nBody.", "note": "n", "tags": sent})
+        assert written(body).markdown.startswith("# Draft")
+    assert written(json.dumps({"markdown": "# D", "note": "n"})).markdown == "# D"

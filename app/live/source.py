@@ -159,6 +159,18 @@ def pricing_used_lookup(reply: BaseModel, tools_used: list[str]) -> str | None:
 SPECIALIST_REQUIREMENTS: dict[str, Requirement] = {}
 
 
+def client_from_brief(events: Any) -> str:
+    """Who the proposal is for, as Intake read it from the request. Empty when there is no brief yet."""
+    found = ""
+    for event in events:
+        if event.type == "intake.brief":
+            brief = event.payload.get("brief")
+            source = brief if isinstance(brief, dict) else event.payload
+            name = str(source.get("client") or "").strip()
+            found = name or found
+    return found
+
+
 def latest_cost_summary(events: Any) -> dict[str, Any] | None:
     """The cost summary of Pricing's latest completed output, which is what the draft was held against."""
     found: dict[str, Any] | None = None
@@ -778,6 +790,7 @@ class LiveAgentSource:
                     self.o.brand(),
                     sources=self._sources,
                     headlines=self.o.source_headlines(),
+                    client=client_from_brief(self.o.events),
                 )
             except CompileError as error:
                 return f"the draft does not compile: {error}"

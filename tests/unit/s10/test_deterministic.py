@@ -369,3 +369,20 @@ def test_the_answers_read_are_the_entry_ids_not_words_from_the_answer() -> None:
     )
     assert answered_ids(text) == {"q_site_project"}, "an id inside the answer text is not an answered id"
     assert answered_ids("no answers here") == set()
+
+
+def test_a_dropped_concern_is_asked_for_in_words_the_concern_itself_uses() -> None:
+    """54 of the 62 dropped-concern refusals on record told the Writer to name "the values that disagree"
+    for a concern that had none, and all of them named only the sheets in drawing_ref (2026-09-19)."""
+    from app.live.concerns import concern_problems
+
+    draft = "# Draft\n\n## Assumptions\n\nNothing carried here.\n"
+    rating = [{"text": "E-001 shows a 225 A bus; schedule E-002 shows a 200 A main.", "drawing_ref": "E-002"}]
+    message = concern_problems(draft, rating)[0]
+    assert "E-002" in message and "E-001" in message, "every sheet the concern names, not only drawing_ref"
+    assert "values that disagree" not in message
+    assert "keeping any figures the concern states" in message
+    plain = [{"text": "Exit sign quantity includes a spare listed on schedule.", "drawing_ref": "E-002"}]
+    assert "values that disagree" not in concern_problems(draft, plain)[0]
+    carried = "# Draft\n\n## Assumptions\n\n- Schedule E-002 lists a spare exit sign, carried as counted.\n"
+    assert concern_problems(carried, plain) == []

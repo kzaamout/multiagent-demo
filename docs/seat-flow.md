@@ -117,7 +117,7 @@ exclusion. It is never a price invented to fill the gap.
 | **Sees** | the brief, every specialist output labelled with its source id, the template, the knowledge file, findings, and the assumptions block prepared from the concerns |
 | **Does not see** | the drawings, the price fixture, and it cannot ask a specialist anything |
 | **Tools** | `template_render`, `compile_trigger` |
-| **Returns** | `markdown`, `note`, `tags`, `gaps` |
+| **Returns** | `markdown`, `note`, `gaps` |
 | **Refused when** | the body carries no provenance tags; a tag names a source it was not given; a tagged amount is not in the output it names; a dollar amount appears in nothing the Writer was given; a specialist concern is missing from Assumptions; the draft does not compile |
 
 Every figure carries `{{value|src:id}}` naming the output it came from. A figure it cannot trace stays out

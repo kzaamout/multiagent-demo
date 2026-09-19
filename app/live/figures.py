@@ -279,6 +279,7 @@ def estimator_disagreements(
                 f"{calls[-1].get('total_hours')}"
             )
     groups = {_key(k): number(v) for data in calls for k, v in (data.get("hours_by_group") or {}).items()}
+    said_lost = False
     groups_said = ", ".join(f"{name} {value}" for name, value in by_line_group.items() if name)
     for group, value in (labour.get("by_group") or {}).items():
         mine = number(value)
@@ -289,11 +290,23 @@ def estimator_disagreements(
         )
         produced_hours = [*groups.values(), *by_line_group.values()]
         if not named and not any(_same(mine, v, HUNDREDTH) for v in produced_hours):
+            # When the call carried no group, the tool puts every line in one group and cannot return the
+            # groups the seat is reporting, so saying only that they differ asks for the impossible.
+            lost_groups = not said_lost and len(by_line_group) == 1 and len(labour.get("by_group") or {}) > 1
+            said_lost = said_lost or lost_groups
             problems.append(
                 f"labour by_group {group} is {value}, which is not a figure quantity_calculate returned"
                 + (
                     f". By group, its hours for the lines in this reply are: {groups_said}"
                     if groups_said
+                    else ""
+                )
+                + (
+                    ". quantity_calculate put every line in one group because the items you sent carried "
+                    "no group, so it cannot return the groups you are reporting. Call it again with group "
+                    "on every line, using the groups the estimating conventions list, and copy its "
+                    "hours_by_group"
+                    if lost_groups
                     else ""
                 )
             )

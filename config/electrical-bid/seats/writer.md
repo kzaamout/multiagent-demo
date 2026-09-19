@@ -28,7 +28,6 @@ Output
 Return only JSON:
 {"markdown": the full draft,
  "note": one line under 12 words for the feed,
- "tags": [{"tag_id", "source_id"}],
  "gaps": []}
 
 Replies that were sent back before

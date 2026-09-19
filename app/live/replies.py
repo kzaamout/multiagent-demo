@@ -523,7 +523,10 @@ class PricingReply(BaseModel):
 class WriterReply(BaseModel):
     markdown: str = Field(min_length=1)
     note: str = ""
-    tags: list[dict[str, str]] = Field(default_factory=list)
+    # The engine never read this field: the provenance tags a draft carries are parsed out of the
+    # markdown, and the hover markers come from those. It was validated and dropped, and 19 replies were
+    # refused over its shape, ending 10 runs. Anything a seat still sends under it is ignored (2026-09-19).
+    tags: Any = None
     gaps: list[str] = Field(default_factory=list)
 
     def check(self) -> None:

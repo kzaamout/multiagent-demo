@@ -203,15 +203,39 @@ found: a live audience would watch the Reviewer block the run on it, repeatedly,
 resolve it. The fix is one line in the dataset's brand file. It waits for the owner because it changes what
 every future run's cover says.
 
-**Queued, found during the `writer-reviewer-rerun` sweep and not fixed while it was in flight.** The
-refusal for a dropped concern ends "naming the sheets E-002 and the values that disagree" whatever the
-concern says. In 54 of the 62 such refusals on record no quoted concern was about disagreeing values, so
-the seat was told to add something that does not exist: "Exit sign quantity includes a spare listed on
-schedule" has no two values. The sentence was written for the rating disagreement, which is the case that
-prompted the check, and it never generalised. Fix in `app/live/concerns.py` when the sweep ends, by naming
-the sheets and quoting the concern's own words instead. Nothing runs against this until then, because
-changing a check the Writer is measured against mid-sweep mixes code states, which cost three restarts of
-the previous bed.
+**1.13 Four things the sweep found, cleared afterwards, 2026-09-19.** Each was left alone while the 42 runs
+were in flight, because changing a check the seats are being measured against mixes code states.
+
+*The cover named the wrong party.* The compiled cover used the brand file's `prospect_name` twice: once as
+the wordmark, which is the bidder's letterhead and correct, and once in "Prepared for", which is the
+recipient and wrong. A proposal on the bidder's letterhead therefore said it was prepared for the bidder,
+while the body addressed the client the brief names. The owner approved changing the name; the name was not
+the fault, so `compile_draft` now takes the client from the brief and the cover says "Prepared for" that,
+falling back to the prospect when there is no brief. The brand file is untouched and still carries the
+letterhead.
+
+*A refusal that asked for what did not exist.* The dropped-concern refusal ended "naming the sheets E-002
+and the values that disagree" whatever the concern said. In 54 of the 62 such refusals on record no quoted
+concern was about disagreeing values. It now asks for the concern in the seat's own words, keeping any
+figures it states.
+
+*A refusal that named one sheet of two.* The same refusal took its sheets from the concern's `drawing_ref`
+field, which often holds one sheet while the concern's sentence names two. DeepSeek failed three times
+against a rating concern whose text named E-001 and E-002 while the refusal asked only for E-002. The
+sheets are now every one the concern mentions, from either place.
+
+*A refusal the seat could not satisfy.* When the Estimator sends items with no `group`, the calculator puts
+every line in one group, so it cannot return the groups the seat then reports. Saying only that the seat's
+groups were not the tool's asked for the impossible. The refusal now says why, once, and what to change in
+the call.
+
+*The Writer's `tags` field is no longer part of the reply.* The engine never read it: a draft's provenance
+tags are parsed out of the markdown, and the hover markers come from those. It was validated and dropped,
+and across every recorded run 19 replies were refused over its shape, ending 10 runs, including 2 of the
+first 6 runs of the sweep. Gemma 4 12B and Llama 3.1 8B both lost runs to it. The field is now ignored
+rather than removed, so a seat that still sends one is not refused, and it is gone from the Writer's
+instructions. The Writer figures in this sweep therefore describe the older, stricter shape.
+
 
 ## Teaching, which runs alongside every phase
 
