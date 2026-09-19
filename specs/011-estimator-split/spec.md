@@ -50,12 +50,40 @@ sheet; the reply is not the shape.
 
 | | |
 |---|---|
-| **Sees** | the material list from the Schedule Reader, the legend, the plan sheets as images |
+| **Sees** | the material list from the Schedule Reader, the legend as reference images, the plan sheets as images |
 | **Does not see** | the Schedule Reader's counts, the brief's quantities, the conventions, prices |
 | **Tools** | `vision_read_drawing` |
 | **Returns** | `counts`, `sheets_read`, `notes` |
 
-`counts` is one row per material per sheet, with a count and a confidence. It counts and does nothing else.
+`counts` is one row per material per sheet, with **the number of marks it saw** and a confidence. It never
+applies a waste factor, and it never reports a quantity: waste belongs to the calculator, and a seat that
+counted 9 switches correctly and reported the 10 that waste makes of them would be scored as wrong twice
+over, once for the count and once for doing the Assembler's job.
+
+**The legend reaches it as images, by construction.** The legend is drawn on the index sheet, and the text
+layer of that sheet keeps the words and loses the marks: the switch symbol survives as a bare dollar sign
+and the troffer symbol as nothing at all. So a seat reading text can never learn what to look for, which is
+why the one line that exists only as marks sits at 12 percent correct while everything stated in words
+sits near 87. The engine finds the legend sheet from the prepared manifest, crops each symbol and its
+meaning to its own reference image, and attaches those ahead of any plan sheet. Cropping matters: a whole
+legend page at a tenth of the scale is not a reference. Nothing is curated by hand, because every real
+drawing set carries a legend and a curated set of symbols would score well here and mean nothing on a
+prospect's scan.
+
+Measured before building, twelve replays of a recorded takeoff, six each way, with the whole legend page
+attached rather than crops:
+
+| | As the seat runs today | With the legend attached |
+|---|---|---|
+| Switch line left out of the takeoff | 3 of 6 | 0 of 5 |
+| Counted within two of the nine on the plan | 1 of 3 counted | 3 of 5 counted |
+| Median count when it counted | 15 | 11 |
+| Runs that failed outright | 0 | 1 |
+
+The commonest failure was not miscounting but giving up, and the legend stopped that: every replay
+attempted the count and the counts moved towards the truth. It did not make them right, and it cost one
+run of six, which is the argument for giving it to a seat that does nothing else rather than to today's
+Estimator, already carrying five sheets and a strict reply shape.
 
 **It must not see `scheduled_counts`.** If it can read the schedule's figure it will copy it, and the
 comparison below becomes two seats agreeing with themselves. This is enforced where the context slice is
@@ -98,8 +126,10 @@ changes. The Assembler may add concerns of its own; it may not drop a generated 
 instructions, roster entry, model entry. Measured by replaying a recorded Intake prompt's sheets: does it
 return 45 troffers, 30 receptacles, 11 circuits in use, 225 A on E-001 and 200 A on E-002?
 
-**M2. Plan Counter alone.** As above, with the material list as its input. Measured on the same sheets:
-does it count 9 switches and 45 troffers, and does it never report a material it was not given?
+**M2. Plan Counter alone.** As above, with the material list as its input, and with the legend cropped to
+one reference image per symbol. Measured on the same sheets: does it count 9 switches and 45 troffers, does
+it report the marks it saw rather than a quantity, and does it never report a material it was not given?
+The cropping is measured too, against the whole page, since the page alone moved the count only partway.
 
 **M3. The Assembler and the comparison.** The Estimator's checks move across, the engine's comparison is
 built, the Orchestrator's plan gains two sub-tasks with `depends_on`, the six stub files gain the new
@@ -114,6 +144,8 @@ that Llama 3.1 8B and DeepSeek R1 14B can hold, then a twelve-run bed on the sam
 
 - Unit tests per reply check, each with its negative case: a count for an unparsed sheet, a rating with no
   sheet, a material the Schedule Reader never listed, a plan count that equals the schedule's.
+- A unit test that the legend crops are found and attached from the prepared manifest, and that a drawing
+  set whose index sheet carries no legend still dispatches the seat rather than failing.
 - A unit test that the Plan Counter's context slice cannot contain `scheduled_counts`, since the whole
   comparison rests on it.
 - Unit tests for the comparison: equal counts produce nothing, a difference of one unit produces nothing, a
@@ -147,6 +179,7 @@ confidently wrong; M1 measures that before anything else is built.
 
 ## What this does not fix
 
-The symbol count. Switches are marks on a plan and nothing here makes them easier to see. The Plan Counter
-does only that job, which is the best chance it has, but if it still reads 8 percent of switch counts
-correctly then that line needs a different model or a human, and no further splitting will help.
+The symbol count, in full. Switches are marks on a plan, and the legend experiment moved the seat from
+leaving them out to counting them badly. The Plan Counter does only that job, with the symbols in front of
+it, which is the best chance it has. If it still cannot count marks then that line needs a different model
+or a human, and no further splitting will help.
