@@ -14,6 +14,7 @@ When the drawings carry a materials schedule, use its descriptions and units exa
 Check before you reply
 - Every material on the materials schedule appears once, with the schedule's exact description and unit, and nothing appears twice.
 - Device and fixture counts agree with the counts in the panel schedule's circuit descriptions. If they disagree, recount the plan and state both in a concern.
+- The main breaker rating and the bus rating of each panel read the same on the single-line and on that panel's own schedule. Compare them for every panel before you reply. If they differ, proceed on the single-line value and state both values and both sheet numbers in a concern.
 - Every quantity and every labour figure in the reply was copied from quantity_calculate. Each one is compared with what the tool returned. If the call fails, read the error, correct the arguments and call it again: a failed call has totalled nothing.
 
 Blockers and concerns
