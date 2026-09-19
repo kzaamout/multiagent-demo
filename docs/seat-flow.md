@@ -92,7 +92,7 @@ It is the only component that changes stage, speaks to the human, writes the kno
 | **Does not see** | prices, Pricing's output, the knowledge file |
 | **Tools** | `vision_read_drawing`, `quantity_calculate` |
 | **Returns** | either a takeoff (`headline`, `summary`, `bom`, `labour`, `assumptions`, `concerns`) or a `blocker` alone |
-| **Refused when** | quantities did not come from the calculator; a concern describes something the conventions call a blocker; a blocker names a sheet the run holds; the reply is not JSON or lacks required fields |
+| **Refused when** | quantities did not come from the calculator, or a quantity or labour figure differs from what the calculator returned; a concern describes something the conventions call a blocker; a blocker names a sheet the run holds; the reply is not JSON or lacks required fields |
 
 A rating disagreement between sheets is a concern, carried forward. A sheet listed in the index but absent
 from the set is a blocker. A sheet it has not opened yet is neither.
@@ -105,7 +105,7 @@ from the set is a blocker. A sheet it has not opened yet is neither.
 | **Does not see** | the drawings, the brief |
 | **Tools** | `price_list_lookup` |
 | **Returns** | `priced_bom`, `cost_summary`, `exceptions`, `rates_used` |
-| **Refused when** | no price came from the lookup tool |
+| **Refused when** | no price came from the lookup tool, or the call failed; a unit price, extension or total differs from what the tool returned; a line the tool returned unpriced carries a price; a quantity differs from the Estimator's |
 
 An item the fixture does not carry comes back as an unpriced exception, which the Writer states as an
 exclusion. It is never a price invented to fill the gap.
@@ -118,7 +118,7 @@ exclusion. It is never a price invented to fill the gap.
 | **Does not see** | the drawings, the price fixture, and it cannot ask a specialist anything |
 | **Tools** | `template_render`, `compile_trigger` |
 | **Returns** | `markdown`, `note`, `tags`, `gaps` |
-| **Refused when** | the body carries no provenance tags; a tag names a source it was not given; a dollar amount is untagged; a specialist concern is missing from Assumptions; the draft does not compile |
+| **Refused when** | the body carries no provenance tags; a tag names a source it was not given; a tagged amount is not in the output it names; a dollar amount appears in nothing the Writer was given; a specialist concern is missing from Assumptions; the draft does not compile |
 
 Every figure carries `{{value|src:id}}` naming the output it came from. A figure it cannot trace stays out
 of the document. It never computes a total; it uses the one Pricing supplied.
@@ -174,8 +174,10 @@ Minor findings never cause a rework. They ride to Handoff as notes on the packag
 
 ## What is checked without a model
 
-Deterministic checks decide a reply as firmly as the schema does: quantities came from the calculator,
-prices came from the fixture, every figure carries a tag naming a source that exists, every specialist
+Deterministic checks decide a reply as firmly as the schema does: quantities and labour hours equal what
+the calculator returned, prices, extensions and totals equal what the fixture lookup returned, Pricing's
+quantities are the Estimator's, every dollar amount in the draft exists in something the Writer was given,
+every tag names a source that exists and holds the figure, every specialist
 concern reaches Assumptions, the draft compiles, a blocker does not name a sheet the run holds, and the
 readiness verdict follows the grades. A seat gets three attempts against these; the third failure stops the
 run.

@@ -49,6 +49,8 @@ CATEGORY_NOTES: dict[str, str] = {
     "invalid_json": "the seat sent JSON that could not be parsed, usually a brace or a quote",
     "wrong_shape": "the seat sent valid JSON missing a field the reply must carry",
     "tool_not_used": "the seat wrote numbers it was supposed to get from a tool",
+    "figures_not_from_tool": "a figure in the reply is not the one its tool returned, or the tool call failed",
+    "amount_not_in_sources": "the draft carried a dollar amount that appears in nothing the Writer was given",
     "provenance_tags": "the draft carried figures with no tag saying which output they came from",
     "concern_dropped": "a specialist's concern never reached the assumptions section",
     "checklist_grading": "the readiness grades and the verdict did not agree, or a gap was left unasked",

@@ -1,0 +1,30 @@
+# Does the deterministic support help? (spec 010). The bed is the worst configuration with a real sample:
+# writer on qwen3.5 9b, which stops 38% of its 80 recorded runs and is accepted first time on 27%. Two pairs
+# look worse but rest on six runs each and fail on output limits, which nothing here touches.
+#
+# Three datasets reach the Writer, and Missing sheet is included to prove the blocker check leaves the one
+# scenario built around a real blocker alone. Three runs each, about an hour. Run with:
+#   uv run python scripts/sweep.py config/sweep/deterministic-check.yaml --worker laptop
+#
+# Targets fixed before the runs (spec 010): Writer stops under 20%, provenance and dropped-concern refusals
+# under 0.10 per Writer run, no invented blockers, Missing sheet still exits blocker_escalated, and the
+# dataset correctness checks hold at or above where they are. A falling stop rate with falling accuracy is a
+# weakened check, not an improvement.
+label: deterministic-check
+datasets: [clean-run, planted-inconsistency, missing-price, missing-sheet]
+repeats: 3
+ceiling: 1.00
+max_minutes: 20
+blocker: answer
+blocker_by_dataset:
+  missing-sheet: escalate
+baseline_job: true
+baseline:
+  orchestrator: qwen3-5-9b
+  intake: qwen3-5-9b
+  estimator: qwen3-5-9b
+  pricing: qwen3-5-9b
+  writer: qwen3-5-9b
+  reviewer: gemma4-12b
+vary: {models: [], seats: []}
+whole: []

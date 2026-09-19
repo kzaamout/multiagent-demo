@@ -8,6 +8,7 @@ turns into one tool.called event.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -30,6 +31,15 @@ class ToolLog:
     """Summaries written by tools, read by the seat call's after-tool hook."""
 
     summaries: dict[str, tuple[str, str]] = field(default_factory=dict)
+    results: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
+    """What each successful call returned, in order, so a reply's figures can be held against it."""
+
+    sink: Callable[[str, dict[str, Any]], None] | None = None
+
+    def keep(self, tool_name: str, data: dict[str, Any]) -> None:
+        self.results.append((tool_name, data))
+        if self.sink is not None:
+            self.sink(tool_name, data)
 
     def record(self, context: ToolContext, args_summary: str, result_summary: str) -> None:
         self.summaries[str(context.tool_use["toolUseId"])] = (
@@ -194,6 +204,7 @@ def build_tools(
             "total_hours": str(result.total_hours),
         }
         log.record(tool_context, f"{len(parsed)} items", f"{len(parsed)} lines, {result.total_hours} hours")
+        log.keep("quantity_calculate", data)
         return _text(data)
 
     @tool(context=True)
@@ -257,6 +268,7 @@ def build_tools(
             data["totals"] = {k: str(v) for k, v in t.__dict__.items()}
         priced = sum(1 for line in lines if line.status == "priced")
         log.record(tool_context, f"{len(lines)} lines", f"{priced} priced, {len(lines) - priced} exceptions")
+        log.keep("price_list_lookup", data)
         return _text(data)
 
     @tool(context=True)

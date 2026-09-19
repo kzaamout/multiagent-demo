@@ -37,6 +37,22 @@ CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("wrong_shape", ("expected", "field required", "input should", "needs headline")),
     ("compile_failed", ("does not compile",)),
     ("concern_dropped", ("concern is not carried", "no assumptions section")),
+    # A figure that is not the one its tool returned, or not the Estimator's, and an amount in a draft
+    # that nothing upstream holds (spec 010, phase 1.7). Before the tool names below, which they mention.
+    (
+        "figures_not_from_tool",
+        (
+            "the lookup returned",
+            "quantity_calculate returned",
+            "returned no result",
+            "never sent to price_list_lookup",
+            "no single price_list_lookup",
+            "the estimator's is",
+            "not a line of the estimator's",
+            "not a figure quantity_calculate",
+        ),
+    ),
+    ("amount_not_in_sources", ("appear in nothing you were given",)),
     ("provenance_tags", ("provenance", "src:", "source id")),
     ("tool_not_used", ("price_list_lookup", "quantity_calculate", "as text instead of calling")),
     ("blocker_as_concern", ("blocker, not a concern",)),

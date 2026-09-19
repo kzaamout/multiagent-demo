@@ -155,7 +155,11 @@ def test_provenance_check_names_every_problem() -> None:
     problems = provenance_problems(
         "We bid $6,362.94 for {{25 troffers|src:made-up}}.\n## Provenance\n$1", context
     )
-    assert any("made-up" in p for p in problems) and any("$6,362.94" in p for p in problems)
+    assert any("made-up" in p for p in problems)
+    assert not any("$6,362.94" in p for p in problems), (
+        "an untagged amount is no longer refused here: it is held against what the Writer was given, in "
+        "app.live.figures.amounts_not_in_context"
+    )
     assert not any("$1" in p.split(": ", 1)[-1].split(", ") for p in problems), "the appendix is not checked"
     untagged = provenance_problems("No figures at all.", context)[0]
     assert untagged.startswith("the draft body has no usable provenance tags")

@@ -1,0 +1,25 @@
+# Is the fall in Missing sheet escalations real or noise? (spec 010). The scenario plants a sheet the
+# drawing index lists and the set does not hold, so the right ending is blocker_escalated. Over three
+# beds of three runs it escalated 3, then 2, then 1, with no blocker raised at all in the misses. Three
+# runs cannot tell a regression from chance, so this is six on that dataset alone, on the same bed. Run with:
+#   uv run python scripts/sweep.py config/sweep/missing-sheet-check.yaml --worker laptop
+#
+# Reading fixed before the runs: 5 or 6 escalations of 6 is noise and the matter closes. 3 or fewer is a
+# regression, and the first suspect is the removal of the seats' progress lines, which may have been
+# doing the work of reasoning aloud before a blocker decision.
+label: missing-sheet-check
+datasets: [missing-sheet]
+repeats: 6
+ceiling: 1.00
+max_minutes: 20
+blocker: escalate
+baseline_job: true
+baseline:
+  orchestrator: qwen3-5-9b
+  intake: qwen3-5-9b
+  estimator: qwen3-5-9b
+  pricing: qwen3-5-9b
+  writer: qwen3-5-9b
+  reviewer: gemma4-12b
+vary: {models: [], seats: []}
+whole: []

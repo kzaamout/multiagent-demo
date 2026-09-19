@@ -352,7 +352,7 @@ class SeatCall:
                     if isinstance(item, str):
                         text = item
                     else:
-                        if item.kind == "tool" and item.tool is not None:
+                        if item.kind == "tool" and item.tool is not None and item.tool.ok:
                             self.tools_used.append(item.tool.name)
                         yield item
             except AgentFailure:
@@ -392,7 +392,7 @@ class SeatCall:
                             if isinstance(item, str):
                                 text = item
                             else:
-                                if item.kind == "tool" and item.tool is not None:
+                                if item.kind == "tool" and item.tool is not None and item.tool.ok:
                                     self.tools_used.append(item.tool.name)
                                 yield item
                     except Exception:  # noqa: BLE001

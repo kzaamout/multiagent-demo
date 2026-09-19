@@ -47,7 +47,12 @@ SOURCE_ID = re.compile(r"\(source id: ([A-Za-z0-9_.:-]+)\)")
 
 def provenance_problems(markdown: str, offered_context: str) -> list[str]:
     """What stops a draft's provenance from being checkable: no tags, tags naming sources the Writer was
-    never given, or dollar amounts left untagged in the body. The appendix is excluded."""
+    never given. The appendix is excluded.
+
+    It once refused any dollar amount without a tag. Deciding which figures need a tag is a judgment, and
+    the rule refused zeros, the labour rate and line extensions while proving nothing about where a number
+    came from. An untagged amount is now held against what the Writer was given instead, in
+    app.live.figures.amounts_not_in_context (spec 010, phase 1.7)."""
     body = markdown.split("\n## Provenance", 1)[0]
     tags = find_tags(body)
     offered = set(SOURCE_ID.findall(offered_context))
@@ -63,11 +68,6 @@ def provenance_problems(markdown: str, offered_context: str) -> list[str]:
     unknown = sorted({tag.source_id for tag in tags if tag.source_id not in offered})
     if unknown:
         problems.append("these tags name a source id that is not in your context: " + ", ".join(unknown[:5]))
-    untagged = MONEY.findall(TAG.sub("", body))
-    if untagged:
-        problems.append(
-            "these dollar amounts have no provenance tag: " + ", ".join(dict.fromkeys(untagged[:6]))
-        )
     return problems
 
 

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import json
 import re
 from collections.abc import AsyncIterator, Callable, Mapping
 from dataclasses import dataclass
@@ -29,6 +30,14 @@ from app.live.deterministic import (
     blocker_names_a_present_sheet,
     money_disagreements,
     tag_advice,
+)
+from app.live.figures import (
+    ToolResults,
+    amounts_not_in_context,
+    estimator_disagreements,
+    pricing_disagreements,
+    quantity_handover_disagreements,
+    summarise,
 )
 from app.live.materials import CONFIG_DIR, DatasetFiles, build_materials
 from app.live.replies import (
@@ -61,7 +70,7 @@ from app.schema.bundles import PromptBundle
 from app.schema.events import Event, Subtask
 from app.seats.definitions import SEAT_DEFINITIONS, instructions_version, load_instructions
 from app.tools.prepare import PREPARED_DIR, prepare_documents, read_manifest
-from app.tools.template import commit_draft, find_tags, provenance_problems, untagged_money
+from app.tools.template import MONEY, commit_draft, find_tags, provenance_problems, untagged_money
 
 if TYPE_CHECKING:
     from app.orchestrator.orchestrator import Orchestrator
@@ -137,6 +146,17 @@ def pricing_used_lookup(reply: BaseModel, tools_used: list[str]) -> str | None:
 
 
 SPECIALIST_REQUIREMENTS: dict[str, Requirement] = {}
+
+
+def latest_bom(events: Any) -> list[dict[str, Any]]:
+    """The bill of materials of the Estimator's latest completed output, which is what Pricing was given."""
+    bom: list[dict[str, Any]] = []
+    for event in events:
+        if event.type == "task.completed" and event.payload.get("agent_id") == "estimator":
+            result = event.payload.get("result")
+            if isinstance(result, dict) and result.get("bom"):
+                bom = list(result["bom"])
+    return bom
 
 
 def estimator_used_calculator(reply: BaseModel, tools_used: list[str]) -> str | None:
@@ -283,7 +303,12 @@ class LiveAgentSource:
         requirement: Requirement | None = None,
         images: list[bytes] | None = None,
     ) -> AsyncIterator[CallItem]:
-        log = ToolLog()
+        log = ToolLog(sink=functools.partial(self._keep_tool_result, agent_id, bundle))
+
+        def checked(reply: BaseModel, used: list[str]) -> str | None:
+            unmet = requirement(reply, used) if requirement is not None else None
+            return unmet or self._figures_checked(reply, log.results)
+
         tools = build_tools(
             agent_id,
             files=self.ctx.files,
@@ -303,7 +328,7 @@ class LiveAgentSource:
             log=log,
             bundle=bundle,
             parse=parse,
-            requirement=requirement,
+            requirement=checked,
             on_attempt=lambda attempt, accepted, text, error: self._record_attempt(
                 agent_id, bundle, attempt, accepted, text, error
             ),
@@ -311,6 +336,36 @@ class LiveAgentSource:
             corrections=CORRECTIONS.get(agent_id, 2),
         )
         return call.run()
+
+    def _keep_tool_result(
+        self, agent_id: str, bundle: PromptBundle, tool_name: str, data: dict[str, Any]
+    ) -> None:
+        """Keep what a tool returned, in full, beside the run. The event carries a summary of at most 200
+        characters, which is enough for the feed and not enough to hold a reply's figures against later."""
+        folder = self.o.run_folder
+        if folder is None:
+            return
+        line = {"prompt_ref": bundle.prompt_ref, "agent_id": agent_id, "tool": tool_name, "result": data}
+        try:
+            with (folder / "tool-results.jsonl").open("a", encoding="utf-8", newline="\n") as handle:
+                handle.write(json.dumps(line, ensure_ascii=False, default=str) + "\n")
+        except OSError:
+            pass
+
+    def _figures_checked(self, reply: BaseModel, results: ToolResults) -> str | None:
+        """A specialist's figures are copies of its tool's, so they are held against the original by
+        equality, and Pricing's quantities against the Estimator's (spec 010, phase 1.7)."""
+        if isinstance(reply, EstimatorReply) and reply.blocker is None:
+            bom = [line.model_dump(mode="json") for line in reply.bom]
+            labour = reply.labour.model_dump(mode="json") if reply.labour is not None else {}
+            return summarise(estimator_disagreements(bom, labour, results))
+        if isinstance(reply, PricingReply):
+            priced = [line.model_dump(mode="json") for line in reply.priced_bom]
+            return summarise(
+                pricing_disagreements(priced, reply.cost_summary, results)
+                or quantity_handover_disagreements(priced, latest_bom(self.o.events))
+            )
+        return None
 
     def _record_attempt(
         self, agent_id: str, bundle: PromptBundle, attempt: int, accepted: bool, text: str, error: str
@@ -648,6 +703,17 @@ class LiveAgentSource:
                 # Naming the figures without naming their source left the Writer guessing (spec 010).
                 advice = tag_advice(untagged_money(markdown), bundle.context_slice)
                 return "; ".join(problems) + (f". {advice}" if advice else "")
+            # Every dollar amount has to exist in something the Writer was given. This replaced the rule
+            # that every amount must carry a tag, which refused zeros, the labour rate and line extensions
+            # and still passed an amount copied from the worked example in the instructions (phase 1.7).
+            body = markdown.split("\n## Provenance", 1)[0]
+            invented = amounts_not_in_context(MONEY.findall(body), bundle.context_slice)
+            if invented:
+                return (
+                    "these dollar amounts appear in nothing you were given: " + ", ".join(invented[:6]) + ". "
+                    "Every amount in the draft is copied, digit for digit, from an output in your context. "
+                    "Do not round, add, or reuse a number from the examples in your instructions"
+                )
             # A tag proved the Writer named an output, not that the figure came from it, so a mistyped
             # total passed review as often as a correct one (spec 010, phase 1.6).
             disagreements = money_disagreements(markdown, bundle.context_slice)
