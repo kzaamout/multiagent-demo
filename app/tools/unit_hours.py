@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-HEADING = re.compile(r"^##\s+Unit labour hours", re.I)
+HEADING = re.compile(r"^##\s+(Unit labour hours|Materials)", re.I)
 LENGTH_UNITS = {"m", "metre", "metres", "meter", "meters"}
 COUNT_UNITS = {"each", "ea", "unit", "units"}
 
@@ -27,6 +27,8 @@ class UnitHourRow:
     item: str
     unit: str
     hours: Decimal
+    category: str = ""
+    """The waste class the conventions give this material, empty when the table does not say."""
 
 
 def _key(text: str) -> str:
@@ -63,11 +65,14 @@ def table_from_conventions(path: Path) -> list[UnitHourRow]:
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
         if len(cells) < 3:
             continue
+        # Item | Unit | Hours, or Item | Unit | Category | Hours. The hours are the last cell either way,
+        # so a table that gains a column does not need this parser changed again.
         try:
-            hours = Decimal(cells[2])
+            hours = Decimal(cells[-1])
         except InvalidOperation:
             continue  # the header row and the rule under it
-        rows.append(UnitHourRow(cells[0], cells[1], hours))
+        category = cells[2].lower() if len(cells) >= 4 else ""
+        rows.append(UnitHourRow(cells[0], cells[1], hours, category))
     return rows
 
 

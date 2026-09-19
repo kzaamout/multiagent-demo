@@ -15,9 +15,9 @@ Group lines under: Service and distribution; Feeders; Branch circuits and device
 ## Quantity rules
 - Devices and fixtures are counted from floor plans, cross-checked against panel schedules where circuits are labelled.
 - Feeder lengths: if not dimensioned, estimate from plan scale plus 10 percent for vertical drops and terminations, and mark confidence medium.
-- Branch circuit wire: estimate 25 metres average run per circuit for commercial floor plates under 1000 square metres, 35 metres above, unless plans allow measurement. Mark confidence low when using this rule.
+- Branch circuit wire: estimate 25 metres average run per circuit for commercial floor plates under 1000 square metres, 35 metres above, unless plans allow measurement. Mark confidence low when using this rule. Do not work the length out yourself: send quantity_calculate the number of circuits as the count, the metres per circuit as `each`, and the conductors per run as `times`, and copy what it returns.
 - Conduit follows specification; if unspecified, EMT for interior branch, rigid PVC below grade, and flag the assumption.
-- Add 5 percent waste on wire and conduit, 2 percent on devices.
+- Add 5 percent waste on wire and conduit, 2 percent on devices and fixtures, none on equipment. quantity_calculate applies this itself from the category in the material table below, so the class a scheduled material belongs to is not a judgment the takeoff makes. A material the table does not list uses the category the call passes.
 
 ## Labour
 - Use NECA-style unit labour hours per line where available in the conventions table below; otherwise estimate per line and mark confidence low.
@@ -34,19 +34,19 @@ Raise a concern (proceed, but flag) when a quantity is inferred by rule rather t
 ## Output format
 Structured BOM as described, followed by a labour summary, followed by a list of assumptions and a list of concerns, each with a drawing reference. Every figure must be traceable to a sheet or to a named rule in this file.
 
-## Unit labour hours (demo table, illustrative)
-quantity_calculate reads this table itself and applies it to every line whose description it finds here. A line it cannot find has no labour figure from the table and carries confidence low.
+## Materials: unit labour hours and waste class (demo table, illustrative)
+quantity_calculate reads this table itself and applies it to every line whose description it finds here: the hours, and the category that sets the waste. A line it cannot find takes no hours from the table, carries confidence low, and uses the category the call passes.
 
-| Item | Unit | Hours |
-|---|---|---|
-| Duplex receptacle, 15A, incl. box and device | each | 0.5 |
-| Single-pole switch | each | 0.4 |
-| 2x4 LED troffer | each | 0.75 |
-| Exit sign, LED | each | 0.6 |
-| Emergency battery unit with heads | each | 1.0 |
-| 20A branch circuit breaker, install | each | 0.3 |
-| 42-circuit panelboard, 225A, surface | each | 8.0 |
-| Dry-type transformer, 75 kVA | each | 12.0 |
-| EMT 21 mm, run | metre | 0.12 |
-| Copper conductor #12 THHN | metre | 0.02 |
-| Feeder, 3C plus ground, 100A in EMT | metre | 0.45 |
+| Item | Unit | Category | Hours |
+|---|---|---|---|
+| Duplex receptacle, 15A, incl. box and device | each | device | 0.5 |
+| Single-pole switch | each | device | 0.4 |
+| 2x4 LED troffer | each | fixture | 0.75 |
+| Exit sign, LED | each | fixture | 0.6 |
+| Emergency battery unit with heads | each | fixture | 1.0 |
+| 20A branch circuit breaker, install | each | equipment | 0.3 |
+| 42-circuit panelboard, 225A, surface | each | equipment | 8.0 |
+| Dry-type transformer, 75 kVA | each | equipment | 12.0 |
+| EMT 21 mm, run | metre | conduit | 0.12 |
+| Copper conductor #12 THHN | metre | wire | 0.02 |
+| Feeder, 3C plus ground, 100A in EMT | metre | conduit | 0.45 |

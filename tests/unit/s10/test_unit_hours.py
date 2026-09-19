@@ -23,8 +23,13 @@ def found(description: str, unit: str = "each") -> str | None:
 
 
 def test_the_table_is_read_from_the_conventions_the_seat_also_reads() -> None:
-    assert UnitHourRow("2x4 LED troffer", "each", Decimal("0.75")) in TABLE
+    assert UnitHourRow("2x4 LED troffer", "each", Decimal("0.75"), "fixture") in TABLE
     assert len(TABLE) >= 10 and all(row.hours > 0 for row in TABLE)
+    # The table also states the waste class, so the seat does not choose it (spec 011, option B).
+    classes = {row.item: row.category for row in TABLE}
+    assert classes["20A branch circuit breaker, install"] == "equipment", "a breaker carries no waste"
+    assert classes["EMT 21 mm, run"] == "conduit" and classes["Copper conductor #12 THHN"] == "wire"
+    assert all(row.category for row in TABLE), "every listed material states its class"
 
 
 def test_a_file_with_no_table_gives_no_rows(tmp_path: Path) -> None:
@@ -89,3 +94,33 @@ def test_a_line_the_table_does_not_list_says_so() -> None:
 def test_without_a_table_the_calculator_behaves_as_it_always_did() -> None:
     assert calculate([item("2x4 LED troffer", 24)]).total_hours == Decimal("0")
     assert calculate([item("2x4 LED troffer", 24, unit_hours="0.75")]).total_hours == Decimal("18.00")
+
+
+def test_a_rule_is_the_tools_multiplication(tmp_path: Path) -> None:
+    """The conventions give branch conduit as 25 m for each circuit, and the wire as 3 conductors per
+    metre of it. Worked out by hand, conduit was right in 18 of 104 recorded takeoffs and wire in 16."""
+    conduit = QuantityItem("EMT 21 mm", "metre", "conduit", (Decimal(11),), "Branch", each=Decimal(25))
+    wire = QuantityItem(
+        "Copper conductor #12 THHN",
+        "metre",
+        "wire",
+        (Decimal(11),),
+        "Branch",
+        each=Decimal(25),
+        times=Decimal(3),
+    )
+    lines = calculate([conduit, wire], TABLE).lines
+    assert [str(line.quantity_with_waste) for line in lines] == ["288.8", "866.3"], "the reference figures"
+    assert [str(line.counted) for line in lines] == ["11", "11"], "what was counted is kept, not the product"
+    plain = calculate([QuantityItem("2x4 LED troffer", "each", "fixture", (Decimal(45),), "L")], TABLE)
+    assert str(plain.lines[0].quantity_with_waste) == "46", "a line with no rule is unchanged"
+
+
+def test_the_waste_class_comes_from_the_conventions_not_the_call() -> None:
+    """15 breakers became 16 in 45 of 104 recorded takeoffs, sent as a device, which carries 2 percent."""
+    as_device = QuantityItem("20A branch circuit breaker", "each", "device", (Decimal(15),), "Service")
+    line = calculate([as_device], TABLE).lines[0]
+    assert str(line.quantity_with_waste) == "15" and line.waste_category == "equipment"
+    unlisted = QuantityItem("Occupancy sensor", "each", "device", (Decimal(10),), "L")
+    assert calculate([unlisted], TABLE).lines[0].waste_category == "device", "the call still decides here"
+    assert calculate([as_device]).lines[0].waste_category == "device", "with no table, nothing changes"

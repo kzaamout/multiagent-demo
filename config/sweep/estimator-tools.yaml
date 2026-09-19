@@ -1,0 +1,29 @@
+# Does moving the rule and the waste class into the calculator move the price? (spec 011, option B.)
+# The same bed as figures-check-2 and deterministic-check, so the three compare directly: every seat on
+# Qwen 3.5 9B, the Reviewer on Gemma 4 12B, three runs each of the four scenarios. Run with:
+#   uv run python scripts/sweep.py config/sweep/estimator-tools.yaml --worker laptop
+#
+# Targets fixed before the runs, from specs/011-estimator-split/plan.md, for the Clean run family:
+# takeoff lines right 80 percent against 57, conduit, conductor and breaker lines right 85 percent
+# against 9 to 18, median price difference from the reference 8 percent against 17.6, priced runs within
+# 5 percent half against 6 of 42, and runs stopped at the Estimator no higher than 2 of 12. A fall in
+# takeoff accuracy with a rise in passes would mean the tool is smoothing over a worse takeoff, not
+# fixing one.
+label: estimator-tools
+datasets: [clean-run, planted-inconsistency, missing-price, missing-sheet]
+repeats: 3
+ceiling: 1.00
+max_minutes: 20
+blocker: answer
+blocker_by_dataset:
+  missing-sheet: escalate
+baseline_job: true
+baseline:
+  orchestrator: qwen3-5-9b
+  intake: qwen3-5-9b
+  estimator: qwen3-5-9b
+  pricing: qwen3-5-9b
+  writer: qwen3-5-9b
+  reviewer: gemma4-12b
+vary: {models: [], seats: []}
+whole: []
