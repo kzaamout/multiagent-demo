@@ -239,3 +239,52 @@ def test_correct_money_and_anything_that_is_not_money_pass_untouched() -> None:
     assert money_disagreements(good, PRICED) == []
     assert money_disagreements("Panel {{225 A|src:brief}} over {{99.25 hours|src:takeoff}}.", PRICED) == []
     assert money_disagreements("Nothing here.\n## Provenance\n{{$99.99|src:pricing}}", PRICED) == []
+
+
+SET = ("E-000", "E-001", "E-002", "E-101", "E-102")
+
+
+def test_a_concern_naming_a_sheet_that_really_is_absent_is_a_blocker() -> None:
+    """The Missing sheet scenario, as the Estimator actually wrote it in six of seven runs that failed to
+    escalate: it saw the problem exactly, filed it as a concern, and finished the takeoff."""
+    from app.live.deterministic import concern_names_an_absent_sheet
+
+    text = (
+        "Panel schedule LP-2 (E-003) referenced on E-001 and E-102 but not in drawing set per drawing index."
+    )
+    refusal = concern_names_an_absent_sheet([text], prepared(*SET))
+    assert refusal is not None
+    assert "E-003" in refusal and "E-001" not in refusal.split('"')[0], (
+        "only the absent sheet is named as missing"
+    )
+    assert "blocker, not a concern" in refusal and "needs_human" in refusal
+
+
+def test_a_concern_about_sheets_the_run_holds_is_left_alone() -> None:
+    from app.live.deterministic import concern_names_an_absent_sheet
+
+    rating = "Main breaker rating differs: E-001 shows 225 A, schedule E-002 shows 200 A. No schedule note explains it."
+    assert concern_names_an_absent_sheet([rating], prepared(*SET)) is None
+
+
+def test_an_absent_sheet_named_without_any_claim_of_absence_is_left_alone() -> None:
+    from app.live.deterministic import concern_names_an_absent_sheet
+
+    assert (
+        concern_names_an_absent_sheet(["Receptacle count taken from E-103 detail 2."], prepared(*SET)) is None
+    )
+
+
+def test_a_panel_named_as_missing_is_not_read_as_a_sheet() -> None:
+    from app.live.deterministic import concern_names_an_absent_sheet
+
+    assert (
+        concern_names_an_absent_sheet(["LP-2 has no schedule note on spare breakers."], prepared(*SET))
+        is None
+    )
+
+
+def test_the_concern_check_is_silent_when_nothing_was_prepared() -> None:
+    from app.live.deterministic import concern_names_an_absent_sheet
+
+    assert concern_names_an_absent_sheet(["E-003 is not in the set."], prepared()) is None

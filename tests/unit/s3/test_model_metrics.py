@@ -210,6 +210,10 @@ def test_reasons_are_grouped_so_a_pattern_shows() -> None:
     assert (
         categorise("verdict ready_with_assumptions contradicts the checklist grades") == "checklist_grading"
     )
+    quoted = 'a concern says E-003 is missing: "per the checklist the lookup returned". The estimating conventions make that a blocker, not a concern'
+    assert categorise(quoted) == "blocker_as_concern", (
+        "a quoted concern cannot pull the refusal into another category"
+    )
     assert categorise("something new") == "other"
 
 

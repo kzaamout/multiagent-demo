@@ -28,6 +28,7 @@ from app.live.context import build_context
 from app.live.deterministic import (
     assumptions_block,
     blocker_names_a_present_sheet,
+    concern_names_an_absent_sheet,
     money_disagreements,
     tag_advice,
 )
@@ -199,11 +200,20 @@ def estimator_blocker_is_real(reply: BaseModel, prepared: Any) -> str | None:
     return blocker_names_a_present_sheet(reply.blocker.description, prepared)
 
 
+def estimator_concern_is_a_missing_sheet(reply: BaseModel, prepared: Any) -> str | None:
+    """A finished takeoff whose concerns say a sheet is missing, when the manifest agrees (spec 010)."""
+    if not isinstance(reply, EstimatorReply) or reply.blocker is not None or prepared is None:
+        return None
+    texts = [item.text for item in (*reply.concerns, *reply.assumptions)]
+    return concern_names_an_absent_sheet(texts, prepared)
+
+
 def estimator_requirements(reply: BaseModel, tools_used: list[str], prepared: Any = None) -> str | None:
     """The Estimator rules, in the order a reader of the conventions would apply them."""
     return (
         estimator_blocker_is_real(reply, prepared)
         or estimator_blocker_is_not_a_concern(reply, tools_used)
+        or estimator_concern_is_a_missing_sheet(reply, prepared)
         or estimator_used_calculator(reply, tools_used)
     )
 

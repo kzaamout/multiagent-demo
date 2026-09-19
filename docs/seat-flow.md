@@ -92,7 +92,7 @@ It is the only component that changes stage, speaks to the human, writes the kno
 | **Does not see** | prices, Pricing's output, the knowledge file |
 | **Tools** | `vision_read_drawing`, `quantity_calculate` |
 | **Returns** | either a takeoff (`headline`, `summary`, `bom`, `labour`, `assumptions`, `concerns`) or a `blocker` alone |
-| **Refused when** | quantities did not come from the calculator, or a quantity or labour figure differs from what the calculator returned; a concern describes something the conventions call a blocker; a blocker names a sheet the run holds; the reply is not JSON or lacks required fields |
+| **Refused when** | quantities did not come from the calculator, or a quantity or labour figure differs from what the calculator returned; a concern describes something the conventions call a blocker; a blocker names a sheet the run holds; a concern says a sheet is missing and the run really does not hold it, which the conventions make a blocker; the reply is not JSON or lacks required fields |
 
 A rating disagreement between sheets is a concern, carried forward. A sheet listed in the index but absent
 from the set is a blocker. A sheet it has not opened yet is neither.

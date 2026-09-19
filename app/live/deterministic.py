@@ -85,6 +85,41 @@ def blocker_names_a_present_sheet(description: str, prepared: Any) -> str | None
     )
 
 
+def concern_names_an_absent_sheet(texts: Iterable[str], prepared: Any) -> str | None:
+    """A concern or assumption saying a sheet is missing, when the run really does not hold that sheet.
+
+    The mirror of the check above. On the Missing sheet scenario the Estimator saw the problem exactly,
+    wrote "Panel schedule LP-2 (E-003) referenced on E-001 and E-102 but not in drawing set per drawing
+    index" as a concern, and finished the takeoff: six of seven runs that failed to escalate did this. The
+    conventions make a panel with no schedule a blocker, and the manifest settles whether the sheet is
+    absent, so the seat is not asked to judge it twice.
+
+    It fires only when the text claims something is missing and names a sheet, shaped like this set's
+    sheets, that the manifest does not hold. A sheet the run holds never triggers it, so a concern about
+    a rating disagreement between two present sheets is left alone.
+    """
+    held = present_sheets(prepared)
+    if not held:
+        return None
+    prefixes = {sheet.split("-", 1)[0] for sheet in held}
+    for text in texts:
+        if not any(word in text.lower() for word in MISSING_WORDS):
+            continue
+        absent = [
+            sheet for sheet in sheets_named(text) if sheet.split("-", 1)[0] in prefixes and sheet not in held
+        ]
+        if absent:
+            names = ", ".join(absent)
+            return (
+                f"a concern says {names} is missing, and {names} is indeed not in the drawing set: "
+                f'"{text[:140]}". The estimating conventions make that a blocker, not a concern, because the '
+                "quantities on a missing sheet cannot be counted. Reply with the blocker shape alone, "
+                '{"blocker": {"description", "needs_human": true, "route_back_to": null}}, naming the sheet '
+                "and where it is referenced. If you mistyped the sheet number, correct it instead"
+            )
+    return None
+
+
 def sources_of_figure(figure: str, offered_context: str) -> list[str]:
     """Which offered sources contain this figure, by the headings the context slice is built from.
 

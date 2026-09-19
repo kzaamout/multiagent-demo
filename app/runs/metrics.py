@@ -30,6 +30,8 @@ CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     # is folded in rather than kept beside it.
     ("no_json", ("no json object",)),
     ("invalid_json", ("is not valid json",)),
+    # Early: this refusal quotes the seat's own concern, which may use any later category's words.
+    ("blocker_as_concern", ("blocker, not a concern",)),
     # Grading comes before shape. A correction naming the fix often contains the words "must" or "needs",
     # so bare "must" and "needs" in the shape list swallowed 68 Intake grading refusals and reported the
     # seat's largest problem as the wrong one. Shape now matches on the validator's own words.
@@ -55,7 +57,6 @@ CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("amount_not_in_sources", ("appear in nothing you were given",)),
     ("provenance_tags", ("provenance", "src:", "source id")),
     ("tool_not_used", ("price_list_lookup", "quantity_calculate", "as text instead of calling")),
-    ("blocker_as_concern", ("blocker, not a concern",)),
     ("output_limit", ("output limit", "max tokens")),
     ("provider_error", ("could not be reached",)),
 )

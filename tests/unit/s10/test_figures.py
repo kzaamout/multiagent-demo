@@ -272,3 +272,18 @@ def test_many_disagreements_become_one_short_refusal() -> None:
     assert summarise([]) is None
     text = summarise([f"line {i}" for i in range(9)], limit=3)
     assert text == "line 0; line 1; line 2; and 6 more of the same kind"
+
+
+def test_hours_written_by_the_seat_when_the_tool_rolled_up_none() -> None:
+    """Run cb5027fc: no unit_hours were passed, the tool returned 0, and the seat wrote 350.64 hours of its
+    own. The refusal has to say how to fix the call, because saying only that the figures differ brought
+    the same reply back twice and the run stopped."""
+    empty = {**CALCULATOR, "hours_by_group": {}, "total_hours": "0"}
+    labour = {"total_hours": 350.64, "by_group": {"Lighting": 40.5}}
+    problems = estimator_disagreements(BOM, labour, [("quantity_calculate", empty)])
+    assert (
+        len(problems) == 1
+        and "carried no unit_hours" in problems[0]
+        and "Call quantity_calculate again" in problems[0]
+    )
+    assert estimator_disagreements(BOM, {"total_hours": 0}, [("quantity_calculate", empty)]) == []
