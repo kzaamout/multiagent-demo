@@ -39,6 +39,7 @@ from app.live.figures import (
     pricing_disagreements,
     quantity_handover_disagreements,
     summarise,
+    verified_note,
 )
 from app.live.materials import CONFIG_DIR, DatasetFiles, build_materials
 from app.live.replies import (
@@ -156,6 +157,17 @@ def pricing_used_lookup(reply: BaseModel, tools_used: list[str]) -> str | None:
 
 
 SPECIALIST_REQUIREMENTS: dict[str, Requirement] = {}
+
+
+def latest_cost_summary(events: Any) -> dict[str, Any] | None:
+    """The cost summary of Pricing's latest completed output, which is what the draft was held against."""
+    found: dict[str, Any] | None = None
+    for event in events:
+        if event.type == "task.completed" and event.payload.get("agent_id") == "pricing":
+            result = event.payload.get("result")
+            if isinstance(result, dict) and isinstance(result.get("cost_summary"), dict):
+                found = result["cost_summary"]
+    return found
 
 
 def latest_bom(events: Any) -> list[dict[str, Any]]:
@@ -303,6 +315,10 @@ class LiveAgentSource:
             block = assumptions_block(specialist_concerns(self.o.events))
             if block:
                 slice_text = f"{slice_text}\n\n{block}"
+        if agent_id == "reviewer":
+            # Facts about what the engine already verified, with the price tool's own sum, and no
+            # instruction about what to raise (owner decision 2026-09-19).
+            slice_text = f"{slice_text}\n\n{verified_note(latest_cost_summary(self.o.events))}"
         return PromptBundle(
             prompt_ref=f"pb-{self.o.run_id[:8]}-{self._counter:02d}",
             system=load_instructions(

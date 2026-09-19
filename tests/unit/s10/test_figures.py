@@ -314,3 +314,19 @@ def test_an_amount_written_to_the_cent_stands_when_upstream_rounds_to_it() -> No
         "$19,127",
         "$19,127.0171",
     ]
+
+
+def test_the_reviewer_is_told_what_was_checked_and_never_what_to_find() -> None:
+    """Owner decision 2026-09-19: say the engine checked, do not tell the Reviewer to hold back a finding."""
+    from app.live.figures import verified_note
+
+    note = verified_note(
+        {"material": 20481.23, "markup": "3072.18", "labour": 13095.75, "total": "36,649.16"}
+    )
+    assert "material 20,481.23 + markup 3,072.18 + labour 13,095.75 = total 36,649.16" in note
+    assert "did not check any other sum" in note, "the limits of the check are stated as plainly as the check"
+    for forbidden in ("do not raise", "do not report", "ignore", "skip", "need not"):
+        assert forbidden not in note.lower()
+    partial = verified_note({"material": 1, "total": None})
+    assert "The price tool computed" not in partial, "a sum is only stated when all four figures are there"
+    assert "The price tool computed" not in verified_note(None)

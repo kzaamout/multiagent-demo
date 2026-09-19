@@ -326,3 +326,36 @@ def summarise(problems: list[str], limit: int = 6) -> str | None:
         return None
     more = len(problems) - limit
     return "; ".join(problems[:limit]) + (f"; and {more} more of the same kind" if more > 0 else "")
+
+
+def verified_note(cost_summary: Mapping[str, Any] | None) -> str:
+    """What the engine checked before a draft reached the Reviewer, stated as facts (owner decision
+    2026-09-19).
+
+    The Reviewer raised a blocker saying a total did not equal the sum of its parts while writing the
+    correct sum in its own evidence, and another model in the seat did the same on one clean draft in four.
+    By the time a draft is reviewed the engine has already held every amount against its source, so the
+    Reviewer is told that, with the tool's own sum. It is told nothing about what to raise: the owner was
+    clear that a note which discourages arithmetic findings would cost more than it saves, because the
+    engine checks only the four totals and a document can do other sums.
+    """
+    lines = [
+        "## What the engine checked before this draft reached you",
+        "These are exact comparisons made in code, given to you as facts about the document. They do not "
+        "limit what you may find.",
+        "- Every dollar amount in the document appears in something the Writer was given: the brief, a "
+        "specialist's output, or the client's standing facts. None was typed fresh by the Writer.",
+        "- Pricing's unit prices, extensions and totals are the price tool's own figures, to the cent.",
+    ]
+    parts = {key: number((cost_summary or {}).get(key)) for key in ("material", "markup", "labour", "total")}
+    if all(value is not None for value in parts.values()):
+        shown = {key: f"{value:,.2f}" for key, value in parts.items() if value is not None}
+        lines.append(
+            f"- The price tool computed: material {shown['material']} + markup {shown['markup']} + labour "
+            f"{shown['labour']} = total {shown['total']}."
+        )
+    lines.append(
+        "- The engine did not check any other sum the document shows, such as a schedule of values or "
+        "group subtotals, nor any quantity, rating, date or wording, nor whether anything is missing."
+    )
+    return "\n".join(lines)
