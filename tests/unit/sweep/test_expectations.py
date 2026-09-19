@@ -219,7 +219,7 @@ def test_each_rejection_lands_in_the_category_that_says_how_to_fix_it() -> None:
         "no JSON object found in the reply": "no_json",
         "the reply is not valid JSON (Expecting ',' delimiter)": "invalid_json",
         "bom.8.group: Field required": "wrong_shape",
-        "a completed takeoff needs headline, bom, and labour": "wrong_shape",
+        "this takeoff is missing a bill of materials with at least one line.": "wrong_shape",
         "these dollar amounts have no provenance tag: $95": "provenance_tags",
         "the Estimator's concern is not carried in the Assumptions section": "concern_dropped",
         "no price came from price_list_lookup": "tool_not_used",

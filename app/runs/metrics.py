@@ -36,7 +36,7 @@ CATEGORIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     # so bare "must" and "needs" in the shape list swallowed 68 Intake grading refusals and reported the
     # seat's largest problem as the wrong one. Shape now matches on the validator's own words.
     ("checklist_grading", ("checklist", "verdict", "clarification")),
-    ("wrong_shape", ("expected", "field required", "input should", "needs headline")),
+    ("wrong_shape", ("expected", "field required", "input should", "needs headline", "takeoff is missing")),
     ("compile_failed", ("does not compile",)),
     ("concern_dropped", ("concern is not carried", "no assumptions section")),
     # A figure that is not the one its tool returned, or not the Estimator's, and an amount in a draft
