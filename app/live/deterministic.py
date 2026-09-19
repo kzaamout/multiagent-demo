@@ -94,26 +94,28 @@ def concern_names_an_absent_sheet(texts: Iterable[str], prepared: Any) -> str | 
     conventions make a panel with no schedule a blocker, and the manifest settles whether the sheet is
     absent, so the seat is not asked to judge it twice.
 
-    It fires only when the text claims something is missing and names a sheet, shaped like this set's
-    sheets, that the manifest does not hold. A sheet the run holds never triggers it, so a concern about
-    a rating disagreement between two present sheets is left alone.
+    It fires when the text names a sheet, shaped like this set's sheets, that the manifest does not hold.
+    A sheet the run holds never triggers it, so a concern about a rating disagreement between two present
+    sheets is left alone. It first also required a word such as missing or absent, and the next miss read
+    "schedule E-003 will be provided later and is not required for initial tender". A list of words for
+    absence is a guess about phrasing; the manifest is the evidence. Without the word list it stays silent
+    on all 103 recorded takeoffs from the other datasets and catches 8 of 9 on Missing sheet, against 6.
     """
     held = present_sheets(prepared)
     if not held:
         return None
     prefixes = {sheet.split("-", 1)[0] for sheet in held}
     for text in texts:
-        if not any(word in text.lower() for word in MISSING_WORDS):
-            continue
         absent = [
             sheet for sheet in sheets_named(text) if sheet.split("-", 1)[0] in prefixes and sheet not in held
         ]
         if absent:
             names = ", ".join(absent)
             return (
-                f"a concern says {names} is missing, and {names} is indeed not in the drawing set: "
-                f'"{text[:140]}". The estimating conventions make that a blocker, not a concern, because the '
-                "quantities on a missing sheet cannot be counted. Reply with the blocker shape alone, "
+                f"your reply names {names}, and {names} is not in the drawing set you were given: "
+                f'"{text[:140]}". The estimating conventions make a sheet the drawings rely on and the set '
+                "lacks a blocker, not a concern, even when the brief expects it to arrive later, because its "
+                "quantities cannot be counted. Reply with the blocker shape alone, "
                 '{"blocker": {"description", "needs_human": true, "route_back_to": null}}, naming the sheet '
                 "and where it is referenced. If you mistyped the sheet number, correct it instead"
             )

@@ -267,12 +267,15 @@ def test_a_concern_about_sheets_the_run_holds_is_left_alone() -> None:
     assert concern_names_an_absent_sheet([rating], prepared(*SET)) is None
 
 
-def test_an_absent_sheet_named_without_any_claim_of_absence_is_left_alone() -> None:
+def test_an_absent_sheet_is_caught_however_the_seat_words_it() -> None:
+    """Run 5 of the six-run check: nothing here says missing or absent, and the sheet is not in the set.
+    The manifest is the evidence, so no list of words for absence is consulted."""
     from app.live.deterministic import concern_names_an_absent_sheet
 
-    assert (
-        concern_names_an_absent_sheet(["Receptacle count taken from E-103 detail 2."], prepared(*SET)) is None
-    )
+    later = "Panel LP-2 schedule E-003 will be provided later and is not required for initial tender."
+    refusal = concern_names_an_absent_sheet([later], prepared(*SET))
+    assert refusal is not None and "E-003" in refusal and "arrive later" in refusal
+    assert "If you mistyped" in refusal, "a sheet number typed wrongly has a way out that is not a blocker"
 
 
 def test_a_panel_named_as_missing_is_not_read_as_a_sheet() -> None:
