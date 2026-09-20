@@ -305,6 +305,8 @@ async def estimator(bundle: PromptBundle, folder: Path, dataset: str) -> Any:
     async for item in call.run():
         if item.kind == "reply":
             reply = item.reply
+    if os.environ.get("PROTOTYPE_DUMP") and reply is not None:
+        keep("Estimator", reply)
     return reply
 
 
@@ -348,9 +350,11 @@ async def once(prefix: str, dataset: str, what: str, index: int) -> str:
         first_panel: dict[str, Any] = next((p for p in schedule.panels), {})
         facts = (
             "\n\n## What the schedules state, read for you\n"
-            "These figures were read from the sheets' text by another seat. Where a material has a figure "
-            "here, use it: it is what the schedule says, and you do not need to count it again. Where it "
-            "reads not stated, count it or derive it as the conventions say.\n"
+            "Another seat read these figures from the sheets' text. Where a material has a figure here it "
+            "is the counted quantity, before waste: send it to quantity_calculate as the count and copy "
+            "back what the tool returns, exactly as you would a count of your own. Do not put these "
+            "numbers in the bill of materials directly, and do not count that material again on the "
+            "drawings. Where a figure reads not stated, count it or derive it as the conventions say.\n"
             f"{quantities}\n\n### The panel\n{json.dumps(first_panel)}\n"
         )
         bundle = PromptBundle.model_validate(json.loads(brief_prompt.read_text(encoding="utf-8")))
