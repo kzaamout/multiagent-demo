@@ -8,7 +8,7 @@ Counted findings need 3 or more refusals on the instructions that seat runs on n
 
 Instructions: `config/electrical-bid/seats/orchestrator.md`
 
-### route_drift (detected, 74)
+### route_drift (detected, 78)
 
 the run finished but not by the route its golden log records, so a rehearsed demo would show a different path than the one it was rehearsed on.
 
@@ -43,11 +43,11 @@ A second occurrence, for wording: the reply is not valid JSON (Expecting ',' del
 
 Instructions: `config/electrical-bid/seats/intake.md`
 
-### checklist_grading (counted, 29)
+### checklist_grading (counted, 30)
 
 the readiness grades and the verdict did not agree, or a gap was left unasked.
 
-Runs: 0cb817e8, 2e00d110, 326fc6a3, 36d64b03, 5924dc2f, 5ae5eeff, 6079b2ec, 61d9e1aa and more
+Runs: 0cb817e8, 2e00d110, 326fc6a3, 36d64b03, 54bace0d, 5924dc2f, 5ae5eeff, 6079b2ec and more
 
 Where the lesson belongs: seat instructions.
 
@@ -64,11 +64,11 @@ A second occurrence, for wording: 1 checklist items are not pass but there are 0
 
 Instructions: `config/electrical-bid/seats/estimator.md`
 
-### invented_blocker (detected, 6)
+### invented_blocker (detected, 8)
 
 a blocker was raised on planted-inconsistency, which plants none, so the run stopped for a human over something that was not missing.
 
-Runs: 0bc11b13, 130f8c38, cb33b02d, f6fa127e
+Runs: 0bc11b13, 130f8c38, 4842da4f, 54bace0d, cb33b02d, f6fa127e
 
 Where the lesson belongs: seat instructions.
 
@@ -81,11 +81,11 @@ Send instead: TO FILL, what the seat should have sent and why it is right
 
 A second occurrence, for wording: the dataset README plants no blocker here
 
-### figures_not_from_tool (counted, 8)
+### figures_not_from_tool (counted, 11)
 
 a figure in the reply is not the one its tool returned, or the tool call failed.
 
-Runs: 0bc11b13, 101fa236, 130f8c38, 812f6764, a3895a2f
+Runs: 0bc11b13, 101fa236, 130f8c38, 54bace0d, 812f6764, a3895a2f
 
 Where the lesson belongs: seat instructions.
 
@@ -98,11 +98,11 @@ Send instead: TO FILL, what the seat should have sent and why it is right
 
 A second occurrence, for wording: Dry-type transformer, 75 kVA: quantity 1.0 each is not a figure quantity_calculate returned. Send the line to quantity_calculate and copy its result; Copy the tool's figure. If the tool's figure is wrong because of what you sent it, the cou
 
-### wrong_shape (counted, 6)
+### wrong_shape (counted, 7)
 
 the seat sent valid JSON missing a field the reply must carry.
 
-Runs: 0bc11b13, 1d0c1321, fb90f7ac
+Runs: 0bc11b13, 1d0c1321, 54bace0d, fb90f7ac
 
 Where the lesson belongs: seat instructions.
 
@@ -115,11 +115,11 @@ Send instead: TO FILL, what the seat should have sent and why it is right
 
 A second occurrence, for wording: a completed takeoff needs headline, bom, and labour
 
-### blocker_as_concern (counted, 4)
+### blocker_as_concern (counted, 6)
 
 something that stops the work was carried as a concern.
 
-Runs: 0bc11b13, 1c5055c9, fb90f7ac
+Runs: 0bc11b13, 1c5055c9, e6000f27, fb90f7ac, fe7603ab
 
 Where the lesson belongs: seat instructions.
 
@@ -132,11 +132,11 @@ Send instead: TO FILL, what the seat should have sent and why it is right
 
 A second occurrence, for wording: your reply names E-003, and E-003 is not in the drawing set you were given: "Sheet E-003 is listed in the drawing index on E-000 but was not found when requested. Proceed with LP-1 data and flag this as a concern unti". The estimating conve
 
-### no_json (counted, 3)
+### no_json (counted, 6)
 
 the seat ended its turn on a progress line and never sent the JSON object.
 
-Runs: 317d82e9, f6fa127e
+Runs: 317d82e9, 4842da4f, e6000f27, f6fa127e
 
 Where the lesson belongs: seat instructions.
 
@@ -149,15 +149,32 @@ Send instead: TO FILL, what the seat should have sent and why it is right
 
 A second occurrence, for wording: no JSON object found in the reply
 
+### invalid_json (counted, 3)
+
+the seat sent JSON that could not be parsed, usually a brace or a quote.
+
+Runs: 0bc11b13, 557ac825, a509601c
+
+Where the lesson belongs: seat instructions.
+
+```
+6. TITLE THE LESSON IN ONE LINE
+Sent back: {"headline":"Panel LP-1 bus/main breaker conflict","summary":"The single-line diagram shows a 225 A main breaker while the panel schedule shows a 200 A main breaker and 225 A bus. Proceed with the sin
+The reason given: the reply is not valid JSON (Expecting ',' delimiter near ' value of 225 A.","drawing_ref":"E-001"}')
+Send instead: TO FILL, what the seat should have sent and why it is right
+```
+
+A second occurrence, for wording: the reply is not valid JSON (Expecting ',' delimiter near '25 m per circuit, rule applied"},"group":"Branch circuits and devices","descript')
+
 ## writer
 
 Instructions: `config/electrical-bid/seats/writer.md`
 
-### amount_not_in_sources (counted, 4)
+### amount_not_in_sources (counted, 5)
 
 the draft carried a dollar amount that appears in nothing the Writer was given.
 
-Runs: a3895a2f, cb33b02d
+Runs: a3895a2f, a509601c, cb33b02d
 
 Where the lesson belongs: seat instructions.
 

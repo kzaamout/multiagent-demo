@@ -1,0 +1,27 @@
+# Did the three refusals that stop the shipped pairing stop stopping it? (2026-09-19.)
+# The same bed as estimator-tools, so the two compare directly: every seat on Qwen 3.5 9B, the Reviewer on
+# Gemma 4 12B, three runs each of the four scenarios. Run with:
+#   uv run python scripts/sweep.py config/sweep/stop-fixes.yaml --worker laptop
+#
+# Targets fixed before the runs. Stops fall from 3 of 12 to 1 or none. No run stops on an empty takeoff, on
+# a line left out of the calculator call, or on a schedule of values subtotal. Takeoff lines right hold at
+# or above 69 percent and the median price difference at or below 17 percent: a fall in either would mean
+# the looser checks are letting worse work through, which is the risk in every one of these three changes.
+label: stop-fixes
+datasets: [clean-run, planted-inconsistency, missing-price, missing-sheet]
+repeats: 3
+ceiling: 1.00
+max_minutes: 20
+blocker: answer
+blocker_by_dataset:
+  missing-sheet: escalate
+baseline_job: true
+baseline:
+  orchestrator: qwen3-5-9b
+  intake: qwen3-5-9b
+  estimator: qwen3-5-9b
+  pricing: qwen3-5-9b
+  writer: qwen3-5-9b
+  reviewer: gemma4-12b
+vary: {models: [], seats: []}
+whole: []

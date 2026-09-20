@@ -28,7 +28,23 @@ CONTEXT = (
 
 
 def prepared(*sheet_numbers: str) -> SimpleNamespace:
-    return SimpleNamespace(sheets=[SimpleNamespace(sheet_number=n, sheet_id=n) for n in sheet_numbers])
+    return SimpleNamespace(
+        sheets=[SimpleNamespace(sheet_number=n, sheet_id=n, title="") for n in sheet_numbers]
+    )
+
+
+def with_titles(*pairs: tuple[str, str]) -> SimpleNamespace:
+    """The manifest as it really is: each sheet with its title, which says which panel a schedule covers."""
+    return SimpleNamespace(sheets=[SimpleNamespace(sheet_number=n, sheet_id=n, title=t) for n, t in pairs])
+
+
+SET_WITH_TITLES = (
+    ("E-000", "Legend, Drawing Index, General Notes"),
+    ("E-001", "Single-Line Diagram"),
+    ("E-002", "Panel Schedule LP-1"),
+    ("E-101", "Lighting Plan, Main Floor"),
+    ("E-102", "Power Plan, Main Floor"),
+)
 
 
 def test_a_blocker_for_a_sheet_the_run_holds_goes_back_with_the_evidence() -> None:
@@ -406,3 +422,28 @@ def test_a_concern_carried_in_its_own_words_is_carried() -> None:
     assert concern_problems(carried, concern) == [], "the concern's own sentence is what must be carried"
     message = concern_problems("# Draft\n\n## Assumptions\n\nNothing.\n", concern)[0]
     assert "E-002, E-001" in message or "E-001, E-002" in message, "the reference field still advises"
+
+
+def test_a_panel_whose_schedule_the_set_lacks_is_a_blocker() -> None:
+    """A Missing sheet run passed review with no blocker: the seat wrote "Panel LP-2 schedule is missing
+    from the drawing set" and named no sheet number, so the sheet check ignored it by design."""
+    from app.live.deterministic import concern_names_an_absent_panel
+
+    held = with_titles(*SET_WITH_TITLES)
+    refusal = concern_names_an_absent_panel(
+        ["Panel LP-2 schedule is missing from the drawing set; quantities for LP-2 were inferred."], held
+    )
+    assert refusal is not None and "LP-2" in refusal
+    assert "blocker, not a concern" in refusal and "needs_human" in refusal
+
+
+def test_a_panel_whose_schedule_the_set_holds_is_left_alone() -> None:
+    """E-002 is titled "Panel Schedule LP-1", so the run holds that schedule whatever the seat claims."""
+    from app.live.deterministic import concern_names_an_absent_panel
+
+    held = with_titles(*SET_WITH_TITLES)
+    assert concern_names_an_absent_panel(["Panel LP-1 schedule is missing from the set."], held) is None
+    assert concern_names_an_absent_panel(["LP-2 is fed from LP-1 by feeder F2."], held) is None
+    assert concern_names_an_absent_panel(["Schedule E-003 is not in the set."], held) is None
+    assert concern_names_an_absent_panel(["LP-1 bus is 225 A on E-001 but 200 A on E-002."], held) is None
+    assert concern_names_an_absent_panel(["Panel LP-2 schedule is missing."], with_titles()) is None

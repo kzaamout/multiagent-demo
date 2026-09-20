@@ -28,6 +28,7 @@ from app.live.context import build_context
 from app.live.deterministic import (
     assumptions_block,
     blocker_names_a_present_sheet,
+    concern_names_an_absent_panel,
     concern_names_an_absent_sheet,
     money_disagreements,
     tag_advice,
@@ -253,7 +254,7 @@ def estimator_concern_is_a_missing_sheet(reply: BaseModel, prepared: Any) -> str
     if not isinstance(reply, EstimatorReply) or reply.blocker is not None or prepared is None:
         return None
     texts = [item.text for item in (*reply.concerns, *reply.assumptions)]
-    return concern_names_an_absent_sheet(texts, prepared)
+    return concern_names_an_absent_sheet(texts, prepared) or concern_names_an_absent_panel(texts, prepared)
 
 
 def estimator_requirements(reply: BaseModel, tools_used: list[str], prepared: Any = None) -> str | None:

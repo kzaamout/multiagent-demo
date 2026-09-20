@@ -237,6 +237,37 @@ rather than removed, so a seat that still sends one is not refused, and it is go
 instructions. The Writer figures in this sweep therefore describe the older, stricter shape.
 
 
+**Measured after the stop fixes, 12 runs, 2026-09-19** (`config/sweep/stop-fixes.yaml`, the same bed as
+`estimator-tools`). Three refusals that ended runs in the shipped pairing were rewritten to say what to do:
+an empty takeoff now names what is empty and that a progress report is not a reply, a line left out of the
+calculator call is named as missing rather than as a wrong figure, and a schedule of values may add up the
+groups the Writer was given. All three make a check more permissive, so the targets were fixed beforehand
+in both directions: stops down, and accuracy no worse.
+
+| | `estimator-tools` | `stop-fixes` |
+|---|---|---|
+| Ended as the scenario expects | 9 of 12 | 10 of 12 |
+| Stopped | 3 | 1 |
+| Takeoff lines right | 69% | 76% |
+| Median price difference from the reference | 17.0% | 1.6% |
+| Priced runs within 5 percent | 2 of 8 | 5 of 8 |
+| Refusals in the bed | 28 | 13 |
+
+The price errors were 0.3, 0.3, 1.4, 1.5, 1.8, 9.4, 26.6 and 27.2 percent. Accuracy rose while stops fell,
+so the changes removed obstacles rather than hiding failures, which was the risk in all three. The gain is
+larger than the three fixes alone explain: an attempt not spent on a refusal is an attempt spent on the
+work, and a run that reaches the end is a run whose price gets measured at all.
+
+Two residuals, and only one of them is ours. A run stopped on the labour group refusal whose advice is
+already complete, telling the seat the tool put every line in one group because the call carried no group
+and to call again with a group on each line; the seat ignored it three times, and no rewording reaches
+that. And a Missing sheet run passed review with no blocker because the seat wrote "Panel LP-2 schedule is
+missing from the drawing set", naming no sheet number, so the sheet check of item 1.8 ignored it by design.
+That is the same failure wearing a different label, and `concern_names_an_absent_panel` closes it: the
+manifest carries each sheet's title, a panel schedule's title says which panel it covers, so whether the
+run holds a schedule for a named panel is a lookup. Replayed over 204 recorded takeoffs it is silent on all
+194 from the other datasets and catches 6 of the 10 on Missing sheet.
+
 ## Teaching, which runs alongside every phase
 
 Not a phase, because it never finishes. `scripts/prompt_review.py` reads the refusals a seat still produces on the wording it runs on now, and the lesson is written into that seat's instructions by a person (decision 23). It has already taken Pricing from fifteen tool-skipping refusals to none and removed narration at three seats.
