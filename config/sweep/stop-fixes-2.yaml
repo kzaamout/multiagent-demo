@@ -1,0 +1,23 @@
+# The same bed again, to find out whether 1.6 percent was real or lucky (2026-09-19).
+# stop-fixes put the median price difference from the reference at 1.6 percent over 8 priced runs, down
+# from 17.0. One bed of twelve is not enough to act on, and the case for splitting the Estimator turns on
+# it: if the seat as it stands is within a couple of percent, the split has little left to win. Run with:
+#   uv run python scripts/sweep.py config/sweep/stop-fixes-2.yaml --worker laptop
+label: stop-fixes-2
+datasets: [clean-run, planted-inconsistency, missing-price, missing-sheet]
+repeats: 3
+ceiling: 1.00
+max_minutes: 20
+blocker: answer
+blocker_by_dataset:
+  missing-sheet: escalate
+baseline_job: true
+baseline:
+  orchestrator: qwen3-5-9b
+  intake: qwen3-5-9b
+  estimator: qwen3-5-9b
+  pricing: qwen3-5-9b
+  writer: qwen3-5-9b
+  reviewer: gemma4-12b
+vary: {models: [], seats: []}
+whole: []
