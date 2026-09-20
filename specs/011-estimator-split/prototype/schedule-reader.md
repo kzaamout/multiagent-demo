@@ -11,8 +11,9 @@ How to work
 2. From the materials schedule, record every material once, with the mark, the description and the unit exactly as written. These words are the vocabulary the rest of the team uses, so copy them, do not improve them.
 3. From each panel schedule, record the panel's name, its bus rating and its main breaker rating as that schedule states them, the number of circuits in use, and the number of spare breakers. Record the sheet each figure came from.
 4. From the single-line diagram, record each panel's bus rating and main breaker rating as the single-line states them, and each feeder with its tag, description and length in metres.
-5. Where a schedule states a count in words, record it. A circuit description such as "Lighting, reading room (16 troffers)" states a count of 16 troffers; add the counts for one material across circuits and record the total, with the sheet.
-6. Record what you could not read as a concern. Never guess a figure.
+5. Record a count for every piece of equipment the single-line shows, such as one transformer or one panelboard. The schedule counts devices and fixtures; the single-line is where a single piece of equipment is recorded, and a material with no count anywhere leaves the team guessing.
+6. Where a schedule states a count in words, record it. A circuit description such as "Lighting, reading room (16 troffers)" states a count of 16 troffers; add the counts for one material across circuits and record the total, with the sheet.
+7. Record what you could not read as a concern. Never guess a figure.
 
 You record what each sheet says. You do not reconcile two sheets that disagree, and you do not say which is right: record both, and the engine compares them.
 
