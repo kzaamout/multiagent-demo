@@ -16,6 +16,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.responses import Response
+from starlette.types import Scope
 
 from app.agents.stubs import bundle_for
 from app.auth import (
@@ -60,6 +62,17 @@ KEEPALIVE_SECONDS = 15.0
 def _attr(value: str) -> str:
     """A value safe inside a double-quoted HTML attribute."""
     return value.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+class RevalidatedStaticFiles(StaticFiles):
+    """Static files the browser must check with the server before each use (spec 012 research D16).
+    Without it a page served after an update can run a cached older script; an unchanged file costs
+    one 304 by its ETag."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
 
 
 def run_clock(orchestrator: Orchestrator) -> dict[str, Any]:
@@ -176,7 +189,7 @@ def create_app(
     # The shared login (S7, app.auth): inert until both credentials are set in .env.
     app.add_middleware(LoginGuard, settings=cfg, store=sessions)
 
-    app.mount("/static", StaticFiles(directory=cfg.static_dir), name="static")
+    app.mount("/static", RevalidatedStaticFiles(directory=cfg.static_dir), name="static")
 
     def page(name: str, extra: dict[str, str] | None = None) -> HTMLResponse:
         path = cfg.pages_dir / f"{name}.html"
