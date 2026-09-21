@@ -762,3 +762,90 @@ def test_single_model_run_through_the_page(page: Any, server: tuple[str, Path]) 
     )
     assert labels == ["Calls", "Tokens in / out", "Cost", "Wall time", "Latency", "Last event"]
     assert page.errors == []
+
+
+def _guide_runs(runs: Path) -> int:
+    """A runs folder for the seat model guide (spec 014): known picks, a thin record and empty slots."""
+    from tests.unit.guide.support import seed
+
+    folders = [
+        *seed(runs, "pricing", "qwen3.5 9b, local", 6, 226, 212),
+        *seed(runs, "pricing", "gemma4 12b, local", 5, 5, 5),
+        *seed(runs, "estimator", "claude-sonnet-5 via Bedrock", 5, 31, 29, provider="bedrock"),
+        *seed(runs, "writer", "qwen3.5 9b, local", 3, 30, 12),
+        *seed(runs, "intake", "claude-sonnet-5 via Bedrock", 4, 10, 10, provider="bedrock"),
+    ]
+    return len(folders)
+
+
+def test_settings_names_the_top_models_beside_each_seat(page: Any, tmp_path: Path) -> None:
+    """Spec 014, US1 and US2: the two picks per seat, the current model's figure in its button, the line
+    under the title and the foot note, with thin records never named and empty slots saying why. Served
+    from its own runs folder, in a fresh context on the module's browser (one Playwright per thread)."""
+    from app.live.providers import Availability, ModelConfig
+
+    runs = tmp_path / "runs"
+    counted = _guide_runs(runs)
+    available = {name: Availability(name, True, "test") for name in ("bedrock", "google", "xai", "ollama")}
+    app = create_app(
+        Settings(runs_dir=runs, agent_mode="stub"), model_config=ModelConfig.load(), availability=available
+    )
+    port = free_port()
+    srv = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
+    thread = threading.Thread(target=srv.run, daemon=True)
+    thread.start()
+    deadline = time.time() + 20
+    while not srv.started and time.time() < deadline:
+        time.sleep(0.05)
+    context = page.context.browser.new_context(viewport={"width": 1920, "height": 1080})
+    try:
+        pg = context.new_page()
+        errors: list[str] = []
+        asked: list[str] = []
+        pg.on("pageerror", lambda exc: errors.append(str(exc)))
+        pg.on("request", lambda req: asked.append(req.url) if "/api/seats" in req.url else None)
+        pg.goto(f"http://127.0.0.1:{port}/settings")
+        pg.wait_for_selector('.seat-row[data-seat="reviewer"] .seat-guide')
+
+        def line(seat: str, kind: str) -> str:
+            selector = f'.seat-row[data-seat="{seat}"] .guide-line[data-kind="{kind}"]'
+            return str(pg.inner_text(selector + " .guide-value"))
+
+        assert pg.inner_text('.seat-row[data-seat="pricing"] .guide-line[data-kind="open"] .guide-kind') == (
+            "Top open model"
+        )
+        assert line("pricing", "open") == "qwen3.5 9b, local · 94% (212 of 226 replies)"
+        assert line("pricing", "proprietary") == "no runs yet"
+        assert line("estimator", "proprietary") == "claude-sonnet-5 via Bedrock · 94% (29 of 31 replies)"
+        assert line("intake", "proprietary") == "none with 5 runs on this seat yet", "4 runs is not enough"
+        assert line("writer", "open") == "none with 5 runs on this seat yet", "3 runs is not enough"
+        writer = '.seat-row[data-seat="writer"]'
+        assert pg.inner_text(writer + " .select-model-name") == "qwen3.5 9b, local"
+        assert pg.inner_text(writer + " .select-fig") == "40% (12 of 30)", "shown whatever its runs"
+        assert pg.inner_text('.seat-row[data-seat="reviewer"] .select-fig') == "no runs yet"
+        for seat in ("case", "market"):
+            assert pg.locator(f'.seat-row[data-seat="{seat}"] .seat-guide').count() == 0
+            assert pg.locator(f'.seat-row[data-seat="{seat}"] .select-fig').count() == 0
+        cards = pg.eval_on_selector_all(
+            ".seat-row [data-part='agent-card'] [data-part='model']", "n => n.map(x => x.textContent)"
+        )
+        assert cards and not any("%" in text for text in cards), "the card's model line is the label alone"
+        # The page defines the figure in the words the report uses (FR-013).
+        from app.runs.guide import INSTRUCTION_ACCURACY
+
+        note = pg.inner_text("#guide-note")
+        assert note.startswith(f"Instruction accuracy is {INSTRUCTION_ACCURACY}.")
+        assert note.endswith(f"Figures from {counted} recorded runs.")
+        foot = pg.inner_text("[data-part='guide-foot']")
+        assert f"Instruction accuracy is {INSTRUCTION_ACCURACY}" in foot
+        assert "Behaviour accuracy" in foot and "price" in foot
+        assert len(asked) == 1, "one request for the seat table, and no polling"
+        pg.click('.seat-row[data-seat="estimator"] .model-select')
+        pg.wait_for_selector('.seat-row[data-seat="estimator"] .menu .menu-item')
+        menu = pg.inner_text('.seat-row[data-seat="estimator"] .menu')
+        assert "%" not in menu and pg.locator(".menu .select-fig").count() == 0
+        assert errors == []
+    finally:
+        context.close()
+        srv.should_exit = True
+        thread.join(timeout=5)

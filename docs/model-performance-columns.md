@@ -11,8 +11,8 @@ Generated with `docs/model-performance.md` and `docs/model-performance-runs.csv`
 - **Runs**: runs in which the seat made at least one call or reply on this model with these settings
 - **Calls**: model calls the seat made across those runs, from meter.update events
 - **Stopped runs**: times the seat ran out of attempts and the run ended because of it; the ranking uses this as a share of the model's runs, so a model is not favoured for having been tried less
-- **Accuracy**: checks met over checks defined: the dataset's own expectations of the seat, or the golden match where the dataset defines none for it (app/runs/expectations.py)
-- **First time**: share of accepted replies that needed no correction
+- **Behaviour accuracy**: checks met over checks defined: the dataset's own expectations of the seat, or the golden match where the dataset defines none for it (app/runs/expectations.py)
+- **Instruction accuracy**: the share of a seat's replies the Orchestrator accepted the first time it checked them against the seat's instructions, where a reply the run stopped on counts as not accepted; the figure the Settings page shows
 - **Corrections**: replies accepted on the second attempt, after one refusal
 - **Tokens in per call**: average prompt tokens per call
 - **Tokens out per call**: average completion tokens per call
@@ -66,13 +66,13 @@ The same meanings as above, except where a per-model view changes them.
 - **checks_total**: correctness checks defined for the seat on the dataset
 - **checks**: each check as name=1 or name=0 separated by semicolons
 
-## How Accuracy is scored
+## How Behaviour accuracy is scored
 
 Each dataset README states its planted defect and what each seat should do about it. `app/runs/expectations.py` turns that into checks per seat: Intake stops the not-ready request naming the deadline and the specification; the Estimator raises the LP-2 blocker on Missing sheet and names E-001 and E-002 on Planted inconsistency; Pricing reports the exit sign unpriced on Missing price; the Writer's first draft carries the disagreement or the exclusion; the Reviewer fails the flawed first draft and passes the clean one; the Orchestrator takes the golden route. A seat with no check on a dataset is scored on the run's golden match, and a dataset without a golden scores nothing.
 
-## What Accuracy does not measure, and the price tables that do
+## What Behaviour accuracy does not measure, and the price tables that do
 
-Accuracy never looks at a number. Every check above is about behaviour: did the run stop, reach Work, raise the blocker, carry the concern, pass review. A Clean run whose only Estimator check is that no blocker was raised scores 100 percent with a price a fifth too high. The price tables measure the number, for scenarios whose drawings state their own quantities, and are kept out of Accuracy and out of the ranking on purpose (owner decision 2026-09-19). The reference is computed by `app/runs/reference.py` from the counted quantities with the app's own calculator and price lookup, and each run stores its comparison under `price_check` in its `metrics.json`.
+Behaviour accuracy never looks at a number, and neither does instruction accuracy. Every check above is about behaviour: did the run stop, reach Work, raise the blocker, carry the concern, pass review. A Clean run whose only Estimator check is that no blocker was raised scores 100 percent with a price a fifth too high. The price tables measure the number, for scenarios whose drawings state their own quantities, and are kept out of Behaviour accuracy and out of the ranking on purpose (owner decision 2026-09-19). The reference is computed by `app/runs/reference.py` from the counted quantities with the app's own calculator and price lookup, and each run stores its comparison under `price_check` in its `metrics.json`.
 
 - **Estimator model**: the model in the Estimator seat, whose takeoff drives the price
 - **Priced runs**: runs on a scenario with a reference price that reached a priced total
@@ -84,4 +84,8 @@ Accuracy never looks at a number. Every check above is about behaviour: did the 
 
 ## How the best local model is chosen
 
-Among local (Ollama) models with at least 5 runs on the seat: fewest stopped runs first, then the highest accuracy, then the highest first-time rate, then the fastest call (owner decision 2026-09-17). At the Estimator only, the share of takeoff lines matching the dataset's reference quantities ranks second, ahead of accuracy, because that seat's behaviour checks amount to whether it raised a blocker while its real job is reading the drawings. The reported Accuracy column is behaviour everywhere, and the price is reported separately (owner decisions 1b of 2026-09-19 and the ranking left to the author).
+Among local (Ollama) models with at least 5 runs on the seat: fewest stopped runs first, then the highest behaviour accuracy, then the highest instruction accuracy, then the fastest call (owner decision 2026-09-17). At the Estimator only, the share of takeoff lines matching the dataset's reference quantities ranks second, ahead of behaviour accuracy, because that seat's behaviour checks amount to whether it raised a blocker while its real job is reading the drawings. The reported Behaviour accuracy column is behaviour everywhere, and the price is reported separately (owner decisions 1b of 2026-09-19 and the ranking left to the author).
+
+## How the top models per seat are chosen
+
+The two models the Settings page names beside each seat, worked out by the same code (`app/runs/guide.py`) from the same runs. Instruction accuracy is the share of a seat's replies the Orchestrator accepted the first time it checked them against the seat's instructions, over every recorded run whatever version of the instructions or settings it used, and a reply the run stopped on counts as not accepted. A model is named after 5 runs on the seat; among those, the pick has the highest low end of the 95% confidence range around its share (the Wilson score interval), so a long record counts for more than a short perfect one. Whether a model is open or proprietary is the `weights` it states in `config/models.yaml`, and a model without image input is never named for the Estimator or the Reviewer (owner decisions of 2026-09-21, spec 014).

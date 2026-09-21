@@ -38,6 +38,7 @@ A sales demo that shows several AI agents, under an orchestrator, taking a busin
 - Dependency rationale record: `docs/dependencies.md`
 - Deviations found while building (design/ is never edited): `docs/design-deviations.md`
 - Model performance per seat, captured on every run: `docs/model-performance.md` with the raw rows in `docs/model-performance-runs.csv` and every column defined in `docs/model-performance-columns.md`, refreshed with `uv run python scripts/model_report.py --write`; sweeps over seats and models: `uv run python scripts/sweep.py config/sweep/<plan>.yaml`
+- Top open and proprietary model per seat, shown on Settings and in the report from one calculation: `app/runs/guide.py`; each model's open or proprietary kind is `weights` in `config/models.yaml`
 - What the runs say to teach a seat next, suggested from its own refusals and never applied automatically: `uv run python scripts/prompt_review.py --write` writes `docs/prompt-review.md`
 - Figure checks (a specialist's numbers against its tool's result, Pricing's quantities against the Estimator's, the draft's amounts against what the Writer was given): `app/live/figures.py`; replayed over recorded runs at no model cost with `uv run python scripts/replay_figures.py`
 - A run's price against what the job should cost, stored per run as `price_check` and reported apart from accuracy: `app/runs/reference.py`

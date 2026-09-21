@@ -23,6 +23,7 @@ models:
     provider: bedrock
     model_id: us.anthropic.claude-sonnet-5
     label: claude-sonnet-5 via Bedrock
+    weights: proprietary          # open: published weights anyone can run; proprietary: served only by its vendor (spec 014)
     image_input: true
     temperature: false            # rejects any non-default temperature
     max_tokens: 16000             # a full bill of materials reply is long; the provider default cut it off
@@ -33,6 +34,7 @@ models:
     provider: bedrock
     model_id: us.anthropic.claude-sonnet-4-6
     label: claude-sonnet-4.6 via Bedrock
+    weights: proprietary
     image_input: true
     temperature: true
     price_in: 3.30
@@ -41,6 +43,7 @@ models:
     provider: bedrock
     model_id: us.anthropic.claude-haiku-4-5-20251001-v1:0
     label: claude-haiku-4.5 via Bedrock
+    weights: proprietary
     image_input: true
     temperature: true
     price_in: 1.10
@@ -49,6 +52,7 @@ models:
     provider: google
     model_id: gemini/gemini-2.5-pro
     label: gemini-2.5-pro via Google
+    weights: proprietary
     image_input: true
     temperature: true
     price_in: 1.25
@@ -57,6 +61,7 @@ models:
     provider: google
     model_id: gemini/gemini-3.8-flash
     label: gemini-3.8-flash via Google
+    weights: proprietary
     image_input: true
     temperature: true
     price_in: 0.75
@@ -65,6 +70,7 @@ models:
     provider: xai
     model_id: xai/grok-4.6
     label: grok-4.6 via xAI
+    weights: proprietary
     image_input: true
     temperature: true
     price_in: 2.00
@@ -73,6 +79,7 @@ models:
     provider: ollama
     model_id: llama3.1:8b
     label: llama3.1 8b, local
+    weights: open
     image_input: false
     temperature: true
     options: {num_ctx: 16384}     # Ollama defaults to 4K on GPUs under 24 GB and drops overflow silently
@@ -82,6 +89,7 @@ models:
     provider: ollama
     model_id: qwen3.5:9b
     label: qwen3.5 9b, local
+    weights: open
     image_input: true
     temperature: true
     options: {num_ctx: 65536}     # five drawing pages at about 4,800 tokens each fit; 7.6 GB on a 12 GB card
@@ -92,6 +100,7 @@ models:
     provider: ollama
     model_id: gemma4:12b
     label: gemma4 12b, local
+    weights: open
     image_input: true
     temperature: true
     options: {num_ctx: 16384}
@@ -102,6 +111,7 @@ models:
     provider: ollama
     model_id: granite4.1:8b
     label: granite4.1 8b, local
+    weights: open
     image_input: false
     temperature: true
     options: {num_ctx: 16384}
@@ -111,6 +121,7 @@ models:
     provider: ollama
     model_id: qwen3.5:4b
     label: qwen3.5 4b, local
+    weights: open
     image_input: true
     temperature: true
     options: {num_ctx: 65536}     # the small sibling of the 9b, same context so the drawing pages fit (sweep, 2026-09-17)
@@ -121,6 +132,7 @@ models:
     provider: ollama
     model_id: deepseek-r1:14b
     label: deepseek-r1 14b, local
+    weights: open
     image_input: false            # a Qwen 2.5 distillation on R1 reasoning traces; text only, so never the Estimator or the Reviewer
     temperature: true
     options: {num_ctx: 16384}     # 9 GB of weights on the 12 GB card leaves no room for a 64K context

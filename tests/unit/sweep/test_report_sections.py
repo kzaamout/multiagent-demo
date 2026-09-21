@@ -118,8 +118,8 @@ def test_settings_from_the_attempt_log_reach_the_metrics_and_the_csv(tmp_path: P
     )
     assert set(name for name, _ in module.TABLE_COLUMNS) >= {
         "Stopped runs",
-        "Accuracy",
-        "First time",
+        "Behaviour accuracy",
+        "Instruction accuracy",
         "Corrections",
     }
 
@@ -290,12 +290,13 @@ def test_the_seat_table_measures_the_seat_across_every_model_that_held_it() -> N
     assert cell(lines, "| writer |", "Prompt versions") == "2", "its wording has been rewritten once"
     assert cell(lines, "| writer |", "Runs") == "3"
     assert cell(lines, "| writer |", "Stopped runs") == "2 (67%)", "it stopped two of its three runs"
-    assert cell(lines, "| writer |", "Accuracy") == "0/3 (0%)"
-    assert cell(lines, "| writer |", "First time") == "0%"
+    assert cell(lines, "| writer |", "Behaviour accuracy") == "0/3 (0%)"
+    assert cell(lines, "| writer |", "Instruction accuracy") == "0%"
 
 
 def test_at_the_estimator_the_takeoff_outranks_behaviour(monkeypatch: Any) -> None:
-    """The owner kept price out of the reported Accuracy and left the ranking to the author (2026-09-19).
+    """The owner kept price out of the reported Behaviour accuracy and left the ranking to the author
+    (2026-09-19).
     A Clean run's whole Estimator check is that it raised no blocker, which a model passes while reading
     half the drawing wrong, so at that seat the takeoff ranks second and behaviour third."""
     module = load_report()
@@ -324,3 +325,70 @@ def test_at_the_estimator_the_takeoff_outranks_behaviour(monkeypatch: Any) -> No
     assert "obedient, local" in writer_row.split("|")[2], (
         "accuracy still ranks second away from the Estimator"
     )
+
+
+def _guide_folder(runs: Path) -> None:
+    from tests.unit.guide.support import seed
+
+    seed(runs, "pricing", "qwen3.5 9b, local", 6, 226, 212)
+    seed(runs, "estimator", "claude-sonnet-5 via Bedrock", 5, 31, 29, provider="bedrock")
+    seed(runs, "estimator", "qwen3.5 9b, local", 7, 70, 30)
+    seed(runs, "intake", "claude-sonnet-5 via Bedrock", 4, 10, 10, provider="bedrock")
+
+
+def test_the_report_names_both_accuracies_and_never_a_bare_one(tmp_path: Path) -> None:
+    """Spec 014 clarification B: "First time" reads "Instruction accuracy" and "Accuracy" reads
+    "Behaviour accuracy" in every table and heading; the raw CSV keeps its column names."""
+    from app.live.providers import ModelConfig
+
+    module = load_report()
+    _guide_folder(tmp_path / "runs")
+    groups, runs = module.collect(tmp_path / "runs")
+    text = module.report(groups, runs, probe=False, config=ModelConfig.load()) + module.columns_document()
+    lines = text.splitlines()
+    headers = [
+        [c.strip() for c in line.strip("|").split("|")]
+        for line, below in zip(lines, lines[1:], strict=False)
+        if line.startswith("| ") and below.startswith("|---")
+    ]
+    assert headers and all("Accuracy" not in h and "First time" not in h for h in headers)
+    assert any("Instruction accuracy" in h for h in headers) and any(
+        "Behaviour accuracy" in h for h in headers
+    )
+    assert not any(
+        line.startswith("## ") and " Accuracy" in line.replace("Behaviour Accuracy", "") for line in lines
+    )
+    committed = (ROOT / "docs" / "model-performance-runs.csv").read_text(encoding="utf-8").splitlines()[0]
+    assert committed.split(",") == [name for name, _ in module.CSV_COLUMNS], "the CSV's column names stay"
+
+
+def test_the_report_and_the_settings_page_name_the_same_models(tmp_path: Path) -> None:
+    """SC-002: one runs folder, one calculation, the same picks, percentages and counts in both places."""
+    from app.live.providers import ModelConfig
+    from app.runs.guide import SEAT_ORDER, SeatGuide
+
+    module = load_report()
+    config = ModelConfig.load()
+    _guide_folder(tmp_path / "runs")
+    _, runs = module.collect(tmp_path / "runs")
+    section = module.top_models_section(runs, config)
+    page = SeatGuide(tmp_path / "runs").table(config)["seats"]
+
+    def expected(pick: dict[str, Any]) -> list[str]:
+        if pick["status"] == "pick":
+            return [
+                pick["model"],
+                f"{pick['percent']}% ({pick['first_time']} of {pick['replies']})",
+                str(pick["runs"]),
+            ]
+        if pick["status"] == "too_few_runs":
+            return ["none with 5 runs on this seat yet", "", ""]
+        return ["no runs yet", "", ""]
+
+    for seat in SEAT_ORDER:
+        row = next(line for line in section if line.startswith(f"| {seat} |"))
+        cells = [c.strip() for c in row.strip().strip("|").split("|")]
+        assert cells == [seat, *expected(page[seat]["open"]), *expected(page[seat]["proprietary"])], seat
+    estimator = next(line for line in section if line.startswith("| estimator |"))
+    assert "claude-sonnet-5 via Bedrock | 94% (29 of 31) | 5" in estimator
+    assert "Models not classified as open or proprietary: none." in section
