@@ -482,8 +482,30 @@ class EstimatorReply(BaseModel):
     blocker: EstimatorBlocker | None = None
 
     def check(self) -> None:
-        if self.blocker is None and (not self.bom or self.labour is None or not self.headline):
-            raise ReplyError("a completed takeoff needs headline, bom, and labour")
+        if self.blocker is not None:
+            return
+        # "a completed takeoff needs headline, bom, and labour" named the shape and not the fault, and the
+        # seat sent the same empty reply three times: 2 of the 7 stops in the shipped pairing were this.
+        # What it actually sends is a progress report with an empty bill of materials.
+        missing = [
+            name
+            for name, empty in (
+                ("a bill of materials with at least one line", not self.bom),
+                ("labour", self.labour is None),
+                ("a headline", not self.headline),
+            )
+            if empty
+        ]
+        if not missing:
+            return
+        advice = (
+            " An empty bill of materials is a progress report, not a takeoff: read the sheets with "
+            "vision_read_drawing, total every line with quantity_calculate, and reply once the work is "
+            "done. Reply with the blocker shape instead only if something stops the takeoff."
+            if not self.bom
+            else ""
+        )
+        raise ReplyError(f"this takeoff is missing {', and '.join(missing)}.{advice}")
 
 
 # Pricing

@@ -236,9 +236,13 @@ def estimator_disagreements(
                     f"returned {source.get('quantity_with_waste')} with waste"
                 )
         elif not any(u == _key(line.get("unit")) and _same(quantity, q, THOUSANDTH) for u, q in produced):
+            # Naming the figure read as a wrong number to a seat that had called the tool nine times, and
+            # it sent the same reply three times over: the fault is a line left out of the call, usually a
+            # single item such as a transformer, so the refusal names the omission.
             problems.append(
-                f"{line.get('description')}: quantity {line.get('quantity')} {line.get('unit')} is not a "
-                "figure quantity_calculate returned. Send the line to quantity_calculate and copy its result"
+                f"{line.get('description')} is in your bill of materials and was not one of the "
+                f"{len(tool_lines)} lines you sent to quantity_calculate. Send every line, including a "
+                "single item whose quantity is 1, and copy the quantities it returns"
             )
     if any("quantity_calculate returned" in problem for problem in problems):
         # The tool's figure is only as good as the call. A seat sent a panelboard under a category that
@@ -345,7 +349,31 @@ def held_to_the_cent(value: Decimal | None, held: set[Decimal]) -> bool:
     return any(h.quantize(cents, rounding=ROUND_HALF_UP) == value for h in held)
 
 
-def amounts_not_in_context(amounts: Iterable[str], offered_context: str) -> list[str]:
+def group_subtotals(
+    estimator_bom: Iterable[Mapping[str, Any]], priced_bom: Iterable[Mapping[str, Any]]
+) -> set[Decimal]:
+    """What a schedule of values may legitimately add up: the priced lines of one group.
+
+    A brief that asks for a schedule of values asks the Writer for arithmetic, and every amount check
+    before this refused those subtotals because no output holds them. The sums are computable from the two
+    outputs the Writer was given, so they are computed rather than trusted, and only these sums are
+    allowed: any other total the Writer invents is still refused.
+    """
+    groups: dict[str, Decimal] = {}
+    by_description = {_key(line.get("description")): line for line in estimator_bom}
+    for line in priced_bom:
+        extended = number(line.get("extended"))
+        source = by_description.get(_key(line.get("description")))
+        if extended is None or source is None:
+            continue
+        name = _key(source.get("group"))
+        groups[name] = groups.get(name, Decimal("0")) + extended
+    return {value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) for value in groups.values()}
+
+
+def amounts_not_in_context(
+    amounts: Iterable[str], offered_context: str, also: Iterable[Decimal] = ()
+) -> list[str]:
     """Dollar amounts a draft carries that appear nowhere in what the Writer was given.
 
     This replaces the rule that every dollar amount must carry a tag. That rule had to decide what counts
@@ -353,7 +381,7 @@ def amounts_not_in_context(amounts: Iterable[str], offered_context: str) -> list
     extensions. Whether a number exists upstream is a lookup. It catches an invented amount whether or not
     it is tagged, and it lets through any amount the specialists really produced.
     """
-    held = numbers_in(offered_context)
+    held = numbers_in(offered_context) | set(also)
     return [a for a in dict.fromkeys(amounts) if not held_to_the_cent(number(a.rstrip(".")), held)]
 
 

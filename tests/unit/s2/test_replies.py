@@ -73,7 +73,7 @@ def test_estimator_blocker_or_complete() -> None:
         "estimator", json.dumps({"blocker": {"description": "LP-2 schedule missing", "needs_human": True}})
     )
     assert isinstance(blocked, EstimatorReply) and blocked.blocker is not None
-    with pytest.raises(ReplyError, match="headline, bom, and labour"):
+    with pytest.raises(ReplyError, match="missing a bill of materials"):
         parse_reply("estimator", json.dumps({"headline": "Done", "bom": []}))
 
 

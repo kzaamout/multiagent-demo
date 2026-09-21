@@ -169,8 +169,12 @@ def build_tools(
 
     @tool(context=True)
     def quantity_calculate(items: list[dict[str, Any]], tool_context: ToolContext) -> dict[str, Any]:
-        """Total counts and lengths, apply the waste factors, and roll up labour hours from the unit
-        labour hours table in the estimating conventions, which the tool reads itself.
+        """Total counts and lengths, apply the waste factors, and roll up labour hours from the material
+        table in the estimating conventions, which the tool reads itself.
+
+        It multiplies as well as adds. A quantity the conventions state as a rule, such as 25 metres of
+        conduit for each of 11 circuits with 3 conductors in every metre, is sent as counts [11], each 25
+        and times 3, and the tool returns the length. Never work such a length out yourself.
 
         Required before a completed takeoff: a reply whose quantities or labour hours were not produced
         by this tool is refused. Call it once with every counted and measured line, after reading the
@@ -179,7 +183,10 @@ def build_tools(
 
         Args:
             items: Lines, each with description, unit, category (wire, conduit, device, fixture,
-                equipment, other), counts (list of numbers to add), and group. Write the description
+                equipment, other), counts (list of numbers to add), and group. Optionally each, an
+                allowance for every counted thing, and times, how many of that allowance each one needs.
+                The category only matters for a material the table does not list, because the tool reads
+                the waste class from the conventions. Write the description
                 as the materials schedule writes it, because that is how the tool finds the line's unit
                 hours in the table. Each returned line says where its hours came from. Pass unit_hours
                 only for a line the tool returns with hours_source "none", meaning the table has no
@@ -191,6 +198,8 @@ def build_tools(
                 unit=str(i["unit"]),
                 category=i.get("category", "other"),
                 counts=tuple(_dec(c, "counts") for c in i.get("counts", [])),
+                each=_dec(i["each"], "each") if i.get("each") is not None else None,
+                times=_dec(i["times"], "times") if i.get("times") is not None else None,
                 group=str(i.get("group", "Miscellaneous")),
                 unit_hours=_dec(i["unit_hours"], "unit_hours") if i.get("unit_hours") is not None else None,
             )
@@ -207,6 +216,8 @@ def build_tools(
                     "waste_rate": str(line.waste_rate),
                     "quantity_with_waste": str(line.quantity_with_waste),
                     "hours": None if line.hours is None else str(line.hours),
+                    "counted": str(line.counted),
+                    "waste_category": line.waste_category,
                     "unit_hours": None if line.unit_hours is None else str(line.unit_hours),
                     "hours_source": line.hours_source,
                 }

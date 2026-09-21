@@ -66,3 +66,21 @@ def test_a_concern_naming_a_sheet_the_manifest_lacks_goes_back_as_a_blocker() ->
         )
         is None
     )
+
+
+def test_an_empty_takeoff_is_told_what_is_empty_and_what_to_do() -> None:
+    """Two stops in the shipped pairing were a progress report with an empty bill of materials, refused
+    three times with a message that named the shape rather than the fault."""
+    from app.live.replies import EstimatorReply, ReplyError
+
+    reply = EstimatorReply(headline="Takeoff reading drawings", summary="Reading the single-line.")
+    try:
+        reply.check()
+    except ReplyError as error:
+        message = str(error)
+    else:
+        raise AssertionError("an empty takeoff must be refused")
+    assert "missing a bill of materials with at least one line" in message
+    assert "progress report, not a takeoff" in message and "vision_read_drawing" in message
+    assert "blocker shape" in message, "the one legitimate short reply is offered"
+    takeoff().check()  # a complete takeoff still passes

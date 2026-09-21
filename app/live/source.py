@@ -28,6 +28,7 @@ from app.live.context import build_context
 from app.live.deterministic import (
     assumptions_block,
     blocker_names_a_present_sheet,
+    concern_names_an_absent_panel,
     concern_names_an_absent_sheet,
     money_disagreements,
     tag_advice,
@@ -36,6 +37,7 @@ from app.live.figures import (
     ToolResults,
     amounts_not_in_context,
     estimator_disagreements,
+    group_subtotals,
     pricing_disagreements,
     quantity_handover_disagreements,
     summarise,
@@ -171,6 +173,17 @@ def client_from_brief(events: Any) -> str:
     return found
 
 
+def latest_pricing(events: Any) -> list[dict[str, Any]]:
+    """The priced lines of Pricing's latest completed output, which is what the Writer was given."""
+    found: list[dict[str, Any]] = []
+    for event in events:
+        if event.type == "task.completed" and event.payload.get("agent_id") == "pricing":
+            result = event.payload.get("result")
+            if isinstance(result, dict) and result.get("priced_bom"):
+                found = list(result["priced_bom"])
+    return found
+
+
 def latest_cost_summary(events: Any) -> dict[str, Any] | None:
     """The cost summary of Pricing's latest completed output, which is what the draft was held against."""
     found: dict[str, Any] | None = None
@@ -241,7 +254,7 @@ def estimator_concern_is_a_missing_sheet(reply: BaseModel, prepared: Any) -> str
     if not isinstance(reply, EstimatorReply) or reply.blocker is not None or prepared is None:
         return None
     texts = [item.text for item in (*reply.concerns, *reply.assumptions)]
-    return concern_names_an_absent_sheet(texts, prepared)
+    return concern_names_an_absent_sheet(texts, prepared) or concern_names_an_absent_panel(texts, prepared)
 
 
 def estimator_requirements(reply: BaseModel, tools_used: list[str], prepared: Any = None) -> str | None:
@@ -758,7 +771,14 @@ class LiveAgentSource:
             # that every amount must carry a tag, which refused zeros, the labour rate and line extensions
             # and still passed an amount copied from the worked example in the instructions (phase 1.7).
             body = with_dollars_inside(markdown).split("\n## Provenance", 1)[0]
-            invented = amounts_not_in_context(MONEY.findall(body), bundle.context_slice)
+            # A brief that asks for a schedule of values asks the Writer to add up each group, so those
+            # sums are computed from the two outputs it was given rather than refused (2026-09-19).
+            pricing = latest_pricing(self.o.events)
+            invented = amounts_not_in_context(
+                MONEY.findall(body),
+                bundle.context_slice,
+                group_subtotals(latest_bom(self.o.events), pricing),
+            )
             if invented:
                 return (
                     "these dollar amounts appear in nothing you were given: " + ", ".join(invented[:6]) + ". "

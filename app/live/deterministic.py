@@ -122,6 +122,44 @@ def concern_names_an_absent_sheet(texts: Iterable[str], prepared: Any) -> str | 
     return None
 
 
+def sheet_titles(prepared: Any) -> list[str]:
+    """Every prepared sheet's title, which is where a panel schedule says which panel it is for."""
+    return [str(getattr(sheet, "title", "") or "") for sheet in getattr(prepared, "sheets", []) or []]
+
+
+def concern_names_an_absent_panel(texts: Iterable[str], prepared: Any) -> str | None:
+    """A concern saying a panel's schedule is missing, when no sheet the run holds is that schedule.
+
+    The mirror of the check above, for the way the seat actually wrote it once the sheet check was in
+    place: "Panel LP-2 schedule is missing from the drawing set", naming no sheet number at all. LP-2 is a
+    panel, so the sheet check ignored it by design, and a Missing sheet run passed review with no blocker
+    raised. The manifest names each sheet and its title, and a panel schedule's title says which panel it
+    covers, so whether the run holds a schedule for that panel is a lookup.
+
+    It fires only on a clause claiming absence, only for a designation that is not one of this set's sheet
+    numbers, and only when no sheet number and no sheet title mentions it.
+    """
+    held = present_sheets(prepared)
+    titles = sheet_titles(prepared)
+    if not held:
+        return None
+    prefixes = {sheet.split("-", 1)[0] for sheet in held}
+    known = re.sub(r"[^A-Z0-9]", "", " ".join([*held, *titles]).upper())
+    for text in texts:
+        for clause in _claims_of_absence(text):
+            for name in sheets_named(clause):
+                if name.split("-", 1)[0] in prefixes or re.sub(r"[^A-Z0-9]", "", name.upper()) in known:
+                    continue
+                return (
+                    f"a concern says the schedule for {name} is missing, and no sheet in this set is that "
+                    f'schedule: "{clause.strip()[:120]}". The estimating conventions make a panel on the '
+                    "single-line with no schedule a blocker, not a concern, because its circuits cannot be "
+                    'counted. Reply with the blocker shape alone, {"blocker": {"description", '
+                    '"needs_human": true, "route_back_to": null}}, naming the panel and where it appears'
+                )
+    return None
+
+
 def sources_of_figure(figure: str, offered_context: str) -> list[str]:
     """Which offered sources contain this figure, by the headings the context slice is built from.
 

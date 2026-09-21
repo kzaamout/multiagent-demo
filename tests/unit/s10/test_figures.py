@@ -8,6 +8,7 @@ example in the Writer's instructions.
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any
 
 from app.live.figures import (
@@ -218,7 +219,7 @@ def test_a_reworded_line_stands_when_its_number_came_from_the_tool() -> None:
 def test_a_reworded_line_with_a_number_the_tool_never_produced() -> None:
     bom = [{"description": "LED lay-in fixture", "quantity": 31, "unit": "each"}]
     problems = estimator_disagreements(bom, {"total_hours": 22.0}, [("quantity_calculate", CALCULATOR)])
-    assert any("is not a figure quantity_calculate returned" in p for p in problems)
+    assert any("was not one of the 2 lines you sent to quantity_calculate" in p for p in problems)
 
 
 def test_labour_hours_the_tool_never_produced() -> None:
@@ -370,3 +371,37 @@ def test_the_writer_is_not_refused_over_a_field_the_engine_never_reads() -> None
         body = json.dumps({"markdown": "# Draft\n\nBody.", "note": "n", "tags": sent})
         assert written(body).markdown.startswith("# Draft")
     assert written(json.dumps({"markdown": "# D", "note": "n"})).markdown == "# D"
+
+
+def test_a_line_left_out_of_the_call_is_named_as_missing() -> None:
+    """Two of the seven stops in the shipped pairing: the seat sent nine lines, left the transformer out,
+    and was told its quantity of 1 was not a figure the tool returned. It sent the same reply three times."""
+    bom = [*BOM, {"description": "Dry-type transformer, 75 kVA", "quantity": 1, "unit": "each"}]
+    problems = estimator_disagreements(bom, {"total_hours": 22}, [("quantity_calculate", CALCULATOR)])
+    assert len(problems) == 1
+    assert "was not one of the 2 lines you sent to quantity_calculate" in problems[0]
+    assert "including a single item whose quantity is 1" in problems[0]
+
+
+def test_a_schedule_of_values_may_add_up_the_groups_it_was_given() -> None:
+    """A brief that asks for a schedule of values asks the Writer for arithmetic. Every group subtotal was
+    refused as invented, which ended a run, though both outputs it was given hold the parts."""
+    from app.live.figures import group_subtotals
+
+    takeoff = [
+        {"description": "2x4 LED troffer", "group": "Lighting"},
+        {"description": "Exit sign, LED", "group": "Lighting"},
+        {"description": "Duplex receptacle", "group": "Branch circuits"},
+    ]
+    priced = [
+        {"description": "2x4 LED troffer", "extended": "6532.00"},
+        {"description": "Exit sign, LED", "extended": "480.00"},
+        {"description": "Duplex receptacle", "extended": "570.40"},
+    ]
+    sums = group_subtotals(takeoff, priced)
+    assert sums == {Decimal("7012.00"), Decimal("570.40")}
+    context = '## Pricing (source id: pricing)\n{"lines": [6532.00, 480.00, 570.40], "total": 7582.40}'
+    assert amounts_not_in_context(["$7,012.00", "$570.40"], context, sums) == []
+    assert amounts_not_in_context(["$7,012.00"], context) == ["$7,012.00"], "without the sums it is refused"
+    assert amounts_not_in_context(["$7,013.00"], context, sums) == ["$7,013.00"], "a wrong subtotal still is"
+    assert group_subtotals([], priced) == set() and group_subtotals(takeoff, []) == set()
