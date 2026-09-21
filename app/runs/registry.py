@@ -13,6 +13,7 @@ from typing import Any
 import yaml
 
 from app.agents.stubs import scenario_for
+from app.agents.stubs.single_run import StubSingleSource
 from app.compile.pipeline import tools_available
 from app.config import Settings
 from app.live.materials import DatasetFiles, supplier_order_from
@@ -31,7 +32,6 @@ from app.live.source import LiveAgentSource, LiveContext
 from app.orchestrator.clock import Clock
 from app.orchestrator.knowledge_store import KnowledgeStore
 from app.orchestrator.orchestrator import DatasetRef, Orchestrator
-from app.agents.stubs.single_run import StubSingleSource
 from app.orchestrator.roster import EXPORT_NAMES, SEATS, build_roster, single_agent
 from app.runs.bus import StreamBus
 from app.runs.recorder import Recorder, read_events, read_meta

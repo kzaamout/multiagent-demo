@@ -39,7 +39,7 @@ link-mode = "copy"
 [tool.ruff]
 line-length = 110
 target-version = "py313"
-extend-exclude = ["design", "datasets", "runs", ".specify"]
+extend-exclude = ["design", "datasets", "/runs", ".specify"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "ASYNC"]
