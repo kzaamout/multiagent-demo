@@ -11,7 +11,7 @@ description: "Task list for lettered provenance markers"
 
 **Tests**: every change carries its test task, as in every slice before this one. Tests that need Typst or pandoc carry `pytest.mark.compiler`; browser tests carry `pytest.mark.visual`.
 
-**Where**: all work happens in the worktree `C:\Users\Khobaib\OneDrive\Desktop\code\multiagent-demo-markers` on branch `013-lettered-markers` (owner decision 9a). Recorded runs are read, never written, from `C:\Users\Khobaib\OneDrive\Desktop\code\multiagent-demo\runs\`.
+**Where**: all work happens in the worktree `../multiagent-demo-markers`, beside the main checkout, on branch `013-lettered-markers` (owner decision 9a). Recorded runs are read, never written, from the main checkout's `runs/`.
 
 **Organization**: story labels map to spec.md: US1 a figure on the page reads as the figure, US2 every surface names the marker the same way, US3 recordings made before the change replay correctly, US4 the Reviewer is not thrown by the letters.
 
@@ -92,7 +92,7 @@ description: "Task list for lettered provenance markers"
 
 **Independent Test**: the replay record in `evidence.md` meets SC-004.
 
-- [X] T019 [US4] Select 5 first reviews per research R7 from `C:\Users\Khobaib\OneDrive\Desktop\code\multiagent-demo\runs\`: recorded on or after 2026-09-19, Reviewer on `gemma4 12b, local`, a recorded `review.verdict` present, together covering a pass and a fail, two datasets, and one draft with more than 26 markers; list run id, dataset, draft version, marker count and recorded verdict in `specs/013-lettered-markers/evidence.md`
+- [X] T019 [US4] Select 5 first reviews per research R7 from the main checkout's `runs/`: recorded on or after 2026-09-19, Reviewer on `gemma4 12b, local`, a recorded `review.verdict` present, together covering a pass and a fail, two datasets, and one draft with more than 26 markers; list run id, dataset, draft version, marker count and recorded verdict in `specs/013-lettered-markers/evidence.md`
 - [X] T020 [US4] Write the replay script in the session scratchpad (not committed): for each selected review, recompile that run's committed draft with `app.compile.compile_draft` into a scratch run folder with the dataset's brand, rebuild the recorded bundle with the page text materials replaced by the new `pages.json`, the system instruction from the new `reviewer.md` through `load_instructions`, and the new page images, then call `SeatCall` with the recorded model and parse with `parse_reply("reviewer", ...)`; check `runs/_sweep/` and Ollama's loaded models first and do not run while a sweep is in flight
 - [X] T021 [US4] Run the replay; record in `specs/013-lettered-markers/evidence.md` for each review the recorded and replayed verdict, every marker each finding cites, whether any finding reads a letter as part of a figure or cites a marker by number, and the reason for any verdict that differs, found by reading the reply
 
