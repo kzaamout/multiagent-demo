@@ -361,3 +361,26 @@ def test_comparison_line_and_strip_show_compute_time(page: Any, server: str) -> 
     assert line.startswith("Team $0.42 in 12:00 · Single model $0.05 in 1:35"), line
     assert page.inner_text("#compare-summary") == "$0.05 · 1:35"
     assert page.errors == []
+
+
+# (h) a run started from the page ticks between events (the path the owner watched)
+
+
+def test_a_run_started_from_the_page_ticks_between_events(page: Any, slow_server: str) -> None:
+    page.goto(slow_server + "/demo?dataset=clean-run")
+    page.wait_for_selector("#dataset-value")
+    page.wait_for_timeout(500)
+    page.click("#btn-run")
+    page.wait_for_function("() => window.__s1 && window.__s1.view.clock.running")
+    try:
+        page.wait_for_timeout(1200)
+        first = seconds(page.inner_text("#elapsed"))
+        events_before = page.evaluate("() => window.__s1.events.length")
+        page.wait_for_timeout(3000)
+        # The stubbed Clean run emits nothing for these seconds at pace 1, yet the clock moves on.
+        assert page.evaluate("() => window.__s1.events.length") == events_before
+        assert seconds(page.inner_text("#elapsed")) >= first + 2
+    finally:
+        run_id = page.evaluate("() => window.__s1.view.runId")
+        httpx.post(f"{slow_server}/api/runs/{run_id}/stop")
+    assert page.errors == []

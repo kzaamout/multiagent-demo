@@ -142,6 +142,14 @@ None. The stories share no code, and each phase below carries its own prerequisi
 - [X] T043 [US1] In `tests/visual/test_e2e_clock.py` check the page's reducer against `app.runs.working_time.working_times` instead of the test's own copy of the rule, and add a case that sets a comparison with `working_ms` and asserts the comparison line prints it
 - [X] T044 Update `docs/design-deviations.md` (012 decision 2 covers the Compare strip and the timeline) and run `scripts/check.py` and the visual suite
 
+## Phase 8: Stale scripts after an update (found by the owner, 2026-09-21)
+
+**Goal**: A page loaded after the server is updated always runs the updated scripts. The owner watched a live run after the restart and saw the old, event-stepped Elapsed; the same run started from a freshly loaded page ticks each second, and `/static` answered with no `Cache-Control`, which lets the browser reuse a cached script without asking the server.
+
+- [X] T045 In `app/main.py` serve `/static` through a `StaticFiles` subclass that sets `Cache-Control: no-cache` on every response, so the browser revalidates each script by its ETag on every page load (a 304 when unchanged)
+- [X] T046 [P] Create `tests/integration/s12/test_static_revalidation.py`: `/static/js/demo.js` and `/static/css/app.css` answer with `Cache-Control: no-cache` and an ETag, and a request with that ETag in `If-None-Match` answers 304
+- [X] T047 [P] In `tests/visual/test_e2e_clock.py` add a run started by clicking Run on the Demo page, the path the owner watched, and assert the clock moves on while no event arrives
+
 ## Dependencies and execution order
 
 - **Setup (T001 to T004)**: first. T001 before any code (principle X).

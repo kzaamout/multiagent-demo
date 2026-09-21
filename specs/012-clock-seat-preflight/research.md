@@ -57,6 +57,14 @@ The Demo page runs one `setInterval` of 250 ms divided by the replay speed (250 
 
 **Follow-up, owner decision 13**: The Compare strip's line ("Team $x in m:ss · Single model $y in m:ss") read `summary.elapsed_ms`, so a Team run with a human wait showed its total time there. It now shows compute time, the working time, worked out on the server by D15.
 
+## D16. Scripts are revalidated on every load
+
+**Decision**: Every `/static` response carries `Cache-Control: no-cache`. The browser keeps its copy but asks the server before each use; an unchanged file answers 304 by its ETag.
+
+**Rationale**: After the update the owner saw the old Elapsed behaviour on a live run, while the same run started from a freshly loaded page ticked each second. With no `Cache-Control`, the browser may reuse a cached script heuristically, so a page served by the updated server can still run the old reducer and renderer. On demo day an update must take effect on the next load. Revalidation costs one small request per file, served locally.
+
+**Alternatives considered**: a version query on every script URL (needs a build step or template change on every page, and still leaves the CSS and fonts to the heuristic); `no-store` (throws the copy away and refetches every byte each load, for no gain over revalidation).
+
 ## D15. Working time on the server
 
 **Decision**: `app/runs/working_time.py` holds the hold table of D2 in Python, once: `working_times(events)` gives the working time at every event and `working_ms(events)` the final value. The comparison route adds `working_ms` to each recording's figures; `elapsed_ms` stays for the S5 contract. The Compare strip and the comparison line read `working_ms`. The run timeline PDF prints each event's working time. The browser suite checks that the Python function and the page's reducer agree at every event of every golden log, so the two copies of the rule cannot drift apart unseen.
