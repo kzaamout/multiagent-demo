@@ -23,6 +23,62 @@
   };
   var ctx = { datasets: [], selectedDataset: null, retryBudget: 2, costCeiling: 5, idleRoster: {}, modelOptions: [], comparison: null };
   var scheduled = false;
+  /* The Elapsed clock (constitution II, 1.3.0): the one display-only clock. The anchor says how the
+     run's time moves between events; the interval only rewrites #elapsed and never touches run state. */
+  var clock = { anchor: null, shownMs: 0, second: -1, timer: null, every: 0, view: null };
+
+  function clockShown(view) {
+    var value = window.S1Clock.valueAt(view.clock, clock.anchor, window.performance.now());
+    clock.shownMs = Math.max(clock.shownMs, value);
+    return clock.shownMs;
+  }
+
+  function clockTick() {
+    if (!clock.view) { return; }
+    var shown = clockShown(clock.view);
+    ui.clockShownMs = shown;
+    var second = Math.floor(shown / 1000);
+    if (second !== clock.second) {
+      clock.second = second;
+      document.getElementById('elapsed').textContent = F.fmtClock(shown);
+    }
+  }
+
+  function clockStop() {
+    if (clock.timer !== null) { window.clearInterval(clock.timer); }
+    clock.timer = null;
+    clock.every = 0;
+  }
+
+  function clockSync(view) {
+    clock.view = view;
+    var ticking = !!clock.anchor && view.clock.running;
+    if (!ticking) { clockStop(); return; }
+    var every = clock.anchor.kind === 'replay' ? 250 / clock.anchor.speed : 250;
+    if (clock.timer !== null && clock.every === every) { return; }
+    clockStop();
+    clock.every = every;
+    clock.timer = window.setInterval(clockTick, every);
+  }
+
+  function clockReset() {
+    clockStop();
+    clock.anchor = null;
+    clock.shownMs = 0;
+    clock.second = -1;
+    clock.view = null;
+    ui.clockShownMs = 0;
+  }
+
+  function anchorLive(reading) {
+    clock.anchor = reading
+      ? { kind: 'live', runNowMs: F.tsMs(reading.now), pace: reading.pace, receivedAt: window.performance.now() }
+      : null;
+  }
+
+  function anchorReplay(speed) {
+    clock.anchor = { kind: 'replay', arrivedAt: window.performance.now(), speed: speed };
+  }
 
   function api(method, path, body) {
     return fetch(path, {
@@ -40,8 +96,11 @@
   function render() {
     scheduled = false;
     var view = window.S1Reducer.reduce(events, ctx);
+    ui.clockShownMs = clockShown(view);
+    clock.second = Math.floor(ui.clockShownMs / 1000);
     window.S1Render.renderAll(view, ui, ctx);
-    window.__s1 = { view: view, ui: ui, ctx: ctx, events: events };
+    clockSync(view);
+    window.__s1 = { view: view, ui: ui, ctx: ctx, events: events, clock: clock };
   }
 
   function schedule() {
@@ -54,6 +113,7 @@
 
   function onEvent(event) {
     events.push(event);
+    if (ui.mode === 'replay') { anchorReplay(ui.speed); }
     if (event.type === 'run.terminated') { loadComparison(); }
     if (event.type === 'clarification.answered' || event.type === 'human.approved' || event.type === 'run.terminated') {
       ui.submitting = false;
@@ -82,6 +142,7 @@
     ui.submitting = false;
     ui.mode = mode;
     ui.following = false;
+    clockReset();
     var feed = document.getElementById('feed');
     Array.prototype.forEach.call(feed.querySelectorAll('article.card'), function (n) { n.remove(); });
   }
@@ -126,6 +187,7 @@
     if (params.get('pin') === 'export') { body.names = EXPORT_NAMES; }
     api('POST', '/api/runs', body).then(function (data) {
       resetView('live');
+      anchorLive(data.clock);
       ui.following = true;
       runId = data.run_id;
       ctx.retryBudget = data.retry_budget;
@@ -420,6 +482,7 @@
     function step() {
       if (index >= list.length) { return; }
       events.push(list[index]);
+      anchorReplay(speed);
       schedule();
       index += 1;
       if (index >= list.length) { return; }
@@ -478,8 +541,12 @@
     }
     if (meta.live_run_id) {
       runId = meta.live_run_id;
+      var reading = meta.live_run_clock;
+      var readAt = window.performance.now();
       return api('GET', '/api/runs/' + runId + '/events').then(function (list) {
         resetView('live');
+        anchorLive(reading);
+        if (clock.anchor) { clock.anchor.receivedAt = readAt; }
         events = list;
         openStream('/api/streams/' + runId + '/events', list.length ? list[list.length - 1].seq : 0);
         schedule();

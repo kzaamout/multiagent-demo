@@ -97,7 +97,7 @@ Open http://localhost:8000/demo. The server reads `.env` when it starts, so rest
 
 ### The shared login
 
-Set `DEMO_USERNAME` and `DEMO_PASSWORD` in `.env` and the Demo, Settings, and Pre-flight pages ask for them; the Introduction page stays public. There is one pair for everyone, kept in `.env` only, and a sign-in lasts until the server restarts. Leave both empty on a laptop that is not exposed and nothing asks. The pre-flight reports the pair as missing until it is set.
+Set `DEMO_USERNAME` and `DEMO_PASSWORD` in `.env` and the Demo, Settings, and Pre-flight pages ask for them; the Introduction page stays public. There is one pair for everyone, kept in `.env` only, and a sign-in lasts until the server restarts. Leave both empty on a laptop that is not exposed and nothing asks. The pre-flight row reports the pair as missing until it is set; the header dot counts it only in Cloud mode.
 
 ### Run modes
 
@@ -120,15 +120,26 @@ Open http://localhost:8000/preflight before every meeting and press **Run pre-fl
 
 | Row | What it checks |
 |---|---|
-| A provider responds (one row per cloud provider a seat uses, or whose key is present) | One minimal model call through the seat's model; a fraction of a cent on a cloud provider |
-| Ollama reachable, models present | Ollama answers and every local seat model is pulled |
+| A cloud model answers (one row per cloud model in `config/models.yaml`) | One minimal model call to that model, all of them at the same time; a fraction of a cent each. Not applicable when its provider has no key |
+| Ollama reachable | Ollama answers |
+| A local model pulled in Ollama (one row per local model) | Ollama has that model |
 | Typst present, test compile | pandoc and Typst compile a fixture proposal under `runs/preflight/` |
 | Page PNG export | The same compile wrote its page images |
 | Tunnel reachable from outside | The login page answers through the public hostname |
 | Disk space | At least 5 GB free on the drive holding the runs folder |
-| .env completeness | The login pair and the credentials of every cloud provider a seat uses |
+| .env completeness | The login pair, and the key of every cloud provider a seat uses |
+| Introduction recording present | The Introduction's pinned run is on this machine |
+| Every dataset has a replay | Each dataset has a recording or a golden log, the fallback if a live run fails |
+| Reviewer and Writer on different model families | Worked out from the seats each time the page loads |
 
-The dot beside Pre-flight in every header shows the last result: grey means not run yet, green means every check passed, orange means only a non-essential check failed (the tunnel, or a provider no seat uses), red means an essential check failed. It is stored in `runs/preflight.json` and survives a restart; nothing re-runs by itself.
+The page shows every failure. The dot beside Pre-flight in every header answers a narrower question, "will the demo set up in Settings work", and is worked out from the stored rows against the seats in force each time a page loads:
+
+- **Red** when a seat's model failed, Ollama is down while a seat is local, a seat provider's key is missing, Typst, PNG export, or disk failed, or, in Cloud mode only, the login pair is missing.
+- **Orange** when only the tunnel, the Introduction recording, a replay, or the model families failed.
+- **Green** otherwise, even when a model no seat uses failed; the dot's tooltip counts those rows.
+- **Grey** when nothing has been checked yet.
+
+Changing a seat in Settings rechecks the chosen model and the key for its provider, and the dot on the Settings page updates when the answer arrives. The rows are stored in `runs/preflight.json` and survive a restart.
 
 ### The leave-behind
 

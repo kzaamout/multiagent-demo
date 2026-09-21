@@ -1,6 +1,6 @@
 <!--
 Sync Impact Report
-Version change: 1.1.1 -> 1.2.0 (MINOR, 2026-09-15): principle III applies a review limit instead of tracking a retry budget; principle VI replaces the fixed retry budget with a progress-based review limit under a hard ceiling and names the stop reason on the termination card; principle VIII requires a full recording that replays from its own folder. Per the owner's change request of 2026-09-15 recorded in docs/roadmap.md (slice S3b). Earlier: 1.1.0 -> 1.1.1 (PATCH, 2026-09-14): principle VI lists dry intake among the control exits, per the owner's pre-S1 decision recorded in docs/roadmap.md. Earlier: unversioned base (treated as 1.0.0, amended 2026-09-14 for II, VI, and one non-goal) -> 1.1.0
+Version change: 1.2.0 -> 1.3.0 (MINOR, 2026-09-21): principle II allows one display-only clock, the Demo page's Elapsed figure, which advances between events from the working time the events give, freezes while the run waits on the human, stops at run.terminated, and on which no state, event, or other figure depends. Per owner decision 1 of 2026-09-21 recorded in specs/012-clock-seat-preflight/spec.md. CLAUDE.md working rule 3 names the same exception. No template changes. Earlier: 1.1.1 -> 1.2.0 (MINOR, 2026-09-15): principle III applies a review limit instead of tracking a retry budget; principle VI replaces the fixed retry budget with a progress-based review limit under a hard ceiling and names the stop reason on the termination card; principle VIII requires a full recording that replays from its own folder. Per the owner's change request of 2026-09-15 recorded in docs/roadmap.md (slice S3b). Earlier: 1.1.0 -> 1.1.1 (PATCH, 2026-09-14): principle VI lists dry intake among the control exits, per the owner's pre-S1 decision recorded in docs/roadmap.md. Earlier: unversioned base (treated as 1.0.0, amended 2026-09-14 for II, VI, and one non-goal) -> 1.1.0
 Modified principles: none renamed; I through IX carried over verbatim and moved from level-2 to level-3 headings under Core Principles
 Added sections:
   - Engineering Principles (X through XIX)
@@ -20,7 +20,7 @@ These principles do not change between features. Spec, plan, and tasks must comp
 This system exists to be demonstrated live by its owner to a prospect and to be understood by sales staff. Any requirement that only matters when an unattended stranger uses it is out of scope. The test is applied to every feature proposal. Creep is flagged and parked, never quietly built.
 
 ### II. Schema first, events only
-The typed event schema is frozen before any agent is written. Every state change, agent action, human interaction with the run, model change, and metering update is an event. The UI, the replay engine, the meters, the provenance links, and any future renderer (Slack) consume the same stream. Nothing renders that was not emitted. Chat with an agent does not touch the run and is out of band: not an event, not recorded, not replayed.
+The typed event schema is frozen before any agent is written. Every state change, agent action, human interaction with the run, model change, and metering update is an event. The UI, the replay engine, the meters, the provenance links, and any future renderer (Slack) consume the same stream. Nothing renders that was not emitted. Chat with an agent does not touch the run and is out of band: not an event, not recorded, not replayed. The Demo page's Elapsed figure is the one display-only clock: it advances between events from the working time the events give, freezes while the run waits on the human, stops at `run.terminated`, and no state, event, or other figure depends on it.
 
 ### III. One owner of state
 The Orchestrator alone changes stage, dispatches work, batches and asks human questions, appends to the knowledge file, applies the review limit, and terminates a run. Every Orchestrator event carries a one-sentence reason. No other agent may do any of these things.
@@ -99,4 +99,4 @@ Versioning: MAJOR for a removal or redefinition of a principle or non-goal, MINO
 
 Compliance review: every specification, plan, and task list includes a constitution check against the principles above and the non-goals. Reviews verify the check. Anything that sits close to a non-goal states how it stays on the right side. `CLAUDE.md` carries the runtime working rules and points here.
 
-**Version**: 1.2.0 | **Ratified**: 2026-09-14 | **Last Amended**: 2026-09-15
+**Version**: 1.3.0 | **Ratified**: 2026-09-14 | **Last Amended**: 2026-09-21

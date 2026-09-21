@@ -1,11 +1,11 @@
 /* Pre-flight page: rows, the confirmation, and the page's own header dot, rendered from
-   GET /api/preflight (the stored result) and from the reply to POST /api/preflight/run.
+   GET /api/preflight and from the reply to POST /api/preflight/run. The dot's state comes from the
+   payload's header, worked out by the server against the seats in force (spec 012 research D8).
    The page never guesses: no timer, no inferred state. Markup and colours follow the design
    export's Preflight.html (pending, one-fail, all-pass states). */
 (function () {
   'use strict';
   var GLYPH = { pass: '✓', fail: '✕', skip: '○', pending: '○' };
-  var HEADER_GLYPH = { pending: '○', pass: '✓', warn: '!', fail: '✕' };
   var state = { busy: false };
 
   function api(method, path) {
@@ -36,25 +36,12 @@
 
   function modeWord(mode) { return mode === 'cloud' ? 'Cloud mode' : 'Laptop mode'; }
 
-  function headerTitle(result) {
-    if (result.status === 'pending') { return 'Pre-flight: not run yet'; }
-    var failed = result.checks.filter(function (c) { return c.status === 'fail'; });
-    if (result.status === 'fail') {
-      var essential = failed.filter(function (c) { return c.essential; })[0] || failed[0];
-      return 'Pre-flight: ' + (essential ? essential.name : 'an essential check') + ' failed, ' + result.stamp;
-    }
-    if (result.status === 'warn') {
-      return 'Pre-flight: ' + (failed[0] ? failed[0].name : 'a non-essential check') + ' failed (non-essential), ' + result.stamp;
-    }
-    return 'Pre-flight: all checks pass, ' + result.stamp;
-  }
-
   function render(result) {
     var rows = document.getElementById('pf-rows');
     rows.textContent = '';
     result.checks.forEach(function (check) { rows.appendChild(row(check)); });
     var confirmation = document.getElementById('pf-confirmation');
-    if (result.status === 'pass') {
+    if (result.ran_at && result.applicable > 0 && result.passed === result.applicable) {
       document.getElementById('pf-confirmation-line').textContent =
         modeWord(result.run_mode) + ' · ' + result.passed + ' of ' + result.applicable + ' · ' + result.stamp;
       confirmation.hidden = false;
@@ -62,10 +49,10 @@
       confirmation.hidden = true;
     }
     var dot = document.querySelector('[data-part="preflight-indicator"]');
-    if (dot) {
-      dot.setAttribute('data-status', result.status);
-      dot.textContent = HEADER_GLYPH[result.status] || '○';
-      dot.setAttribute('title', headerTitle(result));
+    if (dot && result.header) {
+      dot.setAttribute('data-status', result.header.status);
+      dot.textContent = result.header.glyph;
+      dot.setAttribute('title', result.header.title);
     }
   }
 

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from app.runs.recorder import read_events, read_meta
+from app.runs.working_time import working_ms
 from app.schema.events import Event
 
 
@@ -38,6 +39,8 @@ def _figures(folder: Path, meta: dict[str, Any]) -> dict[str, Any] | None:
         "exit": str(events[-1].payload.get("exit", "")),
         "est_cost": float(summary.get("est_cost", 0.0)),
         "elapsed_ms": int(summary.get("elapsed_ms", 0)),
+        # Compute time: the working time without human waits, as the clock shows (spec 012 decision 13).
+        "working_ms": working_ms(events),
         "model_label": str((single or {}).get("model", {}).get("label", "")) if single else "",
         "output_path": result.get("output_path"),
         "summary": str(result.get("summary") or result.get("headline") or ""),

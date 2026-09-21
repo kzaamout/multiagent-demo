@@ -1,23 +1,24 @@
-"""Pre-flight checks for demo day (spec 0.7 section 2.4, slice S7).
+"""Pre-flight checks for demo day (spec 0.8 section 2.4; slice S7; spec 012).
 
-Eight checks, each classed essential or non-essential, run from the Pre-flight page and stored as
-`runs/preflight.json`. The stored result drives the dot in every page header and `/api/meta`. The
-checks are not events and never touch a run.
+One row per model in the registry and the fixed rows, run from the Pre-flight page and stored as
+`runs/preflight.json` (schema 2, facts only). The dot in every page header and `/api/meta` are worked
+out from the stored rows against the seats in force on each read. A seat change rechecks the chosen
+model. The checks are not events and never touch a run.
 """
 
 from __future__ import annotations
 
 from app.preflight.checks import CheckContext, checks_for
+from app.preflight.header import HeaderState, header_state
 from app.preflight.result import (
     CheckResult,
-    HeaderState,
     PreflightResult,
     format_stamp,
-    header_state,
     load_result,
+    merge,
     save_result,
 )
-from app.preflight.runner import pending_payload, result_payload, run_preflight
+from app.preflight.runner import header_json, payload, recheck, recheck_payload, run_preflight
 
 __all__ = [
     "CheckContext",
@@ -26,10 +27,13 @@ __all__ = [
     "PreflightResult",
     "checks_for",
     "format_stamp",
+    "header_json",
     "header_state",
     "load_result",
-    "pending_payload",
-    "result_payload",
+    "merge",
+    "payload",
+    "recheck",
+    "recheck_payload",
     "run_preflight",
     "save_result",
 ]

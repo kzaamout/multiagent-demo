@@ -1,18 +1,19 @@
-"""Pre-flight results: one record per check, one stored result per run (S7 data-model.md).
+"""Pre-flight results: one record per check, stored as facts (spec 012 data-model.md, schema 2).
 
-Nothing here is an event. The stored file under the runs folder is the single source the page
-rows, the header dot on every page, and `/api/meta` read from (research D1).
+Nothing here is an event. The stored file under the runs folder holds each row's status, detail,
+and what it is about; whether a failed row turns the header dot red, amber, or not at all depends
+on the seats in force when it is read, so it is decided in `app.preflight.header`, never stored.
 """
 
 from __future__ import annotations
 
 import datetime as dt
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
-SCHEMA = 1
+SCHEMA = 2
 RESULT_FILE = "preflight.json"
 
 PASS = "pass"
@@ -23,6 +24,12 @@ WARN = "warn"
 
 GLYPHS = {PENDING: "○", PASS: "✓", WARN: "!", FAIL: "✕"}
 
+FIXED: dict[str, Any] = {"kind": "fixed"}
+
+
+def now_iso() -> str:
+    return dt.datetime.now().astimezone().isoformat(timespec="seconds")
+
 
 @dataclass(frozen=True)
 class CheckResult:
@@ -30,31 +37,44 @@ class CheckResult:
     name: str
     status: str
     detail: str
-    essential: bool
     elapsed_ms: int = 0
+    checked_at: str = ""
+    subject: dict[str, Any] = field(default_factory=lambda: dict(FIXED))
 
     def to_json(self) -> dict[str, Any]:
-        return asdict(self)
+        return {
+            "id": self.id,
+            "name": self.name,
+            "status": self.status,
+            "detail": self.detail,
+            "elapsed_ms": self.elapsed_ms,
+            "checked_at": self.checked_at,
+            "subject": dict(self.subject),
+        }
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> CheckResult:
+        subject = data.get("subject") or FIXED
+        if not isinstance(subject, dict):
+            raise ValueError("subject must be an object")
         return cls(
             id=str(data["id"]),
             name=str(data["name"]),
             status=str(data["status"]),
             detail=str(data.get("detail", "")),
-            essential=bool(data.get("essential", False)),
             elapsed_ms=int(data.get("elapsed_ms", 0)),
+            checked_at=str(data.get("checked_at", "")),
+            subject=dict(subject),
         )
+
+    def stamped(self, when: str) -> CheckResult:
+        return replace(self, checked_at=when)
 
 
 @dataclass(frozen=True)
 class PreflightResult:
     run_mode: str
-    ran_at: str
-    status: str
-    passed: int
-    applicable: int
+    ran_at: str | None
     checks: tuple[CheckResult, ...]
 
     def to_json(self) -> dict[str, Any]:
@@ -62,9 +82,6 @@ class PreflightResult:
             "schema": SCHEMA,
             "run_mode": self.run_mode,
             "ran_at": self.ran_at,
-            "status": self.status,
-            "passed": self.passed,
-            "applicable": self.applicable,
             "checks": [c.to_json() for c in self.checks],
         }
 
@@ -72,38 +89,26 @@ class PreflightResult:
     def from_json(cls, data: dict[str, Any]) -> PreflightResult:
         if int(data.get("schema", 0)) != SCHEMA:
             raise ValueError(f"preflight result schema {data.get('schema')} is not {SCHEMA}")
-        checks = tuple(CheckResult.from_json(c) for c in data.get("checks", []))
+        ran_at = data.get("ran_at")
         return cls(
             run_mode=str(data.get("run_mode", "laptop")),
-            ran_at=str(data["ran_at"]),
-            status=str(data["status"]),
-            passed=int(data.get("passed", 0)),
-            applicable=int(data.get("applicable", 0)),
-            checks=checks,
+            ran_at=str(ran_at) if ran_at else None,
+            checks=tuple(CheckResult.from_json(c) for c in data.get("checks", [])),
         )
 
-
-def overall(checks: list[CheckResult] | tuple[CheckResult, ...]) -> str:
-    """fail when an essential check failed, warn when only non-essential ones did, else pass (research D2)."""
-    failed = [c for c in checks if c.status == FAIL]
-    if any(c.essential for c in failed):
-        return FAIL
-    if failed:
-        return WARN
-    return PASS
+    def row(self, check_id: str) -> CheckResult | None:
+        return next((c for c in self.checks if c.id == check_id), None)
 
 
-def build_result(run_mode: str, ran_at: str, checks: list[CheckResult]) -> PreflightResult:
-    passed = sum(1 for c in checks if c.status == PASS)
-    applicable = sum(1 for c in checks if c.status in (PASS, FAIL))
-    return PreflightResult(
-        run_mode=run_mode,
-        ran_at=ran_at,
-        status=overall(checks),
-        passed=passed,
-        applicable=applicable,
-        checks=tuple(checks),
-    )
+def merge(result: PreflightResult | None, rows: list[CheckResult], run_mode: str) -> PreflightResult:
+    """Replace stored rows by id and append new ones; `ran_at` stays the last full pre-flight's.
+    With nothing stored, a result with only these rows and no full run (data model, merge rule)."""
+    if result is None:
+        return PreflightResult(run_mode=run_mode, ran_at=None, checks=tuple(rows))
+    by_id = {r.id: r for r in rows}
+    merged = [by_id.pop(c.id, c) for c in result.checks]
+    merged.extend(r for r in rows if r.id in by_id)
+    return PreflightResult(run_mode=result.run_mode, ran_at=result.ran_at, checks=tuple(merged))
 
 
 def result_path(runs_dir: Path) -> Path:
@@ -111,7 +116,8 @@ def result_path(runs_dir: Path) -> Path:
 
 
 def load_result(runs_dir: Path) -> PreflightResult | None:
-    """The stored result, or None when there is none or it cannot be read. Never a guess."""
+    """The stored result, or None when there is none, it cannot be read, or it is another schema.
+    Never a guess: an older file reads as "not run yet"."""
     path = result_path(runs_dir)
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -133,26 +139,3 @@ def format_stamp(ran_at: str) -> str:
     if when.tzinfo is not None:
         when = when.astimezone()
     return f"{when.day} {when:%b %Y, %H:%M}"
-
-
-@dataclass(frozen=True)
-class HeaderState:
-    status: str
-    glyph: str
-    title: str
-
-
-def header_state(result: PreflightResult | None) -> HeaderState:
-    """What the dot in every header shows, from the stored result alone (spec 2.4)."""
-    if result is None:
-        return HeaderState(PENDING, GLYPHS[PENDING], "Pre-flight: not run yet")
-    stamp = format_stamp(result.ran_at)
-    failed = [c for c in result.checks if c.status == FAIL]
-    if result.status == FAIL:
-        first = next((c for c in failed if c.essential), failed[0] if failed else None)
-        name = first.name if first else "an essential check"
-        return HeaderState(FAIL, GLYPHS[FAIL], f"Pre-flight: {name} failed, {stamp}")
-    if result.status == WARN:
-        name = failed[0].name if failed else "a non-essential check"
-        return HeaderState(WARN, GLYPHS[WARN], f"Pre-flight: {name} failed (non-essential), {stamp}")
-    return HeaderState(PASS, GLYPHS[PASS], f"Pre-flight: all checks pass, {stamp}")

@@ -7,6 +7,7 @@ from pathlib import Path
 from app.config import Settings
 from app.live.providers import ModelConfig
 from app.preflight.checks import NO_TUNNEL_HOSTNAME, TUNNEL_DOWN, CheckContext, check_tunnel, checks_for
+from app.preflight.header import AMBER
 from app.preflight.result import FAIL, PASS, SKIP
 
 
@@ -28,11 +29,7 @@ async def test_pass_names_the_hostname_and_time(tmp_path: Path) -> None:
 
     ctx.fetch = fetch
     result = await check_tunnel(ctx)
-    assert (result.status, result.essential, result.detail) == (
-        PASS,
-        False,
-        "demo.example.com answered in 320 ms",
-    )
+    assert (result.status, result.detail) == (PASS, "demo.example.com answered in 320 ms")
     assert seen == ["https://demo.example.com/login"]
 
 
@@ -57,6 +54,7 @@ async def test_other_status_is_reported(tmp_path: Path) -> None:
 async def test_no_hostname_is_not_applicable(tmp_path: Path) -> None:
     ctx = context(tmp_path, "")
     result = await check_tunnel(ctx)
-    assert (result.status, result.essential, result.detail) == (SKIP, False, NO_TUNNEL_HOSTNAME)
-    tunnel = next(c for c in checks_for(ctx) if c.id == "tunnel")
-    assert not tunnel.essential
+    assert (result.status, result.detail) == (SKIP, NO_TUNNEL_HOSTNAME)
+    assert any(c.id == "tunnel" for c in checks_for(ctx))
+    # A tunnel failure turns the dot amber, never red (spec 012 research D8).
+    assert "tunnel" in AMBER

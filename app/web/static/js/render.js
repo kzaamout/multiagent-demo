@@ -8,7 +8,11 @@
   var ROSTER_ORDER = ['orchestrator', 'intake', 'estimator', 'pricing', 'writer', 'reviewer', 'single'];
   var HUMAN = { agent_id: 'human', name: 'You', role: '', model: { label: 'human' } };
 
-  function clock(view, event) { return F.fmtClock(F.tsMs(event.ts) - view.startMs); }
+  /* A card's time is the run's working time at its event, the same measure as the Elapsed clock (spec 012). */
+  function clock(view, event) {
+    var at = view.workAt && view.workAt[event.event_id];
+    return F.fmtClock(typeof at === 'number' ? at : F.tsMs(event.ts) - view.startMs);
+  }
 
   var LIVE_ROSTER = {};
 
@@ -412,7 +416,8 @@
       exit = term.payload.exit;
       headline = summary.headline;
       reason = h ? h.reason : term.reason;
-      eyebrowMs = summary.elapsed_ms;
+      /* The same working time as the Elapsed clock (spec 012 decision 10); the recorded total stays in the summary. */
+      eyebrowMs = view.clock.workMs;
       count = summary.event_count;
       retries = summary.retries;
     } else {
@@ -420,7 +425,7 @@
       retries = card.retry;
       headline = headlineFor(exit, retries.count);
       reason = h.reason;
-      eyebrowMs = F.tsMs(h.ts) - view.startMs;
+      eyebrowMs = view.clock.workAtHandoffMs || 0;
       count = h.seq;
     }
     var main = [
@@ -631,7 +636,8 @@
     nodes.forEach(function (n) { html += n.outerHTML; });
     if (box.__html !== html) { box.innerHTML = html; box.__html = html; }
 
-    document.getElementById('elapsed').textContent = F.fmtClock(view.elapsedMs);
+    /* The Elapsed clock's value comes from demo.js, which advances it between events (clock.js). */
+    document.getElementById('elapsed').textContent = F.fmtClock(ui.clockShownMs || 0);
     document.getElementById('run-total').textContent = F.fmtUsd(view.totalCost);
     document.getElementById('ceiling-label').textContent = 'Ceiling $' + (ctx.costCeiling || 5).toFixed(2);
     document.getElementById('ceiling-fill').style.width = view.ceilingPct;
@@ -656,6 +662,10 @@
     detail.hidden = false;
   }
 
+  /* A recording's compute time: its working time without human waits, as the clock shows (spec 012
+     decision 13); the recorded total only for a figure that predates it. */
+  function computeMs(figures) { return typeof figures.working_ms === 'number' ? figures.working_ms : figures.elapsed_ms; }
+
   /* S5: the Compare strip and the comparison line, from the comparison route (recordings only). */
   function renderComparison(view, ui, ctx) {
     var c = ctx.comparison || {};
@@ -663,7 +673,7 @@
     var team = c.team || null;
     var summary = document.getElementById('compare-summary');
     var content = document.getElementById('compare-content');
-    summary.textContent = single ? F.fmtUsd(single.est_cost) + ' · ' + F.fmtWall(single.elapsed_ms) : 'no run yet';
+    summary.textContent = single ? F.fmtUsd(single.est_cost) + ' · ' + F.fmtWall(computeMs(single)) : 'no run yet';
     var nodes;
     if (!single) {
       nodes = [el('div', { class: 'compare-empty', text: 'No Single-model run yet. Switch the composer to Single model and run to fill this strip.' })];
@@ -673,7 +683,7 @@
       if (single.output_path && !entry && ui.loadSingleOutput) { ui.loadSingleOutput(single.run_id, single.output_path); }
       var text = entry && entry.status === 'loaded' ? entry.text : (single.summary || '');
       nodes = [
-        el('div', { class: 'compare-model', text: (single.model_label || 'Single model') + ' · ' + F.fmtUsd(single.est_cost) + ' · ' + F.fmtWall(single.elapsed_ms) + ' · 1 pass, no review' }),
+        el('div', { class: 'compare-model', text: (single.model_label || 'Single model') + ' · ' + F.fmtUsd(single.est_cost) + ' · ' + F.fmtWall(computeMs(single)) + ' · 1 pass, no review' }),
         el('p', { class: 'compare-text', text: text }),
         el('div', { class: 'compare-note', text: 'No sources tagged, no review. ' + (single.total ? 'Lump sum $' + single.total + '.' : '') })
       ];
@@ -683,7 +693,7 @@
     var line = document.getElementById('comparison-line') || document.querySelector('[data-part="comparison-line"]');
     if (line) {
       line.textContent = team && single
-        ? 'Team ' + F.fmtUsd(team.est_cost) + ' in ' + F.fmtWall(team.elapsed_ms) + ' · Single model ' + F.fmtUsd(single.est_cost) + ' in ' + F.fmtWall(single.elapsed_ms) + ', no review, no sources'
+        ? 'Team ' + F.fmtUsd(team.est_cost) + ' in ' + F.fmtWall(computeMs(team)) + ' · Single model ' + F.fmtUsd(single.est_cost) + ' in ' + F.fmtWall(computeMs(single)) + ', no review, no sources'
         : 'Team vs Single model: run both on this dataset to compare.';
     }
   }

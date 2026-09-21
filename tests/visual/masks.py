@@ -157,7 +157,23 @@ MASKS: dict[str, list[Rect]] = {
             48,
             "nav order (spec 0.7, S3b), build stamp and pre-flight dot added to the header (decision)",
             "S7",
-        )
+        ),
+        Rect(
+            560,
+            170,
+            885,
+            600,
+            "row names: one row per model, named by the model, before any result exists (owner decision 6, 2026-09-21)",
+            "012",
+        ),
+        Rect(
+            510,
+            610,
+            1410,
+            1079,
+            "rows added below the export's eight: every model, the recordings, and the model families (owner decisions 6 and 11, 2026-09-21)",
+            "012",
+        ),
     ],
     "preflight-all-pass": [
         Rect(

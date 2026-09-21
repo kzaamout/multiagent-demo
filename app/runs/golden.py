@@ -6,6 +6,7 @@ Golden logs are compared on the ordered stage.changed transitions and the termin
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import shutil
 import tempfile
@@ -69,11 +70,16 @@ async def deterministic_run(
         if artifacts_to is not None:
             # Mirrors the run folder's layout, so the paths the golden log names resolve under it.
             produced = Path(tmp) / "_ephemeral" / golden_run_id(dataset_id) / "artifacts"
-            if artifacts_to.exists():
-                shutil.rmtree(artifacts_to)
-            if produced.is_dir():
-                shutil.copytree(produced, artifacts_to / "artifacts")
+            await asyncio.to_thread(_replace_artifacts, produced, artifacts_to)
         return list(orchestrator.events)
+
+
+def _replace_artifacts(produced: Path, artifacts_to: Path) -> None:
+    """Disk work, run off the event loop: clear the old copy, then copy the run's artifacts."""
+    if artifacts_to.exists():
+        shutil.rmtree(artifacts_to)
+    if produced.is_dir():
+        shutil.copytree(produced, artifacts_to / "artifacts")
 
 
 def transitions(events: list[Event]) -> list[Transition]:
