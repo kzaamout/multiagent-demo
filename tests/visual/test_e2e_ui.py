@@ -453,6 +453,76 @@ def test_pages_appear_for_a_stub_run_and_replay_without_datasets(
     assert page.errors == []
 
 
+def _marker_buttons(page: Any) -> list[tuple[str, str]]:
+    """(data-marker, text) of every marker button, each page scrolled in so its image loads."""
+    figures = page.locator("#pages figure.page-figure")
+    found: list[tuple[str, str]] = []
+    for i in range(figures.count()):
+        figures.nth(i).scroll_into_view_if_needed()
+        page.wait_for_function(
+            "(i) => { const img = document.querySelectorAll('#pages figure.page-figure img')[i]; return img.complete && img.naturalWidth > 0; }",
+            arg=i,
+        )
+        page.wait_for_timeout(100)
+        found += (
+            figures.nth(i)
+            .locator(".marker")
+            .evaluate_all("els => els.map(e => [e.getAttribute('data-marker'), e.textContent])")
+        )
+    return [(str(n), str(text)) for n, text in found]
+
+
+@pytest.mark.compiler
+def test_marker_buttons_show_letters_and_an_older_recording_its_numbers(
+    page: Any, server: tuple[str, Path], tmp_path: Path
+) -> None:
+    """Spec 013 US2 and US3: each button shows the label `markers.json` stores, a letter, as the page
+    prints it. A recording whose `markers.json` has no label, as every one compiled before 2026-09-21,
+    shows the number its pages print."""
+    base, runs = server
+    page.goto(base + "/demo")
+    choose_dataset(page, "01 · Clean run")
+    page.click("#btn-run")
+    _answer_banner_if_shown(page)
+    page.wait_for_selector("figure.page-figure img.page-img", timeout=180000)
+    _approve(page)
+    run_id = page.evaluate("() => window.__s1.view.runId")
+    folder = page.evaluate(
+        "() => window.__s1.view.latestCompiled.pageImages[0].split('/').slice(0, -1).join('/')"
+    )
+    markers_path = runs / run_id / folder / "markers.json"
+    stored = json.loads(markers_path.read_text(encoding="utf-8"))
+    labels = {str(m["n"]): m["label"] for m in stored}
+    shown = _marker_buttons(page)
+    assert len(shown) == len(stored) >= 2
+    for n, text in shown:
+        assert text == labels[n] and text.isalpha() and text.islower(), (n, text)
+
+    import shutil
+
+    other_runs = tmp_path / "runs"
+    shutil.copytree(runs / run_id, other_runs / run_id)
+    older = other_runs / run_id / folder / "markers.json"
+    older.write_text(
+        json.dumps([{k: v for k, v in m.items() if k != "label"} for m in stored], indent=1), encoding="utf-8"
+    )
+    empty_datasets = tmp_path / "datasets"
+    empty_datasets.mkdir()
+    base2, srv2, thread2 = _serve(
+        Settings(runs_dir=other_runs, datasets_dir=empty_datasets, stub_pace=120.0, agent_mode="stub")
+    )
+    try:
+        page.goto(base2 + f"/demo?run={run_id}")
+        page.wait_for_selector("figure.page-figure img.page-img", timeout=60000)
+        shown = _marker_buttons(page)
+        assert len(shown) == len(stored)
+        assert all(text == n for n, text in shown), shown
+    finally:
+        srv2.should_exit = True
+        thread2.join(timeout=5)
+    assert page.errors == []
+
+
 @pytest.mark.compiler
 def test_version_swap_keeps_scroll_and_never_blanks(page: Any, server: tuple[str, Path]) -> None:
     """US1: v2 replaces v1 in place, the panel keeps its scroll, and the empty message never shows."""

@@ -191,7 +191,9 @@ enforced by the checks above rather than by the dataset.
 criteria, and a note of what the engine verified before the draft reached it, stated as facts with the price
 tool's own sum and with no instruction about what to raise. In the page text each provenance marker is
 written in brackets after its figure, from a second compile made only for reading, because on the displayed
-page the superscript marker is glued to the figure and one price then reads as several.
+page the superscript marker is glued to the figure and one price then reads as several. In this run the
+markers were numbers, as in [1]; since 2026-09-21 they are letters, as in [a], on the page and in its text
+(roadmap decision 36).
 
 **Task.** "Review draft v1 against the brief and the reviewer criteria."
 
