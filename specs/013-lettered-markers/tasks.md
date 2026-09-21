@@ -107,7 +107,12 @@ description: "Task list for lettered provenance markers"
 - [X] T024 Search tracked files for descriptions of markers as numbers (`superscript number`, `numbered marker`, `marker number`, `[1]` beside a price) and fix any current description found outside historical records; history in `docs/roadmap.md` decisions before 36, `specs/001` to `specs/012` and past evidence stays as written
 - [X] T025 Run `uv run python scripts/check.py` (exit code captured on its own) and `uv run pytest -m visual`; both green; record the results in `specs/013-lettered-markers/evidence.md`
 - [X] T026 Mark every task done in this file; confirm the branch is `013-lettered-markers` and `git status` shows only files this work changed; stage them by name; commit with the attribution line
-- [X] T027 Merge `013-lettered-markers` into `main` with `--no-ff` from the worktree (main is not checked out elsewhere), after confirming `main` has not moved past `7a75a68` or merging its new commits cleanly; do not push
+- [X] T027 Merge `013-lettered-markers` into `main` with `--no-ff` from the worktree (main is not checked out elsewhere), after confirming `main` has not moved past `7a75a68` or merging its new commits cleanly; do not push. Superseded the same day by T029: the owner asked for a pull request against main. The local merge (`aa3e7d4`, never pushed) stays, because another session had already started a branch from it
+
+## Phase 8: Owner follow-up (2026-09-21)
+
+- [X] T028 Record a Planted inconsistency run on this branch's code through the Demo page's API, from a second server over the shared `runs/`, `datasets/` and `knowledge/` folders (the server on port 8000 serves the other session's branch), approve it at Handoff, check that its pages, `markers.json`, page text and public frame all show letters, and pin it as the default `public_run_id` in `app/config.py`, with the hint in `.env.example`; record it in `evidence.md`
+- [X] T029 Commit the pin, push `013-lettered-markers`, and open a pull request against `main` after checking what the push publishes (CLAUDE.md rule 11)
 
 ---
 

@@ -41,6 +41,6 @@ In the run folder of step 2, open `runs/<id>/artifacts/v1/pages.json`. Each tagg
 
 `evidence.md` beside this file records the 5 replayed Reviewer requests: which runs, the recorded verdict against the replayed one, and the markers each finding cites.
 
-## Owner step: the Introduction's pinned recording
+## The Introduction's pinned recording
 
-The Introduction frame replays the run in `PUBLIC_RUN_ID`, by default `f2dda488` from S4, whose pages show numbers. It stays pinned until you choose a run recorded after this change: set `PUBLIC_RUN_ID=<run id>` in `.env`, or change the default in `app/config.py` in its own commit, then open `/introduction` and check the frame shows letters.
+The Introduction frame replays the run in `PUBLIC_RUN_ID`, by default `21b86b66`, recorded on 2026-09-21 with lettered markers (it replaced `f2dda488` from S4, whose pages show numbers). To pin another, set `PUBLIC_RUN_ID=<run id>` in `.env`, or change the default in `app/config.py` in its own commit, then open `/introduction` and check the frame shows letters.

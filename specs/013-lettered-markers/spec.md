@@ -101,7 +101,7 @@ The Reviewer reads the page images and the page text. Before any live run is spe
 - **FR-009**: The identifiers the system stores and replays MUST NOT change: the marker's integer number, the tag ids, the source ids, the event types and every event payload. The event schema version stays as it is and no golden log is re-recorded.
 - **FR-010**: Hover behaviour MUST NOT change: hovering a marker highlights its source message and scrolls the feed to it, and nothing happens on click.
 - **FR-011**: The project records that describe the markers MUST say letters instead of numbers: the design deviation that describes the printed markers, the seat flow and deep dive notes on the Reviewer's page text, and code comments that describe the marker as a number. A decision entry in the roadmap records this change and the owner decisions above.
-- **FR-012**: The Introduction's pinned recording MUST NOT change in this work. Pinning a recording made after the change is an owner step, listed in the quickstart.
+- **FR-012**: The Introduction's pinned recording MUST NOT change in this work. Pinning a recording made after the change is an owner step, listed in the quickstart. The owner asked for it the same day, and run `21b86b66` was recorded and pinned (tasks T028, evidence).
 
 ### Key Entities
 

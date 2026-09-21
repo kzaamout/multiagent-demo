@@ -69,6 +69,10 @@ The only app server running on this machine during the work, on port 8000, was s
 
 `uv run python scripts/check.py` exit 0 after the change: ruff, format and mypy clean on 217 source files, pytest 549 passed, 1 skipped, em dash lint and the `.env` leak test green. `uv run pytest -m visual` exit 0: 35 passed, none skipped, including the screenshot comparisons against the design export.
 
-## Owner step still open
+## The Introduction's pinned run
 
-The Introduction frame keeps its pinned recording `f2dda488`, whose pages print numbers and whose buttons therefore show numbers. Pin a run recorded after this change with `PUBLIC_RUN_ID` in `.env` (quickstart, owner step).
+At the owner's request the same day, a fresh Planted inconsistency run was recorded on this branch's code and pinned. It was driven through the Demo page's API from a second server started in this worktree over the shared `runs/`, `datasets/` and `knowledge/` folders, because the restarted server on port 8000 serves the other session's branch, which does not carry this change. Seats on their committed defaults, `COST_CEILING=1.00`.
+
+Run `21b86b66`: exit `reviewer_pass` on the first review, approved at Handoff, 89 events, 3.0 minutes, an estimated 0.31 USD. It asked no question, the knowledge file already holding the answer. Three pages and ten markers, a to j, all resolved; `markers.json` stores the labels; the Reviewer's page text carries ten bracketed letters and no bracketed number. The draft discloses the 225 A against 200 A discrepancy in its Assumptions and the Reviewer passed it, the same shape as the run it replaces, `f2dda488`. Played in the public frame at 4x, every button showed its letter.
+
+It is now the default `public_run_id` in `app/config.py`; `.env` sets no `PUBLIC_RUN_ID`, so the default applies wherever this code runs.
