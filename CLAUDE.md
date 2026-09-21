@@ -8,7 +8,7 @@ A sales demo that shows several AI agents, under an orchestrator, taking a busin
 ## Working rules
 1. Ask up to 10 clarifying questions before any plan or implementation. Do not proceed from a vague ask.
 2. Schema first. `docs/spec-input.md` section 6 defines the event schema. Freeze it before writing any agent. Everything (UI, replay, meters, provenance, future Slack renderer) hangs off it.
-3. The UI renders events. It never infers state, never runs timers to guess progress, never hardcodes stage transitions.
+3. The UI renders events. It never infers state, never runs timers to guess progress, never hardcodes stage transitions. The one exception is the display-only Elapsed clock (constitution II).
 4. The Orchestrator is the only component that changes stage, talks to the human, writes the knowledge file, or ends a run.
 5. The demo-not-product test: if a requirement only matters when a stranger uses this unattended, it is product. Check `.specify/memory/constitution.md` non-goals before building anything not in the spec. Flag creep, do not build it.
 6. Never use em dashes in any file, comment, UI copy, prompt, or generated content. Use commas, colons, or a full stop.

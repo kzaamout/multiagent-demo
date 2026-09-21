@@ -1,5 +1,6 @@
 /* Pure reducer: the run's event list becomes the view model. Nothing else is run state.
-   No timers, no inference beyond what the events say (constitution II). */
+   No timers, no inference beyond what the events say (constitution II). The Elapsed figure's
+   working time is derived here from the events; only clock.js advances it between events. */
 (function (global) {
   'use strict';
   var F = global.S1Format;
@@ -9,6 +10,94 @@
   }
 
   function agentOf(event) { return typeof event.actor === 'object' && event.actor ? event.actor : null; }
+
+  /* The run's working time (spec 012, research D2): time since run.started less the time a human
+     wait was open. A hold opens and closes on events the schema already has; overlapping holds
+     count once. */
+  function WorkClock() {
+    this.startMs = null;
+    this.holds = {};           /* hold key -> true while open */
+    this.open = 0;
+    this.heldMs = 0;
+    this.heldSince = null;     /* when the union of open holds began */
+    this.askPending = {};      /* ask hold key -> { question_id: true } still unanswered */
+    this.workMs = 0;
+    this.workAtHandoffMs = null;
+    this.ended = false;
+    this.at = {};              /* event_id -> working time at that event, for the feed's card times */
+  }
+  WorkClock.prototype.openHold = function (key, time) {
+    if (this.holds[key]) { return; }
+    this.holds[key] = true;
+    if (this.open === 0) { this.heldSince = time; }
+    this.open += 1;
+  };
+  WorkClock.prototype.closeHold = function (key, time) {
+    if (!this.holds[key]) { return; }
+    delete this.holds[key];
+    this.open -= 1;
+    if (this.open === 0) { this.heldMs += Math.max(0, time - this.heldSince); this.heldSince = null; }
+  };
+  WorkClock.prototype.workAt = function (time) {
+    if (this.startMs === null) { return 0; }
+    var held = this.heldMs + (this.heldSince !== null ? Math.max(0, time - this.heldSince) : 0);
+    return Math.max(0, time - this.startMs - held);
+  };
+  WorkClock.prototype.see = function (event, time) {
+    var p = event.payload || {};
+    var self = this;
+    switch (event.type) {
+      case 'run.started':
+        this.startMs = time;
+        break;
+      case 'clarification.asked':
+        if (p.blocker) { this.openHold('blocker:' + p.blocker.blocker_id, time); break; }
+        var key = 'ask:' + event.event_id;
+        this.askPending[key] = {};
+        (p.question_ids || []).forEach(function (q) { self.askPending[key][q] = true; });
+        if ((p.question_ids || []).length) { this.openHold(key, time); }
+        break;
+      case 'clarification.answered':
+        this.closeHold('blocker:' + p.question_id, time);
+        Object.keys(this.askPending).forEach(function (k) {
+          var pending = self.askPending[k];
+          if (!pending[p.question_id]) { return; }
+          delete pending[p.question_id];
+          if (!Object.keys(pending).length) { self.closeHold(k, time); }
+        });
+        break;
+      case 'run.paused':
+        this.openHold('pause', time);
+        break;
+      case 'run.resumed':
+        this.closeHold('pause', time);
+        break;
+      case 'handoff.ready':
+        this.workAtHandoffMs = this.workAt(time);
+        this.openHold('handoff', time);
+        break;
+      case 'human.approved':
+        this.closeHold('handoff', time);
+        break;
+      case 'run.terminated':
+        Object.keys(this.holds).forEach(function (k) { self.closeHold(k, time); });
+        this.ended = true;
+        break;
+      default:
+        break;
+    }
+    this.workMs = Math.max(this.workMs, this.workAt(time));
+    this.at[event.event_id] = this.workMs;
+  };
+  WorkClock.prototype.view = function (lastTsMs) {
+    return {
+      workMs: this.workMs,
+      lastTsMs: lastTsMs,
+      running: this.startMs !== null && !this.ended && this.open === 0,
+      ended: this.ended,
+      workAtHandoffMs: this.workAtHandoffMs
+    };
+  };
 
   function reduce(events, ctx) {
     ctx = ctx || {};
@@ -20,7 +109,7 @@
       datasetId: null,
       workflow: null,
       startMs: 0,
-      elapsedMs: 0,
+      clock: new WorkClock().view(0),
       roster: {},
       nodes: {},
       fired: {},
@@ -74,6 +163,7 @@
     var committedVersions = {};
     var draftReplies = {};     /* version -> progress and tool events from the Writer's call */
     events.forEach(function (e) { if (e.type === 'draft.committed') { committedVersions[e.payload.version] = true; } });
+    var workClock = new WorkClock();
 
     function intakeCardFor(event, agent) {
       var ref = event.prompt_ref || event.event_id;
@@ -91,6 +181,7 @@
       if (agent) { view.roster[agent.agent_id] = agent; }
       var p = event.payload || {};
       var time = F.tsMs(event.ts);
+      workClock.see(event, time);
       switch (event.type) {
         case 'run.started':
           view.runId = event.run_id;
@@ -276,7 +367,8 @@
     });
 
     var last = events[events.length - 1];
-    view.elapsedMs = F.tsMs(last.ts) - view.startMs;
+    view.clock = workClock.view(F.tsMs(last.ts));
+    view.workAt = workClock.at;
     view.retryText = 'retry ' + retry.count + ' of ' + retry.budget;
     view.terminated = terminated;
     view.pausedByHuman = pausedByHuman && !terminated;
@@ -341,5 +433,5 @@
     return view;
   }
 
-  global.S1Reducer = { reduce: reduce, stageTransitions: stageTransitions };
+  global.S1Reducer = { reduce: reduce, stageTransitions: stageTransitions, WorkClock: WorkClock };
 })(window);

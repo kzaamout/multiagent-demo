@@ -22,7 +22,7 @@ Constitution XI requires every case where the export and the spec cannot both be
 - **Orchestrator notes** carry the export's prompt button. In S1 the Orchestrator is the state machine and makes no model call, so the button is inert with a title saying so. The prompt toggle on every agent message is live.
 - **Active threads auto-expand** (spec 2.2). The running-state reference capture opens the Estimator thread by clicking it in the export, which is how the export shows the expanded state described in `design/README.md`.
 - **Artifact panel placeholder** reads "Deliverable appears here after the first draft. Compiled pages arrive in slice S4." It is masked in the comparison until S4.
-- **Event counts and elapsed time.** The stub emits every event the schema requires, including meter deltas. The termination card and raw drawer therefore count 62 or 65 events where the export's sample says 41. The elapsed meter shows the last event's time (01:35 in the running state) because the UI never runs timers; the export shows 01:37.
+- **Event counts and elapsed time.** The stub emits every event the schema requires, including meter deltas. The termination card and raw drawer therefore count 62 or 65 events where the export's sample says 41. Superseded for elapsed time by 012 (see below): the meter now ticks the run's working time between events.
 
 ### Screenshot references
 
@@ -114,3 +114,13 @@ Reviewed against the export's artifact panel, its outlined and pill button famil
 6. **Run pre-flight reads "Running"** while the checks run and is disabled, in the export's disabled treatment; a refusal or a network error shows as one red line under the rows. The export has no running state.
 7. **Cloud mode greys local models** in Settings and the composer with the note "not offered in Cloud mode", the same greyed treatment the export uses for a provider without credentials.
 8. **Introduction link** in every header is live from S6. The Introduction page is served by its own route rather than the page helper, so its header dot is substituted there from the same stored result.
+
+## 012, presenter clock and seat-aware pre-flight (2026-09-21)
+
+### Owner decisions of 2026-09-21 (specs/012-clock-seat-preflight/spec.md, Owner decisions)
+
+1. **The Elapsed meter ticks.** It shows the run's working time, advancing each second between events, held while the run waits on the human (a question batch, a blocker, a Pause, the Handoff approval), and stopped at termination (constitution 1.3.0, principle II). Replays tick at their speed. The export's figure is static; its look is unchanged. The golden states show working time, which in the planted inconsistency log is 12 s less than the last event's time after the clarification wait; the difference stays inside the comparison's tolerance, so no mask is added.
+2. **Every run time shows working time.** Every feed card's time, the termination card's "Run ended" or "Ready for approval" figure, the Compare strip and the comparison line ("Team $x in m:ss"), and the Time column of the run timeline PDF use the same working time as the meter, so no two times disagree (owner decisions 12 and 13). The server works it out from the events by the same rule as the page. The recorded `run.terminated` summary keeps the total time.
+3. **One pre-flight row per model.** The rows are every model in the registry, named "<model label> answers" for a cloud model and "<model id> pulled in Ollama" for a local one, then the export's fixed rows, then three rows the export does not have: Introduction recording present, Every dataset has a replay, and Reviewer and Writer on different model families. All use the export's `check-row`. The all-pass and one-fail comparisons seed the export's eight rows through the fixtures, as S7 did; the pending comparison lists the real rows, so its row names and the rows below the export's eighth are masked with this reason.
+4. **The header dot reads the seats in force.** Red for what stops this demo, amber for what harms it, green when only rows the current seats do not use failed, with a tooltip counting them; worked out on every page load, not stored. On Settings the dot updates in place after a seat change's recheck, and the status line gains one sentence with the chosen model's result.
+5. **The confirmation needs a full pre-flight.** "All checks pass" shows only after a full pre-flight has run and every applicable row passed. A family row worked out on read, or rows written by a recheck, never show it.

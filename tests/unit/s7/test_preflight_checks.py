@@ -1,4 +1,4 @@
-"""Each pre-flight check with its outside calls injected (S7 research D3, D4, D7, D9).
+"""Each pre-flight check with its outside calls injected (S7 research D3, D4, D7, D9; spec 012 D6).
 
 No network, no compiler, no model: the context carries scripted probes. Detail lines are checked
 for the export's wording and for never carrying a value from the environment (constitution XVII).
@@ -28,7 +28,8 @@ from app.preflight.checks import (
     check_png,
     check_typst,
     checks_for,
-    provider_checks,
+    cloud_model_checks,
+    local_model_checks,
 )
 from app.preflight.result import FAIL, PASS, SKIP
 from app.schema.events import Model
@@ -144,41 +145,51 @@ def compiled(folder: Path, pages: int) -> Compiled:
     )
 
 
-# Provider rows
+# Model rows (spec 012: one per model in the registry)
 
 
-def test_provider_rows_come_from_seats_and_present_keys(tmp_path: Path) -> None:
-    ctx = context(
-        tmp_path, {"estimator": "sonnet", "reviewer": "qwen"}, {"bedrock": True, "google": True, "xai": False}
-    )
-    rows = provider_checks(ctx)
-    assert [(r.id, r.name, r.essential) for r in rows] == [
-        ("provider:bedrock", "Amazon Bedrock responds", True),
-        ("provider:google", "Google Gemini responds", False),
+def test_one_cloud_row_per_registry_model_in_order(tmp_path: Path) -> None:
+    ctx = context(tmp_path, {"estimator": "sonnet", "reviewer": "qwen"}, {"bedrock": True, "google": True})
+    assert [(c.id, c.name) for c in cloud_model_checks(ctx)] == [
+        ("model:sonnet", "claude-sonnet-5 via Bedrock answers"),
+        ("model:gemini", "gemini-2.5-pro via Google answers"),
+        ("model:grok", "grok-4.6 via xAI answers"),
+    ]
+    assert [(c.id, c.name) for c in local_model_checks(ctx)] == [
+        ("model:qwen", "qwen3.5:9b pulled in Ollama")
     ]
 
 
-async def test_provider_pass_names_the_seat_model(tmp_path: Path) -> None:
+async def test_cloud_pass_names_the_model(tmp_path: Path) -> None:
     ctx = context(tmp_path, {"estimator": "sonnet"}, {"bedrock": True})
-    result = await provider_checks(ctx)[0].run(ctx)
-    assert result.status == PASS and result.essential
+    result = await cloud_model_checks(ctx)[0].run(ctx)
+    assert result.status == PASS
     assert result.detail.startswith("claude-sonnet-5 answered in ")
+    assert result.subject == {"kind": "model", "model_key": "sonnet", "provider": "bedrock"}
 
 
-async def test_provider_failure_carries_the_class_never_the_message(tmp_path: Path) -> None:
+async def test_cloud_row_without_a_key_is_not_applicable(tmp_path: Path) -> None:
+    ctx = context(tmp_path, {"estimator": "sonnet"}, {"bedrock": False, "google": True, "xai": False})
+    rows = {c.id: await c.run(ctx) for c in cloud_model_checks(ctx)}
+    assert (rows["model:sonnet"].status, rows["model:sonnet"].detail) == (SKIP, "No AWS credentials")
+    assert (rows["model:grok"].status, rows["model:grok"].detail) == (SKIP, "No key in .env for xAI")
+    assert rows["model:gemini"].status == PASS
+
+
+async def test_cloud_failure_carries_the_class_never_the_message(tmp_path: Path) -> None:
     ctx = context(tmp_path, {"reviewer": "gemini"}, {"google": True})
 
     async def refuse(_: SeatModel) -> None:
         raise RuntimeError(f"401 for key {MARKER}")
 
     ctx.probe = refuse
-    result = await provider_checks(ctx)[0].run(ctx)
+    result = await cloud_model_checks(ctx)[1].run(ctx)
     assert result.status == FAIL
     assert result.detail == "gemini-2.5-pro did not answer (RuntimeError)"
     assert MARKER not in result.detail
 
 
-async def test_provider_timeout_names_the_limit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_cloud_timeout_names_the_limit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     ctx = context(tmp_path, {"estimator": "sonnet"}, {"bedrock": True})
 
     async def slow(_: SeatModel) -> None:
@@ -186,43 +197,46 @@ async def test_provider_timeout_names_the_limit(tmp_path: Path, monkeypatch: pyt
 
     ctx.probe = slow
     monkeypatch.setattr(checks_module, "PROVIDER_TIMEOUT_S", 0.01)
-    result = await provider_checks(ctx)[0].run(ctx)
+    result = await cloud_model_checks(ctx)[0].run(ctx)
     assert result.status == FAIL and result.detail.startswith("no answer within ")
 
 
-# Ollama
+# Ollama and the local model rows
 
 
-async def test_ollama_pass_lists_the_seat_models(tmp_path: Path) -> None:
+async def test_ollama_reachable_and_the_local_row_pulled(tmp_path: Path) -> None:
     ctx = context(tmp_path, {"reviewer": "qwen"})
     result = await check_ollama(ctx)
-    assert (result.status, result.essential, result.detail) == (
-        PASS,
-        True,
-        "qwen3.5:9b present at localhost:11434",
-    )
+    assert (result.status, result.detail) == (PASS, "reachable at localhost:11434, 1 models pulled")
+    local = await local_model_checks(ctx)[0].run(ctx)
+    assert (local.status, local.detail) == (PASS, "present at localhost:11434")
 
 
-async def test_ollama_missing_model_and_unreachable(tmp_path: Path) -> None:
+async def test_local_row_not_pulled_and_ollama_unreachable(tmp_path: Path) -> None:
     ctx = context(tmp_path, {"reviewer": "qwen"})
     ctx.tags = lambda _h, _t: set()
-    assert (await check_ollama(ctx)).detail == "not pulled: qwen3.5:9b"
+    await check_ollama(ctx)
+    assert (await local_model_checks(ctx)[0].run(ctx)).detail == "not pulled"
 
     def down(_h: str, _t: float) -> set[str]:
         raise ConnectionError("refused")
 
+    ctx = context(tmp_path, {"reviewer": "qwen"})
     ctx.tags = down
     result = await check_ollama(ctx)
     assert (result.status, result.detail) == (FAIL, "Ollama not reachable at localhost:11434")
+    local = await local_model_checks(ctx)[0].run(ctx)
+    assert (local.status, local.detail) == (FAIL, "Ollama not reachable")
 
 
 async def test_ollama_in_cloud_mode_skips_or_names_the_local_seats(tmp_path: Path) -> None:
     clean = context(tmp_path, {"estimator": "sonnet"}, run_mode="cloud")
     result = await check_ollama(clean)
-    assert (result.status, result.essential, result.detail) == (SKIP, False, CLOUD_MODE_SKIP)
+    assert (result.status, result.detail) == (SKIP, CLOUD_MODE_SKIP)
+    assert (await local_model_checks(clean)[0].run(clean)).status == SKIP
     stuck = context(tmp_path, {"estimator": "sonnet", "pricing": "qwen"}, run_mode="cloud")
     result = await check_ollama(stuck)
-    assert (result.status, result.essential) == (FAIL, True)
+    assert result.status == FAIL
     assert result.detail == "pricing still on local models; move them in Settings"
 
 
@@ -267,7 +281,7 @@ async def test_disk_around_the_threshold(tmp_path: Path) -> None:
     assert (await check_disk(ctx)).detail == "48 GB free"
     ctx.disk_usage = lambda _p: Usage(100e9, 97e9, 3.2e9)
     result = await check_disk(ctx)
-    assert (result.status, result.essential, result.detail) == (FAIL, True, "Under 5 GB free (3.2 GB)")
+    assert (result.status, result.detail) == (FAIL, "Under 5 GB free (3.2 GB)")
 
     def unreadable(_p: Path) -> Usage:
         raise OSError("no such drive")
@@ -279,13 +293,18 @@ async def test_disk_around_the_threshold(tmp_path: Path) -> None:
 # .env completeness
 
 
-async def test_env_completeness_lists_missing_names_per_mode(tmp_path: Path) -> None:
+async def test_env_completeness_lists_missing_names_for_the_seats(tmp_path: Path) -> None:
     ctx = context(tmp_path, {"estimator": "sonnet", "reviewer": "gemini", "pricing": "qwen"})
     ctx.env = {}
     ctx.aws_credentials = lambda: False
     result = await check_env(ctx)
-    assert (result.status, result.essential) == (FAIL, True)
+    assert result.status == FAIL
     assert result.detail == "Missing DEMO_USERNAME, DEMO_PASSWORD, AWS credentials, GEMINI_API_KEY"
+    assert result.subject == {
+        "kind": "env",
+        "login_missing": ["DEMO_USERNAME", "DEMO_PASSWORD"],
+        "keys_missing": {"bedrock": "AWS credentials", "google": "GEMINI_API_KEY", "xai": "XAI_API_KEY"},
+    }
     ready = context(
         tmp_path, {"estimator": "sonnet", "reviewer": "gemini"}, demo_username="p", demo_password="s"
     )
@@ -317,16 +336,21 @@ async def test_checks_in_page_order_and_no_value_from_env_in_any_detail(
     ctx.probe = leaky
     checks = checks_for(ctx)
     assert [c.id for c in checks] == [
-        "provider:bedrock",
-        "provider:google",
+        "model:sonnet",
+        "model:gemini",
+        "model:grok",
         "ollama",
+        "model:qwen",
         "typst",
         "png",
         "tunnel",
         "disk",
         "env",
+        "intro-recording",
+        "replays",
     ]
     results = [await c.run(ctx) for c in checks]
     for result in results:
         assert MARKER not in result.detail, result.id
-    assert results[5].status == SKIP  # no tunnel hostname in these settings
+        assert MARKER not in str(result.subject), result.id
+    assert results[7].status == SKIP  # no tunnel hostname in these settings

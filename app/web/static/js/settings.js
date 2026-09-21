@@ -71,15 +71,47 @@
       .catch(function (error) { state.status = 'Could not load the seats: ' + error.message; render(); });
   }
 
+  function setDot(header) {
+    var dot = document.querySelector('[data-part="preflight-indicator"]');
+    if (!dot || !header) { return; }
+    dot.setAttribute('data-status', header.status);
+    dot.textContent = header.glyph;
+    dot.setAttribute('title', header.title);
+  }
+
+  /* After a swap, the pre-flight rechecks the chosen model and the key for its provider (spec 012
+     research D10). The reply carries the model's row and the header state; the last reply wins.
+     No timer and no polling: the result arrives as the reply. */
+  function recheck(modelKey, label, applied) {
+    var asked = (state.rechecks = (state.rechecks || 0) + 1);
+    api('POST', '/api/preflight/recheck', { model: modelKey }).then(function (reply) {
+      if (asked !== state.rechecks) { return; }
+      var row = reply.checks.filter(function (c) { return c.subject && c.subject.model_key === modelKey; })[0];
+      /* A cloud row's detail names the model; a local row's says only whether it is pulled. */
+      var line = !row ? 'Checked.' : (row.subject.provider === 'ollama' ? label + ': ' : '') + row.detail + '.';
+      if (reply.header.status === 'fail') { line += ' Pre-flight is red.'; }
+      state.status = applied + ' ' + line;
+      setDot(reply.header);
+      render();
+    }).catch(function (error) {
+      if (asked !== state.rechecks) { return; }
+      state.status = applied + ' The pre-flight recheck did not run: ' + error.message + '.';
+      render();
+    });
+  }
+
   function choose(seat, modelKey) {
     if (state.busy) { return; }
     state.busy = true;
     state.open = null;
     api('POST', '/api/seats/' + encodeURIComponent(seat), { model: modelKey }).then(function (result) {
-      state.status = result.applied === 'next-dispatch'
-        ? 'Applied to the live run: the next dispatch uses ' + result.model.label + '.'
-        : 'Applied: the next run uses ' + result.model.label + '.';
+      var label = result.model.label;
+      var applied = result.applied === 'next-dispatch'
+        ? 'Applied to the live run: the next dispatch uses ' + label + '.'
+        : 'Applied: the next run uses ' + label + '.';
+      state.status = applied + ' Checking ' + label + '.';
       state.busy = false;
+      recheck(modelKey, label, applied);
       return load();
     }).catch(function (error) {
       state.status = 'Not applied: ' + error.message;

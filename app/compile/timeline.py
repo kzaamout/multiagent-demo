@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import datetime as dt
 from collections.abc import Sequence
 from pathlib import Path
 
 from app.compile.pipeline import ARTIFACTS, TEMPLATES, render_markdown
+from app.runs.working_time import working_times
 from app.schema.events import Event
 
 TIMELINE_TEMPLATE = TEMPLATES / "run-timeline.typ"
@@ -49,7 +49,6 @@ def timeline_markdown(events: Sequence[Event]) -> str:
     if not events:
         return "# Run timeline\n\nNo events were recorded.\n"
     first = events[0]
-    start = dt.datetime.fromisoformat(first.ts.replace("Z", "+00:00"))
     dataset = first.payload.get("dataset_id", "") if isinstance(first.payload, dict) else ""
     lines = [
         "# Run timeline",
@@ -59,9 +58,9 @@ def timeline_markdown(events: Sequence[Event]) -> str:
         "| Time | Stage | Actor | Event | Summary |",
         "|---|---|---|---|---|",
     ]
-    for event in events:
-        when = dt.datetime.fromisoformat(event.ts.replace("Z", "+00:00"))
-        elapsed = max(0, int((when - start).total_seconds()))
+    # Each event's working time, the same measure as the feed cards and the clock (spec 012 decision 12).
+    for event, work in zip(events, working_times(events), strict=True):
+        elapsed = work // 1000
         lines.append(
             f"| {elapsed // 60:02d}:{elapsed % 60:02d} | {_cell(event.stage or '')} | {_cell(_actor_label(event))} | "
             f"{_cell(event.type)} | {_cell(_summary(event))[:160]} |"
@@ -70,12 +69,15 @@ def timeline_markdown(events: Sequence[Event]) -> str:
 
 
 def compile_timeline(run_folder: Path, events: Sequence[Event]) -> Path:
-    """Write `artifacts/timeline.pdf` for the run, regenerating when the event log is newer."""
+    """Write `artifacts/timeline.pdf` for the run, regenerating when the event log, or the way the
+    timeline is written (this module), is newer than the PDF."""
     out_dir = run_folder / ARTIFACTS
     pdf = out_dir / "timeline.pdf"
     log = run_folder / "events.jsonl"
-    if pdf.is_file() and log.is_file() and pdf.stat().st_mtime >= log.stat().st_mtime:
-        return pdf
+    if pdf.is_file() and log.is_file():
+        newest_source = max(log.stat().st_mtime, Path(__file__).stat().st_mtime)
+        if pdf.stat().st_mtime >= newest_source:
+            return pdf
     first = events[0] if events else None
     variables = {
         "run-id": first.run_id if first is not None else "",

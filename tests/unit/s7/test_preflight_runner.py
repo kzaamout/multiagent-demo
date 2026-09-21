@@ -1,4 +1,5 @@
-"""Pre-flight results: classification, storage, the header state, and the runner (S7 research D1, D2)."""
+"""Pre-flight results: storage and the runner (S7 research D1; spec 012 research D6, D7).
+The header policy that replaced S7's essential flag is tested in tests/unit/s12/test_header_policy.py."""
 
 from __future__ import annotations
 
@@ -16,20 +17,19 @@ from app.preflight.result import (
     PASS,
     PENDING,
     SKIP,
-    WARN,
     CheckResult,
-    build_result,
+    PreflightResult,
     format_stamp,
-    header_state,
     load_result,
-    overall,
     save_result,
 )
-from app.preflight.runner import pending_payload, run_preflight
+from app.preflight.runner import payload, run_preflight
 
 
-def cr(check_id: str, status: str, essential: bool, detail: str = "d") -> CheckResult:
-    return CheckResult(check_id, check_id.replace("_", " ").capitalize(), status, detail, essential, 1)
+def cr(check_id: str, status: str, detail: str = "d") -> CheckResult:
+    return CheckResult(
+        check_id, check_id.replace("_", " ").capitalize(), status, detail, 1, "2026-09-14T08:12:00"
+    )
 
 
 def context(tmp_path: Path) -> CheckContext:
@@ -39,19 +39,11 @@ def context(tmp_path: Path) -> CheckContext:
     )
 
 
-def test_overall_follows_the_essential_flag() -> None:
-    assert overall([cr("a", PASS, True), cr("b", PASS, False)]) == PASS
-    assert overall([cr("a", PASS, True), cr("b", SKIP, False)]) == PASS
-    assert overall([cr("a", PASS, True), cr("b", FAIL, False)]) == WARN
-    assert overall([cr("a", FAIL, True), cr("b", FAIL, False)]) == FAIL
-    assert overall([]) == PASS
-
-
-def test_counts_exclude_skipped_checks() -> None:
-    result = build_result(
-        "laptop", "2026-09-14T08:12:00", [cr("a", PASS, True), cr("b", SKIP, False), cr("c", FAIL, False)]
-    )
-    assert (result.passed, result.applicable, result.status) == (1, 2, WARN)
+def test_counts_exclude_skipped_checks(tmp_path: Path) -> None:
+    result = PreflightResult("laptop", "2026-09-14T08:12:00", (cr("a", PASS), cr("b", SKIP), cr("c", FAIL)))
+    body = payload(result, context(tmp_path))
+    # The family row is not applicable with no Reviewer or Writer seat, so it counts for neither.
+    assert (body["passed"], body["applicable"]) == (1, 2)
 
 
 def test_load_result_is_none_when_missing_corrupt_or_another_schema(tmp_path: Path) -> None:
@@ -59,34 +51,16 @@ def test_load_result_is_none_when_missing_corrupt_or_another_schema(tmp_path: Pa
     (tmp_path / "preflight.json").write_text("{not json", encoding="utf-8")
     assert load_result(tmp_path) is None
     (tmp_path / "preflight.json").write_text(
-        json.dumps({"schema": 2, "ran_at": "x", "status": "pass"}), encoding="utf-8"
+        json.dumps({"schema": 1, "ran_at": "x", "status": "pass", "checks": []}), encoding="utf-8"
     )
     assert load_result(tmp_path) is None
 
 
 def test_save_and_load_round_trip(tmp_path: Path) -> None:
-    result = build_result(
-        "cloud", "2026-09-14T08:12:00-04:00", [cr("a", PASS, True), cr("tunnel", FAIL, False)]
-    )
+    result = PreflightResult("cloud", "2026-09-14T08:12:00-04:00", (cr("a", PASS), cr("tunnel", FAIL)))
     path = save_result(tmp_path / "runs", result)
     assert path == tmp_path / "runs" / "preflight.json"
     assert load_result(tmp_path / "runs") == result
-
-
-def test_header_state_for_the_four_states() -> None:
-    pending = header_state(None)
-    assert (pending.status, pending.glyph, pending.title) == (PENDING, "○", "Pre-flight: not run yet")
-    ok = header_state(build_result("laptop", "2026-09-14T08:12:00", [cr("a", PASS, True)]))
-    assert (ok.status, ok.glyph, ok.title) == (PASS, "✓", "Pre-flight: all checks pass, 14 Sep 2026, 08:12")
-    warn = header_state(
-        build_result("laptop", "2026-09-14T08:12:00", [cr("a", PASS, True), cr("tunnel", FAIL, False)])
-    )
-    assert (warn.status, warn.glyph) == (WARN, "!")
-    assert warn.title == "Pre-flight: Tunnel failed (non-essential), 14 Sep 2026, 08:12"
-    fail = header_state(
-        build_result("laptop", "2026-09-14T08:12:00", [cr("tunnel", FAIL, False), cr("disk", FAIL, True)])
-    )
-    assert (fail.status, fail.glyph, fail.title) == (FAIL, "✕", "Pre-flight: Disk failed, 14 Sep 2026, 08:12")
 
 
 def test_stamp_reads_like_the_export() -> None:
@@ -98,20 +72,22 @@ async def test_runner_stores_the_result_and_survives_bad_checks(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def passes(_: CheckContext) -> CheckResult:
-        return cr("ok", PASS, True, "fine")
+        return cr("ok", PASS, "fine")
 
     async def explodes(_: CheckContext) -> CheckResult:
         raise RuntimeError("secret=zq9")
 
     async def hangs(_: CheckContext) -> CheckResult:
         await asyncio.sleep(5)
-        return cr("slow", PASS, False)
+        return cr("slow", PASS)
 
     checks = [
-        Check("ok", "Ok", True, 1.0, passes),
-        Check("boom", "Boom", False, 1.0, explodes),
-        Check("slow", "Slow", False, 0.01, hangs),
+        Check("ok", "Ok", 1.0, passes),
+        Check("boom", "Boom", 1.0, explodes),
+        Check("slow", "Slow", 0.01, hangs),
     ]
+    monkeypatch.setattr("app.preflight.runner.cloud_model_checks", lambda _ctx: [])
+    monkeypatch.setattr("app.preflight.runner.sequential_checks", lambda _ctx: checks)
     monkeypatch.setattr("app.preflight.runner.checks_for", lambda _ctx: checks)
     monkeypatch.setattr("app.preflight.runner.GRACE_S", 0.0)
     ctx = context(tmp_path)
@@ -121,7 +97,7 @@ async def test_runner_stores_the_result_and_survives_bad_checks(
     assert by_id["boom"].status == FAIL and by_id["boom"].detail == "check failed (RuntimeError)"
     assert "zq9" not in by_id["boom"].detail
     assert by_id["slow"].status == FAIL and by_id["slow"].detail == "no answer within 0 s"
-    assert result.status == WARN
+    assert result.ran_at is not None
     assert load_result(ctx.settings.runs_dir) == result
 
 
@@ -129,10 +105,11 @@ def test_pending_payload_lists_every_check_pending(tmp_path: Path, monkeypatch: 
     async def never(_: CheckContext) -> CheckResult:
         raise AssertionError("pending never runs a check")
 
-    checks = [Check("a", "A", True, 1.0, never), Check("b", "B", False, 1.0, never)]
+    checks = [Check("a", "A", 1.0, never), Check("b", "B", 1.0, never)]
     monkeypatch.setattr("app.preflight.runner.checks_for", lambda _ctx: checks)
-    body = pending_payload(context(tmp_path))
-    assert body["status"] == PENDING and body["ran_at"] is None
-    assert [c["name"] for c in body["checks"]] == ["A", "B"]
-    assert {c["status"] for c in body["checks"]} == {PENDING}
-    assert {c["detail"] for c in body["checks"]} == {"Pending"}
+    body = payload(None, context(tmp_path))
+    assert body["header"]["status"] == PENDING and body["ran_at"] is None
+    assert [c["name"] for c in body["checks"]][:2] == ["A", "B"]
+    assert {c["status"] for c in body["checks"][:2]} == {PENDING}
+    assert {c["detail"] for c in body["checks"][:2]} == {"Pending"}
+    assert body["checks"][-1]["id"] == "family"

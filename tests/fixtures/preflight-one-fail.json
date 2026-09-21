@@ -1,18 +1,16 @@
 {
- "schema": 1,
+ "schema": 2,
  "run_mode": "laptop",
  "ran_at": "2026-09-14T08:12:00",
- "status": "warn",
- "passed": 7,
- "applicable": 8,
  "checks": [
-  {"id": "provider:bedrock", "name": "Amazon Bedrock responds", "status": "pass", "detail": "claude-sonnet answered in 640 ms", "essential": true, "elapsed_ms": 640},
-  {"id": "provider:google", "name": "Google Gemini responds", "status": "pass", "detail": "gemini-2.5-pro answered in 910 ms", "essential": true, "elapsed_ms": 910},
-  {"id": "ollama", "name": "Ollama reachable, models present", "status": "pass", "detail": "llama3.1 8b loaded at localhost:11434", "essential": true, "elapsed_ms": 12},
-  {"id": "typst", "name": "Typst present, test compile", "status": "pass", "detail": "typst 0.13, 6 pages in 1.2 s", "essential": true, "elapsed_ms": 1200},
-  {"id": "png", "name": "Page PNG export", "status": "pass", "detail": "6 PNGs written to runs/preflight/", "essential": true, "elapsed_ms": 1},
-  {"id": "tunnel", "name": "Tunnel reachable from outside", "status": "fail", "detail": "Tunnel not connected", "essential": false, "elapsed_ms": 10000},
-  {"id": "disk", "name": "Disk space", "status": "pass", "detail": "48 GB free", "essential": true, "elapsed_ms": 1},
-  {"id": "env", "name": ".env completeness", "status": "pass", "detail": "All required keys present", "essential": true, "elapsed_ms": 1}
+  {"id": "model:export-sonnet", "name": "Amazon Bedrock responds", "status": "pass", "detail": "claude-sonnet answered in 640 ms", "elapsed_ms": 640, "checked_at": "2026-09-14T08:12:00", "subject": {"kind": "model", "model_key": "export-sonnet", "provider": "bedrock"}},
+  {"id": "model:export-gemini", "name": "Google Gemini responds", "status": "pass", "detail": "gemini-2.5-pro answered in 910 ms", "elapsed_ms": 910, "checked_at": "2026-09-14T08:12:00", "subject": {"kind": "model", "model_key": "export-gemini", "provider": "google"}},
+  {"id": "ollama", "name": "Ollama reachable, models present", "status": "pass", "detail": "llama3.1 8b loaded at localhost:11434", "elapsed_ms": 12, "checked_at": "2026-09-14T08:12:00", "subject": {"kind": "fixed"}},
+  {"id": "typst", "name": "Typst present, test compile", "status": "pass", "detail": "typst 0.13, 6 pages in 1.2 s", "elapsed_ms": 1200, "checked_at": "2026-09-14T08:12:00", "subject": {"kind": "fixed"}},
+  {"id": "png", "name": "Page PNG export", "status": "pass", "detail": "6 PNGs written to runs/preflight/", "elapsed_ms": 1, "checked_at": "2026-09-14T08:12:00", "subject": {"kind": "fixed"}},
+  {"id": "tunnel", "name": "Tunnel reachable from outside", "status": "fail", "detail": "Tunnel not connected", "elapsed_ms": 10000, "checked_at": "2026-09-14T08:12:00", "subject": {"kind": "fixed"}},
+  {"id": "disk", "name": "Disk space", "status": "pass", "detail": "48 GB free", "elapsed_ms": 1, "checked_at": "2026-09-14T08:12:00", "subject": {"kind": "fixed"}},
+  {"id": "env", "name": ".env completeness", "status": "pass", "detail": "All required keys present", "elapsed_ms": 1, "checked_at": "2026-09-14T08:12:00", "subject": {"kind": "env", "login_missing": [], "keys_missing": {}}},
+  {"id": "model:export-llama", "name": "llama3.1:8b pulled in Ollama", "status": "pass", "detail": "present at localhost:11434", "elapsed_ms": 1, "checked_at": "2026-09-14T08:12:00", "subject": {"kind": "model", "model_key": "export-llama", "provider": "ollama"}}
  ]
 }

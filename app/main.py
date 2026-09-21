@@ -35,13 +35,15 @@ from app.intro.page import pinned_run, render_page
 from app.intro.pdf import missing_tools, render_pdf
 from app.live.chat import ChatRefused, chat, chat_allowed, find_bundle
 from app.live.providers import Availability, ModelConfig, SeatModelFactory, strands_model_for
-from app.orchestrator.orchestrator import Answer
+from app.orchestrator.orchestrator import Answer, Orchestrator
 from app.preflight import (
     CheckContext,
+    HeaderState,
     header_state,
     load_result,
-    pending_payload,
-    result_payload,
+    payload,
+    recheck,
+    recheck_payload,
     run_preflight,
 )
 from app.runs.bus import StreamBus
@@ -58,6 +60,12 @@ KEEPALIVE_SECONDS = 15.0
 def _attr(value: str) -> str:
     """A value safe inside a double-quoted HTML attribute."""
     return value.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def run_clock(orchestrator: Orchestrator) -> dict[str, Any]:
+    """The run's own clock now and its pace: the anchor the Demo page's Elapsed clock takes when it
+    attaches to a live run (spec 012 research D4). Read once per attach, never polled."""
+    return {"now": orchestrator.clock.now_ts(), "pace": orchestrator.clock.pace}
 
 
 class RunRequest(BaseModel):
@@ -106,6 +114,10 @@ class ReplayRequest(BaseModel):
     speed: Literal[1, 4] = 1
 
 
+class RecheckRequest(BaseModel):
+    model: str
+
+
 def create_app(
     settings: Settings | None = None,
     seat_model_factory: SeatModelFactory | None = None,
@@ -122,14 +134,29 @@ def create_app(
     )
     replays: dict[str, ReplaySession] = {}
     sessions = SessionStore()
+    # Full pre-flights and rechecks write the one stored file in turn (spec 012 research D10).
     preflight_lock = asyncio.Lock()
 
     def build_preflight_context() -> CheckContext:
+        """The seats in force always come from the registry, so the page's rows and the dot in every
+        header are read against the same seats (spec 012 research D8)."""
         if preflight_context is not None:
-            return preflight_context()
+            ctx = preflight_context()
+            ctx.config = registry.effective_config()
+            return ctx
         return CheckContext(
-            settings=cfg, config=registry.effective_config(), availability=dict(registry.availability)
+            settings=cfg,
+            config=registry.effective_config(),
+            availability=dict(registry.availability),
+            intro_recording_present=lambda: bool(registry.events_for(cfg.public_run_id)),
+            datasets_without_replay=lambda: [
+                d for d in registry.datasets if registry.replay_source(d) is None
+            ],
         )
+
+    def current_header() -> HeaderState:
+        """The dot for every header and /api/meta, worked out on each read (spec 012 research D8)."""
+        return header_state(load_result(cfg.runs_dir), registry.effective_config(), cfg.run_mode)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -156,8 +183,8 @@ def create_app(
         if not path.exists():
             raise HTTPException(404, f"page {name} not found")
         info = build_info(cfg.root)
-        # The pre-flight dot in every header renders from the stored result alone (S7 research D1).
-        dot = header_state(load_result(cfg.runs_dir))
+        # The pre-flight dot in every header: the stored rows read against the seats in force (spec 012).
+        dot = current_header()
         substitutions = {
             "{{BUILD_STAMP}}": info.stamp,
             "{{PREFLIGHT_STATUS}}": dot.status,
@@ -222,8 +249,8 @@ def create_app(
     async def introduction_page() -> HTMLResponse:
         events = registry.events_for(cfg.public_run_id)
         info = build_info(cfg.root)
-        # The same dot as every other header, from the stored pre-flight result alone (S7 research D1).
-        dot = header_state(load_result(cfg.runs_dir))
+        # The same dot as every other header (spec 012 research D8).
+        dot = current_header()
         html = render_page(cfg, registry.seat_table(), events)
         for placeholder, value in {
             "{{BUILD_STAMP}}": info.stamp,
@@ -289,29 +316,38 @@ def create_app(
         data["sections"] = [{"label": label, "text": text} for label, text in found.sections()]
         return data
 
-    # Pre-flight (S7, contracts/http-api-s7.md)
+    # Pre-flight (S7, contracts/http-api-s7.md; spec 012, contracts/http-api.md)
 
     @app.get("/api/preflight")
     async def preflight_status() -> dict[str, Any]:
-        """The stored result, or every check pending. Never a credential value."""
-        stored = load_result(cfg.runs_dir)
-        body = result_payload(stored) if stored is not None else pending_payload(build_preflight_context())
-        body["running"] = bool(app.state.preflight_running)
-        return body
+        """The stored rows read against the seats in force, or every row pending. Never a credential value."""
+        return payload(
+            load_result(cfg.runs_dir), build_preflight_context(), running=bool(app.state.preflight_running)
+        )
 
     @app.post("/api/preflight/run")
     async def preflight_run() -> dict[str, Any]:
-        if preflight_lock.locked():
+        """Refused only while another full pre-flight runs; waits for a recheck in progress."""
+        if app.state.preflight_running:
             raise HTTPException(409, "a pre-flight is already running")
-        async with preflight_lock:
-            app.state.preflight_running = True
-            try:
+        app.state.preflight_running = True
+        try:
+            async with preflight_lock:
                 result = await run_preflight(build_preflight_context())
-            finally:
-                app.state.preflight_running = False
-        body = result_payload(result)
-        body["running"] = False
-        return body
+        finally:
+            app.state.preflight_running = False
+        return payload(result, build_preflight_context())
+
+    @app.post("/api/preflight/recheck")
+    async def preflight_recheck(body: RecheckRequest) -> dict[str, Any]:
+        """The checks a seat change touches (spec 012 research D10). Waits for a running pre-flight.
+        Not an event, and nothing reaches any run's folder, meters, or metrics."""
+        ctx = build_preflight_context()
+        if body.model not in ctx.config.models:
+            raise HTTPException(400, f"unknown model {body.model}")
+        async with preflight_lock:
+            rows = await recheck(ctx, body.model)
+        return recheck_payload(rows, build_preflight_context())
 
     # Metadata and datasets
 
@@ -320,7 +356,7 @@ def create_app(
         info = build_info(cfg.root)
         return {
             "build": {"hash": info.hash, "date": info.date},
-            "preflight": header_state(load_result(cfg.runs_dir)).status,
+            "preflight": current_header().status,
             "run_mode": cfg.run_mode,
             "stub_pace": cfg.stub_pace,
             "workflow": cfg.workflow,
@@ -329,6 +365,7 @@ def create_app(
             "cost_ceiling": cfg.cost_ceiling,
             "schema_version": cfg.schema_version,
             "live_run_id": registry.live.run_id if registry.is_live() and registry.live else None,
+            "live_run_clock": run_clock(registry.live) if registry.is_live() and registry.live else None,
             "idle_roster": {seat: agent.model_dump() for seat, agent in registry.idle_roster().items()},
         }
 
@@ -422,6 +459,7 @@ def create_app(
             "review_max_cycles": orchestrator.state.review_max_cycles,
             "retry_budget": orchestrator.state.retry_budget,
             "cost_ceiling": orchestrator.state.cost_ceiling,
+            "clock": run_clock(orchestrator),
         }
 
     def get_orchestrator(run_id: str) -> Any:

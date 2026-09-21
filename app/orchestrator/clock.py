@@ -26,6 +26,11 @@ class Clock:
         """Wall time since start, expressed in fixture milliseconds (scaled by pace)."""
         return int((time.monotonic() - self._wall_start) * 1000 * self.pace)
 
+    def now_ts(self) -> str:
+        """The run's own clock now, in the event timestamp format. The Demo page's Elapsed clock
+        anchors on it when it attaches to a live run (spec 012 research D4)."""
+        return self.ts(self.elapsed_offset_ms())
+
     async def wait_for(self, offset_ms: int) -> None:
         delay = (offset_ms - self.elapsed_offset_ms()) / 1000.0 / self.pace
         if delay > 0:
