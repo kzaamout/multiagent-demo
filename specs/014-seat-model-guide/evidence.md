@@ -39,3 +39,10 @@ Every pick, percentage and count agreed. Another session was recording runs in t
 ## What changed and what did not
 
 `git diff --stat main` names only the files in plan.md. Nothing under `app/schema/`, `docs/schema/`, `config/electrical-bid/seats/` or any golden log changed, and no file from `runs/` or `datasets/` is tracked. No model was called and no run was started for this work. The regenerated CSV gained rows for runs recorded since its last refresh, including 6 on the `prospect-a` dataset id, which carry run metadata only.
+
+## Rebase onto 012 and 013 (2026-09-21)
+
+The work was built on the local `main` that held 013 (lettered markers) but not 012 (presenter clock and seat-aware pre-flight), which reached GitHub through PRs #1 and #2 while this was built. Owner decisions of the same day: 1a, 013 goes out first as its own PR (#3), rebased onto GitHub's `main` without conflicts, and this work is rebased on top of it; 2b, each is merged once its gates pass. Three files conflicted, each by both sides adding: `docs/roadmap.md` (decision 36 from 013, then 37 from this work), `docs/design-deviations.md` (012's section, then this work's), and `docs/spec-input.md`, where 012 had taken version 0.8, so this work's changes are recorded as the changes from 0.8 and the document is 0.9 (task T003 said 0.8 before the rebase, as plan.md's merge notes foresaw). `settings.js`, `registry.py`, `masks.py` and `CLAUDE.md` merged without conflict and were read through: 012's recheck of a swapped model and its header dot sit beside the guide's rendering. Before publishing, the absolute paths in `tasks.md` and `quickstart.md` were made relative.
+
+On the rebased code: `uv run python scripts/check.py` exit 0, ruff and format clean, mypy clean on 239 source files, pytest 621 passed and 1 skipped (596 on 013 alone, plus this work's 25), em dash lint and `.env` leak test green.
+`uv run pytest -m visual` exit 0 in 443 s: 45 passed, among them the Settings screenshot comparisons with the guide hidden, 012's Settings recheck and clock tests, 013's marker tests and this work's guide test.
