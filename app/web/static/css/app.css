@@ -413,6 +413,18 @@ a:hover { color: #17171c; }
 .seat-warning { font-size: 13px; color: #b45309; }
 .settings-status { font-size: 13px; color: #75758a; }
 .seat-select-col .model-select { box-sizing: content-box; height: 44px; }
+/* Spec 014, the seat model guide: the current model's figure follows its name in the button in the menu's
+   note style, and the button grows to two lines rather than cut a long name (the 44px box is kept as
+   32px plus 6px padding). The two picks sit under the button and the dependency note in the page's meta
+   text; the column widths are the export's. */
+.seat-select-col .model-select { height: auto; min-height: 32px; padding-top: 6px; padding-bottom: 6px; }
+.select-text { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; text-align: left; }
+.select-fig { font-size: 12px; color: #75758a; white-space: nowrap; }
+.seat-guide { grid-column: 2 / -1; margin-top: -14px; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; font-size: 13px; color: #75758a; }
+.guide-line { display: contents; }
+.guide-value { color: #212121; }
+.page-sub.guide-note { margin-top: -28px; }
+.settings-foot { margin: 12px 0 0; max-width: 900px; font-size: 13px; line-height: 1.5; color: #75758a; }
 
 /* S5: Compare strip body (export Demo.html terminated state), the composer model menu, and the sixth meter stat. */
 .compare-model { font-size: 13px; color: #75758a; font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; }

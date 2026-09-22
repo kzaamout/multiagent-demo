@@ -1,6 +1,9 @@
 /* Settings page: one row per seat from /api/seats, a model menu per row, a swap posted to
    /api/seats/<seat>. The page shows what the registry says; it never holds a credential.
-   Markup and classes follow the design export's Settings.html (open dropdown state). */
+   Markup and classes follow the design export's Settings.html (open dropdown state).
+   The seat model guide (spec 014) comes in the same table: the top open and top proprietary model per
+   seat and the current model's instruction accuracy. The server works out every figure; this page never
+   divides or rounds. */
 (function () {
   'use strict';
   var F = window.S1Format;
@@ -41,11 +44,45 @@
     return el('div', { class: 'menu', role: 'listbox', 'data-part': 'model-menu' }, items);
   }
 
+  var KIND_LABELS = { open: 'Top open model', proprietary: 'Top proprietary model' };
+
+  function counts(record) {
+    return record.percent + '% (' + record.first_time + ' of ' + record.replies;
+  }
+
+  /* The current model's figure after its name in the button; no runs yet when it has no replies here. */
+  function currentFigure(guide) {
+    return guide && guide.current ? counts(guide.current) + ')' : 'no runs yet';
+  }
+
+  function pickText(pick) {
+    if (pick && pick.status === 'pick') { return pick.model + ' · ' + counts(pick) + ' replies)'; }
+    if (pick && pick.status === 'too_few_runs') {
+      return 'none with ' + state.table.guide.min_runs + ' runs on this seat yet';
+    }
+    return 'no runs yet';
+  }
+
+  function seatGuide(row) {
+    var guide = row.guide || {};
+    var lines = ['open', 'proprietary'].map(function (kind) {
+      return el('div', { class: 'guide-line', 'data-kind': kind }, [
+        el('span', { class: 'guide-kind', 'data-part': 'guide-kind', text: KIND_LABELS[kind] }),
+        el('span', { class: 'guide-value', 'data-part': 'guide-value', text: pickText(guide[kind]) })
+      ]);
+    });
+    return el('div', { class: 'seat-guide', 'data-part': 'seat-guide' }, lines);
+  }
+
+  /* A seat with no guide (the appraisal seats, before their workflow runs) shows none. */
   function seatRow(row) {
     var open = state.open === row.seat;
+    var label = el('span', { class: 'select-model-name', text: row.card.model ? row.card.model.label : '' });
+    var figure = row.guide ? el('span', { class: 'select-fig', 'data-part': 'select-fig', text: currentFigure(row.guide) }) : null;
     var children = [
       el('button', { class: 'model-select', type: 'button', 'data-part': 'model-select', 'data-seat': row.seat, 'aria-expanded': String(open) }, [
-        el('span', { text: row.card.model ? row.card.model.label : '' }), el('span', { class: 'select-chev', text: '▾' })
+        el('span', { class: 'select-text' }, [label, figure]),
+        el('span', { class: 'select-chev', text: '▾' })
       ])
     ];
     if (open) { children.push(menu(row)); }
@@ -53,8 +90,16 @@
     return el('div', { class: 'seat-row', 'data-part': 'seat-row', 'data-seat': row.seat }, [
       agentCard(row.card),
       el('div', { class: 'seat-select-col' }, children),
-      el('div', { class: 'seat-dep', text: row.dependency })
+      el('div', { class: 'seat-dep', text: row.dependency }),
+      row.guide ? seatGuide(row) : null
     ]);
+  }
+
+  function guideNote(guide) {
+    var runs = guide ? guide.runs : 0;
+    return "Instruction accuracy is the share of a seat's replies the Orchestrator accepted the first time it " +
+      "checked them against the seat's instructions. Figures from " + runs +
+      (runs === 1 ? ' recorded run.' : ' recorded runs.');
   }
 
   function render() {
@@ -63,6 +108,7 @@
     if (!state.table) { return; }
     state.table.seats.forEach(function (row) { box.appendChild(seatRow(row)); });
     document.getElementById('settings-note').textContent = state.table.note;
+    document.getElementById('guide-note').textContent = guideNote(state.table.guide);
     document.getElementById('settings-status').textContent = state.status;
   }
 

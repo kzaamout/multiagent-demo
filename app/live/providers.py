@@ -38,6 +38,9 @@ class ModelSpec:
     options: dict[str, Any] | None = None
     additional_args: dict[str, Any] | None = None
     max_tokens: int | None = None
+    weights: str | None = None
+    """"open" (published weights anyone can run) or "proprietary" (served only by its vendor), set by hand
+    from the licence; None when the registry does not say, and then the model is never a pick (spec 014)."""
 
     def model_object(self) -> Model:
         return Model(provider=self.provider, model_id=self.model_id, label=self.label)
@@ -78,6 +81,7 @@ class ModelConfig:
                 options=dict(value["options"]) if value.get("options") else None,
                 additional_args=dict(value["additional_args"]) if value.get("additional_args") else None,
                 max_tokens=int(value["max_tokens"]) if value.get("max_tokens") else None,
+                weights=_weights(key, value.get("weights")),
             )
             for key, value in data["models"].items()
         }
@@ -104,6 +108,14 @@ class ModelConfig:
         temperature = previous.temperature if previous and self.models[model_key].temperature else None
         seats = {**self.seats, agent_id: SeatChoice(model=model_key, temperature=temperature)}
         return dataclasses.replace(self, seats=seats)
+
+
+def _weights(key: str, value: Any) -> str | None:
+    if value is None:
+        return None
+    if value not in ("open", "proprietary"):
+        raise ValueError(f"model {key}: weights must be open or proprietary")
+    return str(value)
 
 
 _FAMILY_WORD = re.compile(r"[a-z]+")

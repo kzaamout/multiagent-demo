@@ -136,6 +136,15 @@ SEAT_DEFINITIONS: dict[str, SeatDefinition] = {
 }
 
 
+def needs_image_input(agent_id: str) -> bool:
+    """The Estimator reads drawing sheets and the Reviewer compiled pages as images, and the Single-model
+    actor does the Estimator's reading, so a model for these seats must take images (spec 014)."""
+    if agent_id == "single":
+        return True
+    definition = SEAT_DEFINITIONS.get(agent_id)
+    return definition is not None and (DRAWING_PAGES in definition.sees or PAGE_TEXT in definition.sees)
+
+
 class InstructionsError(ValueError):
     pass
 

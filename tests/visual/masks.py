@@ -196,3 +196,23 @@ MASKS: dict[str, list[Rect]] = {
         )
     ],
 }
+
+
+@dataclass(frozen=True)
+class Hidden:
+    """Elements hidden before a capture, for an approved addition that changes the layout around it, so no
+    rectangle can mask it. What is left of the page is still compared with the export."""
+
+    selectors: str
+    reason: str
+    removed_in: str
+
+
+SEAT_GUIDE = Hidden(
+    ".seat-guide, .select-fig, .guide-note, .settings-foot",
+    "seat model guide added by spec 014 (docs/design-deviations.md): its lines change every row's height, so "
+    "no rectangle can mask them; test_e2e_ui checks that they render with their text",
+    "kept",
+)
+
+HIDDEN: dict[str, Hidden] = {"settings": SEAT_GUIDE, "settings-dropdown": SEAT_GUIDE}

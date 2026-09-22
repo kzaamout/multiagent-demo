@@ -25,16 +25,24 @@ import httpx
 
 from app.config import ROOT, load_settings
 from app.live.providers import ModelConfig, check_availability
-from app.runs.metrics import METRICS_FILE, run_metrics
-from app.runs.recorder import read_events
-from app.seats.definitions import DRAWING_PAGES, PAGE_TEXT, SEAT_DEFINITIONS
+from app.runs.guide import (
+    INSTRUCTION_ACCURACY,
+    MIN_RUNS_FOR_BEST,
+    guide_table,
+    instruction_accuracy,
+    metrics_of,
+    records,
+    runs_called,
+    unclassified,
+    whole_percent,
+)
+from app.seats.definitions import SEAT_DEFINITIONS, needs_image_input
 
 RUNS = load_settings().runs_dir  # RUNS_DIR may point at another checkout (worktrees, rule 15)
 REPORT = ROOT / "docs" / "model-performance.md"
 RAW_CSV = ROOT / "docs" / "model-performance-runs.csv"
 COLUMNS_DOC = ROOT / "docs" / "model-performance-columns.md"
 SEAT_ORDER = ["orchestrator", "intake", "estimator", "pricing", "writer", "reviewer", "single"]
-MIN_RUNS_FOR_BEST = 5
 
 TABLE_COLUMNS: list[tuple[str, str]] = [
     ("Seat", "the seat the row is about; one seat per row, so a model that held two seats appears twice"),
@@ -57,11 +65,15 @@ TABLE_COLUMNS: list[tuple[str, str]] = [
         "share of the model's runs, so a model is not favoured for having been tried less",
     ),
     (
-        "Accuracy",
+        "Behaviour accuracy",
         "checks met over checks defined: the dataset's own expectations of the seat, or the golden match "
         "where the dataset defines none for it (app/runs/expectations.py)",
     ),
-    ("First time", "share of accepted replies that needed no correction"),
+    (
+        "Instruction accuracy",
+        f"{INSTRUCTION_ACCURACY}, where a reply the run stopped on counts as not accepted; the figure the "
+        "Settings page shows",
+    ),
     ("Corrections", "replies accepted on the second attempt, after one refusal"),
     ("Tokens in per call", "average prompt tokens per call"),
     ("Tokens out per call", "average completion tokens per call"),
@@ -165,7 +177,8 @@ class Group:
 
     @property
     def first_time_rate(self) -> float:
-        return self.accepted_first_time / self.replies if self.replies else 0.0
+        """Instruction accuracy, worked out where the Settings page's is (app/runs/guide.py, rule 15)."""
+        return instruction_accuracy(self.accepted_first_time, self.replies) or 0.0
 
     @property
     def accuracy(self) -> float | None:
@@ -208,22 +221,6 @@ def settings_text(settings: dict[str, Any]) -> str:
                 value = "on" if value else "off"
             parts.append(f"{name} {value}")
     return ", ".join(parts) or "not recorded"
-
-
-def metrics_of(folder: Path) -> dict[str, Any] | None:
-    events_path = folder / "events.jsonl"
-    if not events_path.exists():
-        return None
-    path = folder / METRICS_FILE
-    if path.exists():
-        data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
-        seats = data.get("seats") or []
-        if seats and "golden_match" in data and all("stopped_run" in row for row in seats):
-            return data
-    try:
-        return run_metrics(read_events(events_path), folder)
-    except (OSError, ValueError):
-        return None
 
 
 def sweep_of(folder: Path) -> dict[str, Any]:
@@ -304,6 +301,12 @@ def collect(runs_dir: Path = RUNS) -> tuple[list[Group], list[dict[str, Any]]]:
     ), runs
 
 
+def _instruction(first: int, replies: int) -> str:
+    """Instruction accuracy as the Settings page shows it, rounded by the same function, or n/a."""
+    percent = whole_percent(first, replies)
+    return f"{percent}%" if percent is not None else "n/a"
+
+
 def _accuracy(g: Group) -> str:
     return f"{g.checks_met}/{g.checks_total} ({g.accuracy * 100:.0f}%)" if g.accuracy is not None else "n/a"
 
@@ -312,7 +315,7 @@ def table(groups: list[Group]) -> list[str]:
     head = "| " + " | ".join(name for name, _ in TABLE_COLUMNS) + " |"
     lines = [head, "|" + "---|" * len(TABLE_COLUMNS)]
     for g in groups:
-        first = f"{g.first_time_rate * 100:.0f}%" if g.replies else "n/a"
+        first = _instruction(g.accepted_first_time, g.replies)
         lines.append(
             f"| {g.agent_id} | {g.model} | {g.settings} | {g.instructions} | {g.runs} | {g.calls} | "
             f"{g.stopped_run} | "
@@ -367,14 +370,15 @@ def reason_table(groups: list[Group], current: dict[str, str] | None = None) -> 
 
 
 def rank_key(g: Group) -> tuple[float, ...]:
-    """Owner ranking (2026-09-17): fewest stopped runs, then accuracy, then first-time rate, then speed.
+    """Owner ranking (2026-09-17): fewest stopped runs, then behaviour accuracy, then instruction accuracy
+    (called the first-time rate until 2026-09-21), then speed.
 
     Stopped runs ranks as a share of the model's runs, not as a count. Counting them made a model look
     better for having been tried less: on the Clean run, 1 stop in 6 runs beat 2 stops in 42, though the
     second is four times steadier and seven times better evidenced. The other three were already shares.
 
     At the Estimator, how well the takeoff matches the reference ranks second, ahead of behaviour. The
-    owner kept the price out of the reported Accuracy column and left the ranking to me (2026-09-19), and
+    owner kept the price out of the reported Behaviour accuracy column and left the ranking to me (2026-09-19), and
     the Estimator is the one seat where behaviour says almost nothing: its whole check on a Clean run is
     that it raised no blocker, which a model passes while reading half the drawing wrong. Reading the
     drawings is that seat's job, and it is the only seat whose output this measures. Every other seat
@@ -426,8 +430,8 @@ def merge_by_model(groups: list[Group]) -> list[Group]:
 
 def best_local_table(groups: list[Group]) -> list[str]:
     lines = [
-        "| Seat | Best local model | Runs | Stopped runs | Accuracy | Takeoff lines right | First time | "
-        "Seconds per call | Runner-up |",
+        "| Seat | Best local model | Runs | Stopped runs | Behaviour accuracy | Takeoff lines right | "
+        "Instruction accuracy | Seconds per call | Runner-up |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
     for seat in SEAT_ORDER:
@@ -446,7 +450,7 @@ def best_local_table(groups: list[Group]) -> list[str]:
         runner = (
             f"{qualified[1].model} ({qualified[1].runs} runs)" if len(qualified) > 1 else "none qualified"
         )
-        first = f"{best.first_time_rate * 100:.0f}%" if best.replies else "n/a"
+        first = _instruction(best.accepted_first_time, best.replies)
         takeoff = (
             f"{best.takeoff_right}/{best.takeoff_lines} ({best.takeoff_accuracy * 100:.0f}%)"
             if best.takeoff_accuracy is not None
@@ -487,7 +491,8 @@ def local_model_table(runs: list[dict[str, Any]]) -> list[str]:
             row["checks"][0] += sum(1 for met in checks.values() if met)
             row["checks"][1] += len(checks)
     lines = [
-        "| Model | Seats | Runs | Calls | Stopped runs | Accuracy | First time | Corrections | "
+        "| Model | Seats | Runs | Calls | Stopped runs | Behaviour accuracy | Instruction accuracy | "
+        "Corrections | "
         "Tokens in/out per call | Seconds per call | Cost per run |",
         "|" + "---|" * 11,
     ]
@@ -495,7 +500,7 @@ def local_model_table(runs: list[dict[str, Any]]) -> list[str]:
         runs_count, calls = len(row["run_ids"]), row.get("calls", 0)
         met, total = row["checks"]
         accuracy = f"{met}/{total} ({met / total * 100:.0f}%)" if total else "n/a"
-        first = f"{row['first'] / row['replies'] * 100:.0f}%" if row.get("replies") else "n/a"
+        first = _instruction(row.get("first", 0), row.get("replies", 0))
         stopped = f"{row.get('stopped', 0)} ({row.get('stopped', 0) / runs_count * 100:.0f}%)"
         per_call = f"{round(row.get('tokens_in', 0) / calls) if calls else 0}/{round(row.get('tokens_out', 0) / calls) if calls else 0}"
         seconds = f"{row.get('wall_ms', 0) / calls / 1000:.1f}" if calls else "0.0"
@@ -621,7 +626,8 @@ def seat_performance_table(runs: list[dict[str, Any]]) -> list[str]:
             row["checks"][0] += sum(1 for met in checks.values() if met)
             row["checks"][1] += len(checks)
     lines = [
-        "| Seat | Tested models | Prompt versions | Runs | Calls | Stopped runs | Accuracy | First time | "
+        "| Seat | Tested models | Prompt versions | Runs | Calls | Stopped runs | Behaviour accuracy | "
+        "Instruction accuracy | "
         "Corrections | Tokens in/out per call | Seconds per call | Cost per run |",
         "|" + "---|" * 12,
     ]
@@ -632,7 +638,7 @@ def seat_performance_table(runs: list[dict[str, Any]]) -> list[str]:
         runs_count, calls = len(row["run_ids"]), row.get("calls", 0)
         met, total = row["checks"]
         accuracy = f"{met}/{total} ({met / total * 100:.0f}%)" if total else "n/a"
-        first = f"{row['first'] / row['replies'] * 100:.0f}%" if row.get("replies") else "n/a"
+        first = _instruction(row.get("first", 0), row.get("replies", 0))
         stopped = f"{row.get('stopped', 0)} ({row.get('stopped', 0) / runs_count * 100:.0f}%)"
         per_call = (
             f"{round(row.get('tokens_in', 0) / calls) if calls else 0}/"
@@ -734,7 +740,7 @@ def columns_document() -> str:
             "",
             *definitions(CSV_COLUMNS),
             "",
-            "## How Accuracy is scored",
+            "## How Behaviour accuracy is scored",
             "",
             "Each dataset README states its planted defect and what each seat should do about it. "
             "`app/runs/expectations.py` turns that into checks per seat: Intake stops the not-ready request naming "
@@ -744,13 +750,14 @@ def columns_document() -> str:
             "first draft and passes the clean one; the Orchestrator takes the golden route. A seat with no check "
             "on a dataset is scored on the run's golden match, and a dataset without a golden scores nothing.",
             "",
-            "## What Accuracy does not measure, and the price tables that do",
+            "## What Behaviour accuracy does not measure, and the price tables that do",
             "",
-            "Accuracy never looks at a number. Every check above is about behaviour: did the run stop, reach "
-            "Work, raise the blocker, carry the concern, pass review. A Clean run whose only Estimator check is "
-            "that no blocker was raised scores 100 percent with a price a fifth too high. The price tables "
-            "measure the number, for scenarios whose drawings state their own quantities, and are kept out of "
-            "Accuracy and out of the ranking on purpose (owner decision 2026-09-19). The reference is computed "
+            "Behaviour accuracy never looks at a number, and neither does instruction accuracy. Every check "
+            "above is about behaviour: did the run stop, reach Work, raise the blocker, carry the concern, pass "
+            "review. A Clean run whose only Estimator check is that no blocker was raised scores 100 percent "
+            "with a price a fifth too high. The price tables measure the number, for scenarios whose drawings "
+            "state their own quantities, and are kept out of Behaviour accuracy and out of the ranking on "
+            "purpose (owner decision 2026-09-19). The reference is computed "
             "by `app/runs/reference.py` from the counted quantities with the app's own calculator and price "
             "lookup, and each run stores its comparison under `price_check` in its `metrics.json`.",
             "",
@@ -759,12 +766,16 @@ def columns_document() -> str:
             "## How the best local model is chosen",
             "",
             f"Among local (Ollama) models with at least {MIN_RUNS_FOR_BEST} runs on the seat: fewest stopped runs "
-            "first, then the highest accuracy, then the highest first-time rate, then the fastest call "
-            "(owner decision 2026-09-17). At the Estimator only, the share of takeoff lines matching the "
-            "dataset's reference quantities ranks second, ahead of accuracy, because that seat's behaviour "
-            "checks amount to whether it raised a blocker while its real job is reading the drawings. The "
-            "reported Accuracy column is behaviour everywhere, and the price is reported separately (owner "
-            "decisions 1b of 2026-09-19 and the ranking left to the author).",
+            "first, then the highest behaviour accuracy, then the highest instruction accuracy, then the "
+            "fastest call (owner decision 2026-09-17). At the Estimator only, the share of takeoff lines "
+            "matching the dataset's reference quantities ranks second, ahead of behaviour accuracy, because that "
+            "seat's behaviour checks amount to whether it raised a blocker while its real job is reading the "
+            "drawings. The reported Behaviour accuracy column is behaviour everywhere, and the price is reported "
+            "separately (owner decisions 1b of 2026-09-19 and the ranking left to the author).",
+            "",
+            "## How the top models per seat are chosen",
+            "",
+            *TOP_MODELS_TEXT,
             "",
         ]
     )
@@ -837,7 +848,7 @@ def model_table(
 def seat_table() -> list[str]:
     lines = ["| Seat | Text | Vision | Tool calls | Why |", "|---|---|---|---|---|"]
     for agent_id, definition in SEAT_DEFINITIONS.items():
-        vision = agent_id == "single" or DRAWING_PAGES in definition.sees or PAGE_TEXT in definition.sees
+        vision = needs_image_input(agent_id)
         tools = _yes(bool(definition.tools))
         lines.append(f"| {agent_id} | yes | {_yes(vision)} | {tools} | {SEAT_WHY.get(agent_id, '')} |")
     lines.append(
@@ -871,7 +882,57 @@ def modality_section(probe: bool = True) -> list[str]:
     ]
 
 
-def report(groups: list[Group], runs: list[dict[str, Any]], probe: bool = True) -> str:
+TOP_MODELS_TEXT = [
+    "The two models the Settings page names beside each seat, worked out by the same code "
+    f"(`app/runs/guide.py`) from the same runs. Instruction accuracy is {INSTRUCTION_ACCURACY}, over "
+    "every recorded run whatever version of the instructions or settings it used, and a reply the run "
+    f"stopped on counts as not accepted. A model is named after {MIN_RUNS_FOR_BEST} runs on the seat; among "
+    "those, the pick has the highest low end of the 95% confidence range around its share (the Wilson "
+    "score interval), so a long record counts for more than a short perfect one. Whether a model is open "
+    "or proprietary is the `weights` it states in `config/models.yaml`, and a model without image input "
+    "is never named for the Estimator or the Reviewer (owner decisions of 2026-09-21, spec 014).",
+]
+
+
+def _pick_cells(pick: dict[str, Any]) -> list[str]:
+    """Model, instruction accuracy and runs for one slot, in the page's words when no model is named."""
+    if pick["status"] == "pick":
+        return [
+            pick["model"],
+            f"{pick['percent']}% ({pick['first_time']} of {pick['replies']})",
+            str(pick["runs"]),
+        ]
+    if pick["status"] == "too_few_runs":
+        return [f"none with {MIN_RUNS_FOR_BEST} runs on this seat yet", "", ""]
+    return ["no runs yet", "", ""]
+
+
+def top_models_section(runs: list[dict[str, Any]], config: ModelConfig) -> list[str]:
+    """The Settings page's two picks per seat, from the same records (FR-013, SC-002)."""
+    table = guide_table(records(runs), runs_called(runs), config)
+    lines = [
+        "## Top models per seat",
+        "",
+        *TOP_MODELS_TEXT,
+        "",
+        "| Seat | Top open model | Instruction accuracy | Runs | Top proprietary model | Instruction accuracy "
+        "| Runs |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for seat, entry in table["seats"].items():
+        cells = [seat, *_pick_cells(entry["open"]), *_pick_cells(entry["proprietary"])]
+        lines.append("| " + " | ".join(cells) + " |")
+    missing = unclassified(config)
+    lines += [
+        "",
+        f"Models not classified as open or proprietary: {', '.join(missing) if missing else 'none'}.",
+    ]
+    return lines
+
+
+def report(
+    groups: list[Group], runs: list[dict[str, Any]], probe: bool = True, config: ModelConfig | None = None
+) -> str:
     live = [r for r in runs if any(s["calls"] for s in r["seats"])]
     spend = sum(s["est_cost"] for r in runs for s in r["seats"])
     sweeps = sorted({str((r.get("sweep") or {}).get("label", "")) for r in runs} - {""})
@@ -890,13 +951,15 @@ def report(groups: list[Group], runs: list[dict[str, Any]], probe: bool = True) 
         "",
         *definitions(TABLE_COLUMNS),
         "",
+        *top_models_section(runs, config or ModelConfig.load()),
+        "",
         "## Best local model per seat",
         "",
         f"Ranked among Ollama models with at least {MIN_RUNS_FOR_BEST} runs on the seat: fewest stopped runs, then "
-        "accuracy, then first-time rate, then seconds per call (owner decision 2026-09-17). At the Estimator, "
-        "and only there, how well the takeoff matches the dataset's reference quantities ranks second, ahead "
-        "of behaviour: that seat's behaviour checks are nearly silent, and reading the drawings is its job. "
-        "Accuracy itself stays a measure of behaviour everywhere.",
+        "behaviour accuracy, then instruction accuracy, then seconds per call (owner decision 2026-09-17). At "
+        "the Estimator, and only there, how well the takeoff matches the dataset's reference quantities ranks "
+        "second, ahead of behaviour: that seat's behaviour checks are nearly silent, and reading the drawings "
+        "is its job. Behaviour accuracy itself stays a measure of behaviour everywhere.",
         "",
         *best_local_table(groups),
         "",
@@ -920,11 +983,11 @@ def report(groups: list[Group], runs: list[dict[str, Any]], probe: bool = True) 
         "",
         "## Price against the reference",
         "",
-        "Accuracy in the tables above says whether a run behaved as its scenario expects: it reached Work, "
-        "raised the blocker, carried the concern, passed review. It never looks at a number, so a run that "
-        "passes review with a price a fifth too high scores as accurate. These tables look at the number, "
-        "for the scenarios whose drawings state their own quantities. They are kept apart from accuracy "
-        "on purpose (owner decision 2026-09-19).",
+        "Behaviour accuracy in the tables above says whether a run behaved as its scenario expects: it "
+        "reached Work, raised the blocker, carried the concern, passed review. It never looks at a number, "
+        "and neither does instruction accuracy, so a run that passes review with a price a fifth too high "
+        "scores as accurate. These tables look at the number, for the scenarios whose drawings state their "
+        "own quantities. They are kept apart from both accuracies on purpose (owner decision 2026-09-19).",
         "",
         *definitions(PRICE_NOTES),
         "",

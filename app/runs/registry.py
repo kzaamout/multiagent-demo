@@ -34,6 +34,7 @@ from app.orchestrator.knowledge_store import KnowledgeStore
 from app.orchestrator.orchestrator import DatasetRef, Orchestrator
 from app.orchestrator.roster import EXPORT_NAMES, SEATS, build_roster, single_agent
 from app.runs.bus import StreamBus
+from app.runs.guide import SeatGuide
 from app.runs.recorder import Recorder, read_events, read_meta
 from app.schema.events import Agent, Event, Model
 
@@ -153,6 +154,7 @@ class Registry:
         self.live: Orchestrator | None = None
         self.runs: dict[str, Orchestrator] = {}
         self._tasks: set[Any] = set()
+        self.guide = SeatGuide(settings.runs_dir)
 
     def dataset(self, dataset_id: str) -> DatasetInfo:
         try:
@@ -279,10 +281,13 @@ class Registry:
         return options
 
     def seat_table(self) -> dict[str, Any]:
-        """The Settings page: one row per seat with its live card, effective model key, note, and warning."""
+        """The Settings page: one row per seat with its live card, effective model key, note, and warning,
+        and the seat model guide (spec 014), which leaves out the run this app is running now."""
         config = self.effective_config()
         names = {seat: agent.name for seat, agent in self.live.roster.items()} if self.live else EXPORT_NAMES
         warning = self.family_warning(config)
+        running = self.live.run_id if self.live is not None and self.is_live() else None
+        guide = self.guide.table(config, exclude_run=running)
         rows: list[dict[str, Any]] = []
         for seat in SEATS:
             if seat.agent_id == "single":
@@ -298,9 +303,15 @@ class Registry:
                     "model_key": config.seats[seat.agent_id].model if seat.agent_id in config.seats else None,
                     "dependency": DEPENDENCY_NOTES.get(seat.agent_id, ""),
                     "warning": warning if seat.agent_id == "reviewer" else "",
+                    "guide": guide["seats"].get(seat.agent_id),
                 }
             )
-        return {"seats": rows, "models": self.model_options(), "note": "Changes apply at the next stage."}
+        return {
+            "seats": rows,
+            "models": self.model_options(),
+            "note": "Changes apply at the next stage.",
+            "guide": {"runs": guide["runs"], "min_runs": guide["min_runs"]},
+        }
 
     def set_seat_model(self, seat: str, model_key: str) -> SeatSwap:
         """Move a seat to another model in memory. Unknown keys and seats raise ValueError; a model whose
