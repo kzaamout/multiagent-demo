@@ -11,7 +11,7 @@ description: "Task list for the seat model guide on Settings"
 
 **Tests**: every change carries its test task, as in every slice before this one (constitution XIII). Browser tests carry `pytest.mark.visual`.
 
-**Where**: all work happens in the worktree `C:\Users\Khobaib\OneDrive\Desktop\code\multiagent-demo-guide` on branch `014-seat-model-guide`. Recorded runs are read, never written, from `C:\Users\Khobaib\OneDrive\Desktop\code\multiagent-demo\runs\` by setting `RUNS_DIR` to that folder.
+**Where**: all work happens in the worktree `../multiagent-demo-guide`, beside the main checkout, on branch `014-seat-model-guide`. Recorded runs are read, never written, from the main checkout's `runs/` by setting `RUNS_DIR` to that folder.
 
 **Organization**: story labels map to spec.md: US1 see the best open and proprietary model beside each seat, US2 the figures do not overstate thin evidence, US3 the figures follow the runs without a restart, US4 the report says the same thing.
 

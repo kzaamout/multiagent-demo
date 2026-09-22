@@ -1,6 +1,6 @@
 # Quickstart: validate the seat model guide
 
-Run from the worktree `multiagent-demo-guide`. The recorded runs live in the main checkout, so point `RUNS_DIR` there (the worktree has no `runs/` of its own).
+Run from the worktree `../multiagent-demo-guide`, beside the main checkout. The recorded runs live in the main checkout, so point `RUNS_DIR` there (the worktree has no `runs/` of its own).
 
 ## 1. Gates
 
@@ -14,7 +14,7 @@ Read the exit code on its own line; do not pipe the gate into another command.
 ## 2. The page on real runs
 
 ```powershell
-$env:RUNS_DIR = "C:\Users\Khobaib\OneDrive\Desktop\code\multiagent-demo\runs"
+$env:RUNS_DIR = (Resolve-Path ..\multiagent-demo\runs).Path
 uv run uvicorn app.main:app --port 8010
 ```
 
@@ -30,7 +30,7 @@ Open `http://127.0.0.1:8010/settings` (log in if `DEMO_USERNAME` is set) and che
 ## 3. Page and report agree
 
 ```powershell
-$env:RUNS_DIR = "C:\Users\Khobaib\OneDrive\Desktop\code\multiagent-demo\runs"
+$env:RUNS_DIR = (Resolve-Path ..\multiagent-demo\runs).Path
 uv run python scripts/model_report.py --write
 ```
 
