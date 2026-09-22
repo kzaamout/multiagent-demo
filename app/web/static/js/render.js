@@ -762,7 +762,9 @@
 
   /* Provenance markers over the page images (spec 2.6, S4 decision 2a). markers.json beside the pages
      carries each marker's page and pixel position at 150 ppi; the overlay places it as a percentage
-     of the image's natural size, so it stays put at any panel width. Hover is wired in demo.js. */
+     of the image's natural size, so it stays put at any panel width. Hover is wired in demo.js.
+     Each button shows the label the page prints, a letter (spec 013). A recording compiled before
+     2026-09-21 stores no label and prints numbers, so its buttons show the number. */
   function loadMarkers(compiled, ui) {
     var key = compiled.runId + '/' + compiled.eventId;
     var entry = ui.markers[key];
@@ -796,7 +798,7 @@
         class: 'marker', type: 'button', 'data-part': 'marker', 'data-marker': String(m.n), 'data-tag': m.tag_id,
         title: source ? 'Source of this figure' : 'Unresolved source',
         style: 'left:' + (m.x / img.naturalWidth * 100).toFixed(3) + '%;top:' + (m.y / img.naturalHeight * 100).toFixed(3) + '%',
-        text: String(m.n)
+        text: (typeof m.label === 'string' && m.label) ? m.label : String(m.n)
       };
       if (source) { attrs['data-source-event'] = source; } else { attrs['data-unresolved'] = 'true'; }
       layer.appendChild(el('button', attrs));

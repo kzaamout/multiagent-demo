@@ -47,9 +47,10 @@ class Settings:
     schema_version: str = "1.1.0"
     long_lead_days: int = 28
     agent_mode: str = "auto"  # auto: live when a dataset's inputs are curated, else stub; stub: always stub
-    public_run_id: str = "f2dda488-0a2f-457a-9ef1-33fcac05fa70"
+    public_run_id: str = "21b86b66-386a-4e3b-a351-8129e30cf456"
     """The one recorded run the public Introduction replay serves (spec 2.1, 6; S6 decision 1a).
-    The default is the S4 Planted inconsistency run of 2026-09-17; PUBLIC_RUN_ID overrides it."""
+    The default is the Planted inconsistency run of 2026-09-21, the first pinned run whose pages print
+    lettered markers (spec 013); PUBLIC_RUN_ID overrides it."""
     # S7 (spec 2.8, 2.9): the shared login pair, the run mode, and the tunnel hostname, all from .env.
     # The pair is compared in constant time by app.auth and never serialized; both empty means no login.
     run_mode: str = "laptop"  # laptop: local models through Ollama; cloud: cloud providers only

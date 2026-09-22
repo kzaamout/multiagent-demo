@@ -46,6 +46,9 @@ class Marker:
     page: int
     x: float
     y: float
+    label: str
+    """What the page prints for this marker. Recordings made before 2026-09-21 have no label, and the
+    panel shows their number, which is what their pages print."""
 
 
 @dataclass(frozen=True)
@@ -122,14 +125,15 @@ def _typst_pdf(typ_path: Path, pdf_path: Path) -> None:
 
 
 def _page_texts(typ_path: Path, pdf_path: Path) -> list[str]:
-    """The text of each page as the Reviewer reads it, with each provenance marker written " [n]".
+    """The text of each page as the Reviewer reads it, with each provenance marker written " [a]".
 
-    Extracted from the page as displayed, a superscript marker is glued to its figure, so one price
-    tagged five times reads $79,063.751 to $79,063.755. The Reviewer failed that as five different
-    prices: 113 of its 125 blocker findings say figures disagree, and 14 of the 22 runs that spent their
-    whole review budget failed on a disagreement that exists only in this text. So the text comes from a
-    second compile in which the template writes the marker in brackets. That compile is for reading only
-    and is removed; if it fails, the displayed page's text is better than none.
+    Extracted from the page as displayed, a superscript marker is glued to its figure. While markers
+    were numbers, one price tagged five times read $79,063.751 to $79,063.755, and the Reviewer failed
+    that as five different prices: 113 of its 125 blocker findings say figures disagree, and 14 of the 22
+    runs that spent their whole review budget failed on a disagreement that exists only in this text. So
+    the text comes from a second compile in which the template writes the marker in brackets. That
+    compile is for reading only and is removed; if it fails, the displayed page's text is better than
+    none, and a letter glued to a figure cannot be read as one of its digits.
     """
     text_pdf = pdf_path.with_name(pdf_path.stem + ".text.pdf")
     try:
@@ -193,6 +197,7 @@ def _typst_markers(typ_path: Path, drafts: list[MarkerDraft]) -> list[Marker]:
                 page=int(v["page"]),
                 x=round(float(v["x"]) * scale, 1),
                 y=round(float(v["y"]) * scale, 1),
+                label=d.label,
             )
         )
     return markers

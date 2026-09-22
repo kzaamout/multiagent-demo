@@ -127,7 +127,7 @@ of the document. It never computes a total; it uses the one Pricing supplied.
 
 | | |
 |---|---|
-| **Sees** | the brief, the compiled page images and their text, the reviewer criteria, and a note of what the engine verified before the draft reached it (every amount traced to its source, and the price tool's own sum), stated as facts that do not limit what it may find. In the text each provenance marker is written in brackets after its figure, as in $79,063.75 [1], because extracted from the displayed page the superscript reads as extra digits of the figure |
+| **Sees** | the brief, the compiled page images and their text, the reviewer criteria, and a note of what the engine verified before the draft reached it (every amount traced to its source, and the price tool's own sum), stated as facts that do not limit what it may find. In the text each provenance marker is written in brackets after its figure, as in $79,063.75 [a], because extracted from the displayed page the superscript is glued to the figure. The marker is a letter, the one the page image prints, so it cannot be read as a digit of the amount |
 | **Does not see** | the team's working, the specialist outputs, the drawings |
 | **Tools** | none |
 | **Returns** | `verdict` (pass or fail), `summary`, `findings` each with a severity and where it routes |

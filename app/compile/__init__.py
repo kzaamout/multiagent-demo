@@ -2,7 +2,7 @@
 
 The pipeline is the career-hub one: pandoc turns the markdown into Typst source with a template,
 Typst compiles that source to a PDF and to one PNG per page, and the intermediate source is kept
-beside the outputs. Provenance tags become numbered markers whose positions Typst reports, so the
+beside the outputs. Provenance tags become lettered markers whose positions Typst reports, so the
 artifact panel can lay hover targets over the page images. Nothing here emits an event: the module
 writes files and returns a record, and the Orchestrator emits `artifact.compiled` from it.
 """
