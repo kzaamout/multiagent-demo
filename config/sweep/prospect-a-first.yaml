@@ -1,0 +1,28 @@
+﻿# First live run on the prospect-a package, local models only (owner decision 2026-09-23).
+# Every seat runs the local baseline the sweeps use, so the Estimator is qwen3.5 9b rather than
+# the Bedrock seat config/models.yaml commits to. The Estimator's line carries no temperature, so
+# it runs at the model default while the other seats run at 0.1; the run records what it used.
+# One job, no variation: this is a dataset check, not a model comparison, so it stays out of
+# the stage labels and cannot contaminate a sweep's results.
+# Run with:
+#   uv run python scripts/sweep.py config/sweep/prospect-a-first.yaml --worker laptop
+label: prospect-a-local-2  # prospect-a-first holds the 2026-09-20 Bedrock run, prospect-a-local the 2026-09-23 local run
+datasets: [prospect-a]
+repeats: 1
+ceiling: 2.00              # local seats cost nothing; kept as a guard
+max_minutes: 45            # a real 14 sheet architectural set and 7 sheet electrical set, not a fixture
+blocker: answer            # the scenario expects the permit stamp to surface as an assumption and the
+                           # panel disagreement to be caught by the Reviewer, not to stop the run. A
+                           # blocker here is worth seeing the rest of the pipeline past, and it is still
+                           # recorded either way.
+baseline:
+  orchestrator: qwen3-5-9b
+  intake: qwen3-5-9b
+  estimator: qwen3-5-9b
+  pricing: qwen3-5-9b
+  writer: qwen3-5-9b
+  reviewer: gemma4-12b
+vary:
+  models: []
+  seats: []
+whole: []

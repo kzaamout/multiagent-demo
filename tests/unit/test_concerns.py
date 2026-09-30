@@ -47,3 +47,48 @@ def test_a_concern_without_a_sheet_is_not_checked_and_a_missing_section_is() -> 
 def test_one_sheet_named_is_not_enough() -> None:
     half = "# P\n\n## Assumptions\n\n- E-001 shows 225 A.\n"
     assert len(concern_problems(half, [RATING])) == 1
+
+
+FILED_ONLY = {
+    "text": "Branch circuit conduit and conductor quantities are inferred using the 25 m per circuit rule, "
+    "since circuit runs are not dimensioned on the floor plans.",
+    "drawing_ref": "E-101, E-102, E-002",
+}
+
+
+def test_a_concern_filed_against_sheets_its_sentence_never_names_is_carried_by_one_of_them() -> None:
+    """Run 8b817f67: refused once for a word-for-word copy and once for naming two of three filed sheets,
+    and the run stopped. One line in the concern's own words, naming one of the filed sheets, carries it."""
+    copied = (
+        "# P\n\n## Assumptions\n\n- Branch circuit conduit and conductor quantities are inferred using the "
+        "25 m per circuit rule, since circuit runs\nare not dimensioned on the floor plans.\n"
+    )
+    assert concern_problems(copied, [FILED_ONLY]) == [], "a copy of the concern's own sentence carries it"
+    reworded = "# P\n\n## Assumptions\n\n- Conduit and wire use a 25 m run per circuit; runs are not dimensioned on E-101/E-102.\n"
+    assert concern_problems(reworded, [FILED_ONLY]) == []
+    dropped = "# P\n\n## Assumptions\n\n- Markup is 15 percent.\n"
+    problems = concern_problems(dropped, [FILED_ONLY])
+    assert len(problems) == 1 and "at least one of E-101, E-102, E-002" in problems[0]
+
+
+def test_a_line_carrying_another_concern_on_the_same_sheet_does_not_carry_this_one() -> None:
+    switches = {
+        "text": "Switch count taken from the plan since the schedule does not itemize switches.",
+        "drawing_ref": "E-101",
+    }
+    only_switches = "# P\n\n## Assumptions\n\n- Switch count of 9 taken from E-101 since the schedule does not itemize switches.\n"
+    problems = concern_problems(only_switches, [switches, FILED_ONLY])
+    assert len(problems) == 1 and "25 m per circuit" in problems[0]
+
+
+def test_a_copied_sentence_still_needs_every_sheet_it_names() -> None:
+    copied = "# P\n\n## Assumptions\n\n- " + RATING["text"] + "\n"
+    assert concern_problems(copied, [RATING]) == []
+    assert (
+        len(
+            concern_problems(
+                "# P\n\n## Assumptions\n\n- Main breaker rating disagrees between sheets.\n", [RATING]
+            )
+        )
+        == 1
+    )

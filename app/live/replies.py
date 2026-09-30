@@ -197,7 +197,8 @@ ESTIMATOR_CONCERN_WORDS = ("panel schedule", "rating")
 
 # Datasets name their specification file after it, for example division-26-specification.pdf.
 SPECIFICATION_IN_NAME = "spec"
-SPECIFICATION_ITEM = "specifications or a specification section list"
+SPECIFICATION_WORD = "specification"
+"""The one checklist item with this word in its name, however a seat spells the item."""
 
 GRADED_SECTIONS = ("request document", "drawing set", "consistency checks")
 REQUIRED_SECTIONS = ("request document", "drawing set")
@@ -401,7 +402,9 @@ class IntakeReply(BaseModel):
             )
         if request_files is not None and not any(SPECIFICATION_IN_NAME in f.lower() for f in request_files):
             for grade in self.readiness.checklist:
-                if grade.item.lower().startswith(SPECIFICATION_ITEM) and grade.status == "pass":
+                # Matched on the word, not the checklist's full wording: a seat that graded the item under
+                # the short id `specifications` passed an absent specification unchallenged (2026-09-29).
+                if SPECIFICATION_WORD in grade.item.lower() and grade.status == "pass":
                     raise ReplyError(
                         "the specification item is graded pass but no specification was provided. The request "
                         f"files are: {', '.join(request_files)}. Grade it fail when the request references a "

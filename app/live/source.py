@@ -87,10 +87,12 @@ if TYPE_CHECKING:
     from app.orchestrator.orchestrator import Orchestrator
 
 SPECIALISTS = ("estimator", "pricing")
-CORRECTIONS = {"single": 3}
+CORRECTIONS = {"single": 3, "intake": 3}
 """Corrections a seat may receive after an invalid reply, so a seat gets this many attempts plus one. Two for
 every seat (owner decision 2026-09-17: the local seats missed a two attempt bar often enough to stop most runs),
-and three for the Single-model actor, which does the whole job in one call and stops to narrate more often (S5)."""
+and three for the Single-model actor, which does the whole job in one call and stops to narrate more often (S5).
+Three for Intake too (owner decision 2026-09-29): its reply is checked on the most counts of any seat, each
+correction tends to surface the next fault, and replays stopped on the third refusal while converging."""
 TOOL_CONFIDENCE = {"price_list_lookup": 1.0, "quantity_calculate": 1.0, "vision_read_drawing": 0.8}
 _TASK_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,40}$")
 

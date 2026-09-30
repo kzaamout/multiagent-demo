@@ -106,3 +106,17 @@ def test_a_specification_that_was_never_provided_cannot_be_graded_pass() -> None
         request_files=["invitation-to-tender.pdf", "division-26-specification.pdf"],
     )
     assert isinstance(reply, IntakeReply), "the item passes when the file is there"
+
+
+@pytest.mark.parametrize("name", ["specifications", "Specifications_provided", "specifications_section_list"])
+def test_an_absent_specification_graded_pass_under_a_short_name_is_still_refused(name: str) -> None:
+    """A replay of the Not ready scenario graded the item `specifications` pass, on a request that names
+    the specification and ships without it, and nothing refused it."""
+    items = checklist_items(CHECKLIST, REQUIRED_SECTIONS)
+    grades = [{"item": item, "status": "pass", "note": ""} for item in items]
+    grades = [g if "specification" not in g["item"].lower() else {**g, "item": name} for g in grades]
+    text = json.dumps(
+        {"brief": BRIEF, "readiness": {"verdict": "ready", "checklist": grades}, "clarifications": []}
+    )
+    with pytest.raises(ReplyError, match="no specification was provided"):
+        parse_reply("intake", text, expected_items=items, request_files=["invitation-to-tender.pdf"])
